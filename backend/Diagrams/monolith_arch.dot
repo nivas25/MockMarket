@@ -1,0 +1,72 @@
+digraph FinalBlueprint {
+    // --- Global Graph & Style Settings ---
+    graph [
+        rankdir=TB,
+        splines=line,           // FIX: Use direct, straight lines for a clean look
+        nodesep=1.2,              // More space between nodes horizontally
+        ranksep=2.2,              // More space between layers vertically
+        dpi=300,
+        fontname="Arial Bold",
+        fontsize=28,
+        label="\nMockMarket Backend: The Definitive Blueprint"
+    ];
+
+    node [
+        shape=box,
+        style="filled,rounded",
+        fontname="Arial",
+        fontsize=16,
+        penwidth=2.0,
+        width=6,
+        height=1.8
+    ];
+    
+    edge [
+        fontname="Arial Bold",
+        fontsize=14,
+        penwidth=2.0
+    ];
+
+    // --- Actors & External Systems (The "World") ---
+    subgraph cluster_world {
+        label="";
+        style=invis;
+        rank=same;
+        User [label="The User", shape=circle, fillcolor="#cce5ff", width=2.5];
+        Upstox [label="Upstox API\n(The Stock Market)", shape=component, fillcolor="#ffcdd2"];
+    }
+
+    // --- The Core Backend "Factory" ---
+    Routes [label="Station 1: The Security Desk\n/routes/", fillcolor="#d4edda"];
+    Services [label="Station 2: The Main Workshop\n/services/", fillcolor="#d4edda"];
+    Models [label="Station 3: The Filing System\n/models/", fillcolor="#d4edda"];
+    Database [label="The Warehouse\n(Aiven MySQL Database)", shape=cylinder, fillcolor="#fff3cd", height=2.0];
+    
+    // Position Scheduler separately as an automated trigger
+    Scheduler [label="The Automated Worker\n(Scheduler)", shape=oval, fillcolor="#e2d9f3", width=4];
+
+
+    // --- === FLOW 1: A User's Request (Numbered, Blue) === ---
+    edge [color="#0d47a1"];
+    User -> Routes [style=bold, label=" 1. Sends Command"];
+    Routes -> Services [style=bold, label=" 2. Forwards Task"];
+    Services -> Models [style=bold, label=" 3. Requests Data"];
+    Models -> Database [style=bold, label=" 4. Reads from DB"];
+    Database -> Models [style=dashed, label=" 5. Returns Data"];
+    Models -> Services [style=dashed, label=" 6. Returns Result"];
+    Services -> Models [style=bold, label=" 7. Commands 'Write'"];
+    Models -> Database [style=bold, label=" 8. Writes to DB"];
+    Database -> Models [style=dashed, label=" 9. Write Acknowledged"];
+    Models -> Services [style=dashed];
+    Services -> Routes [style=dashed, label=" 10. Reports 'Success'"];
+    Routes -> User [style=dashed, label=" 11. Notifies User"];
+    
+
+    // --- === FLOW 2: Automated Data Sync (Lettered, Green) === ---
+    edge [color="#1b5e20", style=dashed, penwidth=2.5, constraint=false];
+    Scheduler -> Services [label=" A. Kicks off Job"];
+    Services -> Upstox [label=" B. Fetches Market Data"];
+    Upstox -> Services [dir=back]; // Data returns
+    Services -> Models [label=" C. Provides Fresh Data"];
+    Models -> Database [label=" D. Stores Fresh Data"];
+}

@@ -1,0 +1,117 @@
+digraph FinalSystemBlueprint {
+    // --- Global Graph & Style Settings ---
+    graph [
+        rankdir=LR,                     // Left-to-Right layout for a clean, story-like flow
+        splines=spline,                 // Smooth, curved connectors for an organic feel
+        nodesep=1,                      // Generous space between nodes
+        ranksep=2.5,                    // Generous space between layers
+        dpi=300,                        // High-resolution output
+        fontname="Helvetica Bold",      // Clean, modern font
+        fontsize=24,
+        labelloc=t,
+        label="\nMockMarket - The Complete Architectural Blueprint"
+    ];
+
+    node [
+        shape=box,
+        style="filled,rounded",
+        fontname="Helvetica",
+        fontsize=14,
+        penwidth=2.0
+    ];
+    
+    edge [
+        fontname="Helvetica",
+        fontsize=12,
+        penwidth=1.5
+    ];
+
+    // --- The Main Components (Layers) ---
+    subgraph cluster_frontend {
+        label="The User's World (Presentation Layer)";
+        style="filled";
+        fontname="Helvetica Bold";
+        fillcolor="#e3f2fd"; // Light Blue
+        Frontend [
+            label="Next.js Frontend\n\nWhat the user sees and interacts with.",
+            height=2.5, width=3
+        ];
+    }
+
+    subgraph cluster_backend {
+        label="Our System's Brain (Application Layer)";
+        style="filled";
+        fontname="Helvetica Bold";
+        fillcolor="#e8f5e9"; // Light Green
+        Backend [
+            label="Flask Backend Server\n\nContains all business logic, rules, and background processes.",
+            height=2.5, width=3.5
+        ];
+    }
+
+    subgraph cluster_database {
+        label="Our System's Memory (Data Layer)";
+        style="filled";
+        fontname="Helvetica Bold";
+        fillcolor="#fffde7"; // Light Yellow
+        Database [
+            label="Aiven MySQL Database\n\nSecurely stores all user and market data.",
+            shape=cylinder,
+            height=2.5, width=3
+        ];
+    }
+    
+    // --- The External World ---
+    UpstoxAPI [
+        label="The Stock Market\n(Upstox API)",
+        shape=component,
+        fillcolor="#ffcdd2", // Light Red
+        height=2.5, width=3
+    ];
+
+
+    // --- === The Flows (The Story of How it Works) === ---
+
+    // FLOW 1: A User Takes Action (Numbered, Blue)
+    edge [color="#0d47a1", style=bold];
+    Frontend -> Backend [label=<
+        <table border="0" cellborder="0" cellspacing="0">
+        <tr><td align="center"><font point-size="16"><b>1.</b></font><font point-size="12"> User sends a command</font></td></tr>
+        <tr><td align="center"><font point-size="10">(Secure API Request)</font></td></tr>
+        </table>
+    >];
+
+    Backend -> Database [label=<
+        <table border="0" cellborder="0" cellspacing="0">
+        <tr><td align="center"><font point-size="16"><b>2.</b></font><font point-size="12"> Executes logic & reads/writes data</font></td></tr>
+        <tr><td align="center"><font point-size="10">(Checks balance, saves transaction)</font></td></tr>
+        </table>
+    >, dir=both];
+    
+    Backend -> Frontend [label=<
+        <table border="0" cellborder="0" cellspacing="0">
+        <tr><td align="center"><font point-size="16"><b>3.</b></font><font point-size="12"> Returns the result</font></td></tr>
+        <tr><td align="center"><font point-size="10">(Success or Error Response)</font></td></tr>
+        </table>
+    >];
+
+
+    // FLOW 2: Keeping Data Fresh (Lettered, Green)
+    edge [color="#1b5e20", style=dashed, penwidth=2.5];
+    Backend -> UpstoxAPI [label=<
+        <table border="0" cellborder="0" cellspacing="0">
+        <tr><td align="center"><font point-size="16"><b>A.</b></font><font point-size="12"> Fetches live market data</font></td></tr>
+        <tr><td align="center"><font point-size="10">(Automated Background Job)</font></td></tr>
+        </table>
+    >];
+    
+    // Using an invisible edge to guide the return arrow smoothly
+    UpstoxAPI -> Backend [dir=back, style=invis];
+    
+    Backend -> Database [label=<
+        <table border="0" cellborder="0" cellspacing="0">
+        <tr><td align="center"><font point-size="16"><b>B.</b></font><font point-size="12"> Stores the fresh data</font></td></tr>
+        <tr><td align="center"><font point-size="10">(Updates our local price cache)</font></td></tr>
+        </table>
+    >];
+}

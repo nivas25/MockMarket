@@ -14,7 +14,7 @@ export default function HeroSection() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 2. Define the login function using the hook
+  // 2. The login function using the hook
   const googleLogin = useGoogleLogin({
     // This uses the 'Authorization Code Flow' which is more secure
     // Google gives us a one-time code, we send it to YOUR backend
@@ -30,7 +30,7 @@ export default function HeroSection() {
           // ---
           // --- FIX: Use the full URL to your Flask backend ---
           // ---
-          "http://localhost:5001/api/v1/auth/google-login", // YOUR backend endpoint
+          "http://:5001/api/v1/auth/google-login", // YOUR backend endpoint
           {
             method: "POST",
             headers: {

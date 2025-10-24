@@ -1,0 +1,98 @@
+/* Import fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@700&family=Sora:wght@600&display=swap");
+
+/* === GLOBAL BASE === */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent; /* Removes blue tap box on mobile */
+}
+
+:root {
+  /* --- Gold Palette --- */
+  --gold-primary: #d4af37;
+  --gold-secondary: #e5c16c;
+  --gold-gradient: linear-gradient(
+    90deg,
+    var(--gold-secondary),
+    var(--gold-primary)
+  );
+  --gold-text: #8c6d1f;
+
+  /* --- Light Mode (NEW "Frosted Glass") --- */
+  --bg-light: #fafaf5;
+  --text-light: #1a1a1a;
+  /* A subtle grey tint, not pure white */
+  --glass-light: rgba(240, 240, 245, 0.3);
+  /* Very subtle border */
+  --border-light: rgba(255, 255, 255, 0.25);
+
+  /* --- Dark Mode (NEW "Frosted Glass") --- */
+  --bg-dark: #0b0b0b;
+  --text-dark: #eaeaea;
+  /* A subtle dark grey tint */
+  --glass-dark: rgba(20, 20, 20, 0.3);
+  /* Very subtle border */
+  --border-dark: rgba(255, 255, 255, 0.1);
+
+  /* --- Sizing & Animation --- */
+  --radius: 10px;
+  --transition: 0.3s ease;
+
+  /* --- NEW "VisionOS" Soft Shadow --- */
+  --shadow-liquid: 0 12px 24px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", sans-serif;
+  background-color: var(--bg-light);
+  color: var(--text-light);
+  transition: background var(--transition), color var(--transition);
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+.dark {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  margin: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* --- FIX: "Not full gold" Text Selection --- */
+::selection {
+  /* 40% transparent gold */
+  background: rgba(212, 175, 55, 0.4);
+  /* This lets the original text color show through */
+  color: inherit;
+}
+
+.dark ::selection {
+  background: rgba(212, 175, 55, 0.4);
+  color: inherit;
+}

@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Rabbit from "../../../public/rabbit/Rabbit_Namaste.png";
 import { useEffect } from "react";
-import { useGoogleLogin } from "@react-oauth/google"; // 1. Import the hook
+import { useGoogleLogin } from "@react-oauth/google";
+import axios from "axios"; // <-- Axios import
 
 export default function HeroSection() {
   useEffect(() => {
@@ -14,58 +15,56 @@ export default function HeroSection() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 2. Define the login function using the hook
+  // Google Login function using the hook
   const googleLogin = useGoogleLogin({
-    // This uses the 'Authorization Code Flow' which is more secure
-    // Google gives us a one-time code, we send it to YOUR backend
     flow: "auth-code",
     onSuccess: async (codeResponse) => {
-      console.log(
-        "Google login success, sending code to backend:",
-        codeResponse
-      );
+      console.log("Google login success, sending code to backend:", codeResponse);
+      console.log("Google auth code (codeResponse.code):", codeResponse?.code);
+
       try {
-        // 3. Send the code to YOUR backend
-        const response = await fetch(
-          // ---
-          // --- FIX: Use the full URL to your Flask backend ---
-          // ---
-          "http://localhost:5001/api/v1/auth/google-login", // YOUR backend endpoint
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ code: codeResponse.code }), // Send the code
-          }
+        // Axios POST request to backend
+        const response = await axios.post(
+          "http://localhost:5000/auth/google-login", // Your backend endpoint
+          { code: codeResponse.code }, // Body payload
+          { headers: { "Content-Type": "application/json" } }
         );
 
-        if (!response.ok) {
-          // Handle backend errors (e.g., user not found, server issue)
-          const errorData = await response.json();
-          console.error("Backend login failed:", errorData);
-          alert(`Login failed: ${errorData.message || "Unknown error"}`);
-          return;
-        }
+        console.log("Backend HTTP status:", response.status);
+        console.log("Backend response data:", response.data);
 
-        // 4. Get YOUR JWT from the backend response
-        const data = await response.json();
-        const jwtToken = data.token; // Assuming your backend sends { "token": "YOUR_JWT" }
+        const jwtToken = response.data?.token; // Extract JWT from backend response
 
         if (jwtToken) {
           console.log("Received JWT from backend:", jwtToken);
-          // 5. Save the JWT
           localStorage.setItem("authToken", jwtToken);
 
-          // 6. Redirect to the dashboard
-          window.location.href = "/dashboard"; // Simple redirect for now
+          // Redirect to dashboard
+          window.location.href = "/dashboard";
         } else {
-          console.error("Backend response missing token");
-          alert("Login failed: Could not retrieve session token.");
+          console.error("Backend response missing token — full response:", response);
+          // If backend returned an empty object, show status for debugging
+          if (response && Object.keys(response.data || {}).length === 0) {
+            alert(`Login failed: Backend returned empty response (status ${response.status}). Check server logs and CORS.`);
+          } else {
+            alert("Login failed: Could not retrieve session token.");
+          }
         }
-      } catch (error) {
-        console.error("Error communicating with backend:", error);
-        alert("Login failed: Could not connect to server.");
+      } catch (error: any) {
+        // Axios error handling — be verbose so we can debug empty bodies / CORS / network issues
+        if (error && error.response) {
+          console.error("Backend login failed — status:", error.response.status);
+          console.error("Backend login failed — headers:", error.response.headers);
+          console.error("Backend login failed — data:", error.response.data);
+          alert(`Login failed: ${error.response.data?.message || 'Unknown error'} (status ${error.response.status})`);
+        } else if (error && error.request) {
+          // Request was made but no response received
+          console.error("No response received from backend (possible CORS or network issue):", error.request);
+          alert('Login failed: No response from server. Check backend is running and CORS is configured.');
+        } else {
+          console.error("Error communicating with backend:", error);
+          alert("Login failed: Could not connect to server.");
+        }
       }
     },
     onError: (errorResponse) => {
@@ -74,9 +73,8 @@ export default function HeroSection() {
     },
   });
 
-  // Function to call when the button is clicked
   const handleGoogleLogin = () => {
-    googleLogin(); // This opens the Google popup
+    googleLogin(); // Open Google popup
   };
 
   return (
@@ -99,8 +97,6 @@ export default function HeroSection() {
             helps you learn, invest, and grow confidently.
           </p>
           <div className="hero-buttons">
-            {/* --- 7. UPDATE THE BUTTON --- */}
-            {/* Change back to <button> and add onClick */}
             <button className="btn-primary" onClick={handleGoogleLogin}>
               Start Trading
             </button>

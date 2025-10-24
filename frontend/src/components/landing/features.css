@@ -1,0 +1,197 @@
+/* ============================================= */
+/* --- REFINED FEATURES SECTION (UPGRADED) --- */
+/* ============================================= */
+.features {
+  width: 100%;
+  padding: 80px 24px;
+  position: relative;
+  overflow: hidden;
+  background-color: #fdfaf0; /* Light, premium cream/gold */
+  border-top: 1px solid #f0e6c8;
+}
+.dark .features {
+  background-color: #050505;
+  border-top: 1px solid var(--border-dark);
+}
+
+.features::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1000px;
+  height: 1000px;
+  background-image: radial-gradient(
+    circle,
+    rgba(212, 175, 55, 0.1),
+    transparent 60%
+  );
+  filter: blur(100px);
+  z-index: 1;
+}
+.dark .features::before {
+  background-image: radial-gradient(
+    circle,
+    rgba(212, 175, 55, 0.1),
+    transparent 60%
+  );
+}
+
+.features-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+.features-title {
+  font-size: 2.5rem;
+  letter-spacing: -1.5px;
+  margin-bottom: 16px;
+  color: var(--text-light);
+}
+.dark .features-title {
+  color: var(--text-dark);
+}
+
+.features-subtitle {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: #555;
+  margin-bottom: 60px;
+  max-width: 450px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.dark .features-subtitle {
+  color: #b5b5b5;
+}
+
+/* ============================================= */
+/* --- UPGRADED "MILLED GLASS" CARD DESIGN --- */
+/* ============================================= */
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+.feature-card {
+  position: relative;
+  border-radius: var(--radius);
+  padding: 32px;
+  text-align: left;
+  overflow: hidden;
+
+  /* --- UPGRADE 1: Use "True" Glass --- */
+  background-color: var(--glass-light);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-light);
+
+  /* --- UPGRADE 2: Deeper 3D Effect --- */
+  box-shadow: var(--shadow-liquid), inset 0 1px 1px rgba(255, 255, 255, 0.7);
+
+  transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+}
+.dark .feature-card {
+  background-color: var(--glass-dark);
+  border: 1px solid var(--border-dark);
+  box-shadow: var(--shadow-liquid), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Accent Bar on Hover */
+.feature-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--gold-gradient);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* "Lift" Effect */
+.feature-card:hover {
+  transform: translateY(-6px);
+  /* Brighter shadow on lift */
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12),
+    inset 0 1px 1px rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+.dark .feature-card:hover {
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.feature-card:hover::before {
+  transform: scaleX(1);
+}
+
+/* "Press" Effect */
+.feature-card:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+.dark .feature-card:active {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================= */
+/* --- CARD CONTENT --- */
+/* ============================================= */
+.card-icon-wrapper {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+
+  /* --- UPGRADE 3: Solid Gold (like InfoSection) --- */
+  background: var(--gold-gradient);
+  color: #1a1a1a;
+}
+.feature-icon {
+  width: 28px;
+  height: 28px;
+  /* color is now inherited from wrapper */
+}
+.card-title {
+  font-family: "Sora", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.card-description {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #444;
+}
+.dark .card-description {
+  color: #ccc;
+}
+
+/* ============================================= */
+/* --- MEDIA QUERIES --- */
+/* ============================================= */
+@media (min-width: 768px) {
+  .features-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .features-title {
+    font-size: 3rem;
+  }
+}
+@media (min-width: 1024px) {
+  .features {
+    padding: 100px 24px;
+  }
+}

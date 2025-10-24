@@ -1,0 +1,286 @@
+/* ============================================= */
+/* --- LANDING PAGE LAYOUT --- */
+/* ============================================= */
+.landing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100svh;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(170deg, var(--bg-light), #ffffff);
+  background-size: 200% 200%;
+  animation: subtleGradient 15s ease infinite;
+  padding-top: 100px;
+}
+
+.dark .hero {
+  background: linear-gradient(170deg, var(--bg-dark), #030303);
+  background-size: 200% 200%;
+  animation: subtleGradient 15s ease infinite;
+}
+
+@keyframes subtleGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.hero-main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  width: 100%;
+}
+
+/* ============================================= */
+/* --- FINAL "LIQUID GLASS" HEADER --- */
+/* ============================================= */
+.sticky-header {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+}
+
+.header-badge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  border-radius: 999px;
+
+  background-color: var(--glass-light);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-light);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.7);
+
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.dark .header-badge {
+  background-color: var(--glass-dark);
+  border-color: var(--border-dark);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.scrolled .header-badge {
+  padding: 6px 20px;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+}
+
+.header-logo {
+  font-family: "Poppins", sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% auto;
+  animation: shimmer 5s ease-in-out infinite;
+}
+
+/* ============================================= */
+/* --- HERO CONTENT & BUTTONS --- */
+/* ============================================= */
+.hero-content {
+  max-width: 500px;
+  width: 100%;
+  z-index: 2;
+  margin-bottom: 40px;
+  text-align: center;
+}
+.hero-title {
+  font-size: 3rem;
+  letter-spacing: -2px;
+  line-height: 1.15;
+  margin-bottom: 20px;
+}
+.hero-title-gold {
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% auto;
+  animation: shimmer 4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% center;
+  }
+}
+.hero-subtext {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  margin-bottom: 36px;
+  color: #555;
+}
+.dark .hero-subtext {
+  color: #b5b5b5;
+}
+.hero-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+.btn-primary,
+.btn-secondary {
+  padding: 16px 32px;
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  transition: all 0.25s ease-out;
+  font-family: "Sora", sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.btn-primary {
+  background: var(--gold-primary);
+  color: #1a1a1a;
+  box-shadow: 0 4px 20px rgba(205, 164, 52, 0.25);
+}
+.btn-primary:hover {
+  background: var(--gold-secondary);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(205, 164, 52, 0.35);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--gold-primary);
+  border-color: var(--gold-primary);
+}
+.dark .btn-secondary {
+  color: var(--gold-secondary);
+  border-color: var(--gold-secondary);
+}
+.btn-secondary:hover {
+  background: var(--gold-primary);
+  border-color: var(--gold-primary);
+  color: #1a1a1a;
+  transform: translateY(-4px);
+}
+.dark .btn-secondary:hover {
+  background: var(--gold-secondary);
+  border-color: var(--gold-secondary);
+}
+
+/* ============================================= */
+/* --- HERO IMAGE & MEDIA QUERIES --- */
+/* ============================================= */
+.hero-image {
+  max-width: 280px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+}
+.rabbit {
+  width: 100% !important;
+  height: auto !important;
+  max-width: 280px;
+}
+@media (min-width: 768px) {
+  /* --- THE DESKTOP GAP FIX --- */
+  .hero {
+    /* This value is significantly smaller to close the gap */
+    padding-top: 80px;
+  }
+
+  .sticky-header {
+    top: 32px;
+  }
+  .header-badge {
+    padding: 12px 32px;
+  }
+  .scrolled .header-badge {
+    padding: 8px 28px;
+  }
+  .header-logo {
+    font-size: 1.5rem;
+  }
+  .hero-main-content {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    column-gap: 30px;
+    text-align: left;
+    /* Removed padding to let the grid place the content */
+    align-items: center;
+    /* Pushes content down slightly from the absolute top of the container */
+    padding-top: 20px;
+  }
+  .hero-content {
+    grid-column: 1;
+    max-width: 540px;
+    margin: 0;
+    justify-self: end;
+    text-align: left;
+    padding-bottom: 40px;
+  }
+  .hero-buttons {
+    justify-content: flex-start;
+  }
+  .hero-image {
+    grid-column: 2;
+    max-width: 380px;
+  }
+  .rabbit {
+    max-width: 380px;
+  }
+  .hero-title {
+    font-size: 4rem;
+    letter-spacing: -2.5px;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* --- THE LARGER DESKTOP GAP FIX --- */
+  .hero {
+    padding-top: 90px;
+  }
+
+  .hero-main-content {
+    padding-top: 20px;
+    padding-left: 60px;
+    padding-right: 60px;
+    column-gap: 50px;
+  }
+  .hero-title {
+    font-size: 4.6rem;
+    letter-spacing: -3px;
+  }
+  .hero-content {
+    max-width: 580px;
+    padding-bottom: 60px;
+  }
+  .hero-image {
+    max-width: 440px;
+  }
+  .rabbit {
+    max-width: 440px;
+  }
+}

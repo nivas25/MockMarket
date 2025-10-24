@@ -1,0 +1,157 @@
+/* ============================================= */
+/* --- FAQ SECTION --- */
+/* ============================================= */
+.faq {
+  width: 100%;
+  padding: 80px 24px;
+  /* Use the light off-white from features */
+  background-color: var(--bg-light);
+  border-top: 1px solid var(--border-light);
+}
+
+.dark .faq {
+  background-color: #050505; /* Use the dark off-black */
+  border-top: 1px solid var(--border-dark);
+}
+
+.faq-container {
+  max-width: 900px; /* FAQs look better a bit narrower */
+  margin: 0 auto;
+  text-align: center;
+}
+
+.faq-title {
+  font-size: 2.5rem;
+  letter-spacing: -1.5px;
+  margin-bottom: 16px;
+}
+
+.faq-title-gold {
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.faq-subtitle {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: #555;
+  margin-bottom: 60px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dark .faq-subtitle {
+  color: #b5b5b5;
+}
+
+/* --- FAQ Grid (Mobile-First) --- */
+.faq-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  text-align: left;
+}
+
+.faq-item {
+  background-color: #ffffff;
+  border: 1px solid #eee;
+  border-radius: var(--radius);
+  transition: all var(--transition);
+}
+
+.dark .faq-item {
+  background-color: #111;
+  border-color: var(--border-dark);
+}
+
+.faq-item[open] {
+  border-color: var(--gold-primary);
+}
+
+.dark .faq-item[open] {
+  border-color: var(--gold-secondary);
+}
+
+/* The Question */
+.faq-question {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  cursor: pointer;
+  font-family: "Sora", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  list-style: none; /* Removes default disclosure marker */
+}
+
+/* Hide default marker on Chrome/Safari */
+.faq-question::-webkit-details-marker {
+  display: none;
+}
+
+/* The Answer */
+.faq-answer {
+  padding: 0 24px 24px 24px;
+  line-height: 1.7;
+  color: #444;
+}
+
+.dark .faq-answer {
+  color: #ccc;
+}
+
+/* --- Icon Animation --- */
+.faq-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--gold-primary);
+  flex-shrink: 0;
+  margin-left: 16px;
+  transition: transform 0.3s ease;
+}
+.dark .faq-icon {
+  color: var(--gold-secondary);
+}
+
+.icon-minus {
+  display: none;
+}
+
+/* When the <details> is open */
+.faq-item[open] > .faq-question .icon-plus {
+  display: none;
+}
+.faq-item[open] > .faq-question .icon-minus {
+  display: block;
+}
+.faq-item[open] > .faq-question {
+  color: var(--gold-primary);
+}
+.dark .faq-item[open] > .faq-question {
+  color: var(--gold-secondary);
+}
+
+/* --- Desktop Breakpoint --- */
+@media (min-width: 768px) {
+  .faq-title {
+    font-size: 3rem;
+  }
+
+  /* Make it 2 columns on desktop */
+  .faq-grid {
+    grid-template-columns: 1fr 1fr;
+    /* THIS IS THE FIX: */
+    /* It stops the closed items from stretching to match the open one */
+    align-items: start;
+  }
+}
+
+@media (min-width: 1024px) {
+  .faq {
+    padding: 100px 24px;
+  }
+}

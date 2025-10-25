@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=D:\5\DBMS\PROJECT\MockMarket\backend\backend_venv
+set VIRTUAL_ENV=M:\PROJECT\MockMarket\backend\backend_venv
 
 if not defined PROMPT set PROMPT=$P$G
 

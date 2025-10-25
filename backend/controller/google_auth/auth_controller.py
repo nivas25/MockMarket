@@ -58,11 +58,6 @@ def handle_google_login(code):
         
         return add_user_to_db(full_name, email)
 
-        print("---------------------------------")
-        print("🎉 GOOGLE AUTH SUCCESS! 🎉")
-        print(f"Verified User: {full_name}")
-        print(f"Verified Email: {email}")
-        print("---------------------------------")
 
         
     except Exception as e:

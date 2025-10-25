@@ -35,7 +35,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="D:\5\DBMS\PROJECT\MockMarket\backend\backend_venv"
+VIRTUAL_ENV="M:\PROJECT\MockMarket\backend\backend_venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

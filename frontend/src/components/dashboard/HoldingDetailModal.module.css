@@ -1,0 +1,624 @@
+/* Theme tokens */
+:root {
+  /* Light defaults */
+  --mm-surface: #ffffff;
+  --mm-text: #0f1115;
+  --mm-border: rgba(0, 0, 0, 0.08);
+  --mm-elev: rgba(0, 0, 0, 0.04);
+  --mm-track: rgba(0, 0, 0, 0.08);
+  /* Accents */
+  --mm-green: #00b386;
+  --mm-red: #d61f1f;
+  --mm-gold: #d4af37;
+  --mm-green-soft: rgba(0, 179, 134, 0.18);
+  --mm-red-soft: rgba(214, 31, 31, 0.18);
+  --mm-gold-soft: rgba(212, 175, 55, 0.25);
+}
+
+/* System dark (used if app doesn't explicitly force a theme) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --mm-surface: #0f1115;
+    --mm-text: #e8eaed;
+    --mm-border: rgba(255, 255, 255, 0.08);
+    --mm-elev: rgba(255, 255, 255, 0.03);
+    --mm-track: rgba(255, 255, 255, 0.1);
+    --mm-green: #00c596;
+    --mm-red: #ff4242;
+    --mm-gold: #e0b84d;
+    --mm-green-soft: rgba(0, 197, 150, 0.18);
+    --mm-red-soft: rgba(255, 66, 66, 0.18);
+    --mm-gold-soft: rgba(224, 184, 77, 0.25);
+  }
+}
+
+/* Global theme hooks for app-level toggles */
+html[data-theme="light"],
+body[data-theme="light"],
+html.light,
+body.light {
+  --mm-surface: #ffffff;
+  --mm-text: #0f1115;
+  --mm-border: rgba(0, 0, 0, 0.08);
+  --mm-elev: rgba(0, 0, 0, 0.04);
+  --mm-track: rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="dark"],
+body[data-theme="dark"],
+html.dark,
+body.dark {
+  --mm-surface: #0f1115;
+  --mm-text: #e8eaed;
+  --mm-border: rgba(255, 255, 255, 0.08);
+  --mm-elev: rgba(255, 255, 255, 0.03);
+  --mm-track: rgba(255, 255, 255, 0.1);
+}
+
+/* Local theme overrides (apply to a parent container) */
+.themeLight {
+  --mm-surface: #ffffff;
+  --mm-text: #0f1115;
+  --mm-border: rgba(0, 0, 0, 0.08);
+  --mm-elev: rgba(0, 0, 0, 0.04);
+  --mm-track: rgba(0, 0, 0, 0.08);
+}
+
+.themeDark {
+  --mm-surface: #0f1115;
+  --mm-text: #e8eaed;
+  --mm-border: rgba(255, 255, 255, 0.08);
+  --mm-elev: rgba(255, 255, 255, 0.03);
+  --mm-track: rgba(255, 255, 255, 0.1);
+  --mm-green: #00c596;
+  --mm-red: #ff4242;
+  --mm-gold: #e0b84d;
+  --mm-green-soft: rgba(0, 197, 150, 0.18);
+  --mm-red-soft: rgba(255, 66, 66, 0.18);
+  --mm-gold-soft: rgba(224, 184, 77, 0.25);
+}
+
+/* Overlay */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px) saturate(1.05);
+  padding: max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+  z-index: 1000;
+}
+
+.modalContent {
+  width: min(720px, calc(100vw - 16px));
+  border-radius: 16px 16px 12px 12px;
+  background: var(--mm-surface);
+  color: var(--mm-text);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  border: 1px solid var(--mm-border);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--mm-border);
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ltp {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.priceChange {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.profit {
+  color: #00b386;
+}
+
+.loss {
+  color: #d61f1f;
+}
+
+.closeBtn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.closeBtn:hover {
+  background: var(--mm-elev);
+}
+
+.body {
+  padding: 12px 14px 16px 14px;
+}
+
+/* Performance Capsule — fresh, premium, no-scroll */
+.capsule {
+  background: radial-gradient(
+      120% 140% at -10% -10%,
+      rgba(212, 175, 55, 0.06),
+      transparent 60%
+    ),
+    radial-gradient(
+      120% 140% at 110% -10%,
+      rgba(0, 179, 134, 0.06),
+      transparent 60%
+    ),
+    linear-gradient(180deg, var(--mm-elev), transparent);
+  border: 1px solid var(--mm-border);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
+  backdrop-filter: saturate(1.1) blur(6px);
+}
+
+.tickerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.ticker {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.trendPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  border: 1px solid var(--mm-border);
+  background: var(--mm-elev);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.trendPill svg {
+  width: 14px;
+  height: 14px;
+}
+
+.up {
+  color: var(--mm-green);
+  border-color: rgba(0, 179, 134, 0.3);
+  background: linear-gradient(
+    180deg,
+    var(--mm-green-soft),
+    rgba(0, 179, 134, 0.06)
+  );
+}
+
+.down {
+  color: var(--mm-red);
+  border-color: rgba(214, 31, 31, 0.3);
+  background: linear-gradient(
+    180deg,
+    var(--mm-red-soft),
+    rgba(214, 31, 31, 0.06)
+  );
+}
+
+.capsuleGrid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.gaugeWrap {
+  display: grid;
+  place-items: center;
+}
+
+.gaugeRing {
+  --g: 0; /* 0..100 */
+  --gcolor: var(--mm-green);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  position: relative;
+  background: conic-gradient(
+      var(--gcolor) calc(var(--g) * 1%),
+      var(--mm-track) 0
+    ),
+    conic-gradient(var(--mm-track) 0 100%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 1px 8px rgba(0, 0, 0, 0.25) inset;
+  transition: background 800ms ease-out;
+}
+
+.gaugeRing::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(
+    var(--mm-border) 0 2deg,
+    transparent 2deg 6deg
+  );
+  -webkit-mask: radial-gradient(
+    circle at center,
+    transparent 0 48px,
+    black 49px
+  );
+  mask: radial-gradient(circle at center, transparent 0 48px, black 49px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.gaugeRing::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  background: var(--mm-surface);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--mm-border);
+}
+
+.gaugeCenter {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.gaugeValue {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.gaugeLabel {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.metricsCol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.metricItem {
+  border: 1px solid var(--mm-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--mm-elev);
+  position: relative;
+  transition: transform 160ms ease, border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.metricItem::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    transparent 40%
+  );
+  opacity: 0.4;
+}
+
+.metricItem:hover {
+  transform: translateY(-1px);
+  border-color: rgba(212, 175, 55, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.metricLabel {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.metricValue {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.valueBarWrap {
+  margin-top: 10px;
+}
+
+.valueBarTitle {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-bottom: 6px;
+}
+
+.valueBar {
+  height: 12px;
+  border-radius: 999px;
+  background: var(--mm-elev);
+  display: grid;
+  grid-auto-flow: column;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--mm-border),
+    inset 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.investedSeg {
+  background: linear-gradient(
+    90deg,
+    rgba(212, 175, 55, 0.6),
+    rgba(212, 175, 55, 0.35)
+  );
+}
+
+.gainSeg {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 179, 134, 0.8),
+    rgba(0, 179, 134, 0.5)
+  );
+}
+
+.lossSeg {
+  background: linear-gradient(
+    90deg,
+    rgba(214, 31, 31, 0.8),
+    rgba(214, 31, 31, 0.5)
+  );
+}
+
+.valueLegend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Trade form */
+.formCard {
+  background: var(--mm-elev);
+  border: 1px solid var(--mm-border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.actionToggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.toggleBtn {
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--mm-border);
+  background: var(--mm-elev);
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, transform 120ms ease,
+    border-color 160ms ease;
+}
+
+.toggleActiveBuy {
+  background: linear-gradient(
+    180deg,
+    var(--mm-green-soft),
+    rgba(0, 179, 134, 0.08)
+  );
+  border-color: rgba(0, 179, 134, 0.35);
+  color: var(--mm-green);
+}
+
+.toggleActiveSell {
+  background: linear-gradient(
+    180deg,
+    var(--mm-red-soft),
+    rgba(214, 31, 31, 0.08)
+  );
+  border-color: rgba(214, 31, 31, 0.35);
+  color: var(--mm-red);
+}
+
+.orderTypeToggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.typeBtn {
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--mm-border);
+  background: var(--mm-elev);
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.typeBtnActive {
+  border-color: rgba(212, 175, 55, 0.6);
+  background: linear-gradient(
+    180deg,
+    var(--mm-gold-soft),
+    rgba(212, 175, 55, 0.08)
+  );
+  color: var(--mm-gold);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  margin-top: 12px;
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.input {
+  height: 36px;
+  border-radius: 8px;
+  background: var(--mm-elev);
+  border: 1px solid var(--mm-border);
+  color: inherit;
+  padding: 0 10px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.input:disabled {
+  opacity: 0.5;
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 6px;
+  font-size: 13px;
+}
+
+.totalValue {
+  font-weight: 700;
+}
+
+.executeBtn {
+  margin-top: 12px;
+  height: 40px;
+  width: 100%;
+  border-radius: 10px;
+  border: none;
+  color: #0b0d12;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 160ms ease;
+}
+
+.executeBuy {
+  background: linear-gradient(180deg, #00b386, #039e78);
+}
+
+.executeSell {
+  background: linear-gradient(180deg, #d61f1f, #b71a1a);
+}
+
+.executeBtn:active {
+  transform: translateY(1px);
+  filter: brightness(0.98);
+}
+
+@media (max-width: 520px) {
+  .capsuleGrid {
+    grid-template-columns: 1fr;
+  }
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Insights chips */
+.insightsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 12px;
+  border: 1px solid var(--mm-border);
+  background: var(--mm-elev);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.chipNeutral {
+  opacity: 0.85;
+}
+.chipUp {
+  color: var(--mm-green);
+  border-color: rgba(0, 179, 134, 0.35);
+}
+.chipDown {
+  color: var(--mm-red);
+  border-color: rgba(214, 31, 31, 0.35);
+}
+
+.chipIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+}

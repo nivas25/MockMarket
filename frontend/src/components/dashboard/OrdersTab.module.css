@@ -1,0 +1,403 @@
+/* Theme-aware Orders tab styles */
+:root {
+  /* rely on app tokens from other modules; define fallbacks if missing */
+  --mm-surface: #ffffff;
+  --mm-text: #0f1115;
+  --mm-border: rgba(0, 0, 0, 0.08);
+  --mm-elev: rgba(0, 0, 0, 0.04);
+  --mm-green: #00b386;
+  --mm-red: #d61f1f;
+  --mm-gold: #d4af37;
+}
+
+.ordersWrap {
+  background: var(--mm-surface);
+  color: var(--mm-text);
+  border: 1px solid var(--mm-border);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.actionsRow {
+  display: flex;
+  gap: 10px;
+}
+
+.searchBox {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--mm-border);
+  background: var(--mm-elev);
+  border-radius: 10px;
+}
+
+.searchBox svg {
+  opacity: 0.7;
+}
+
+.searchInput {
+  border: none;
+  background: transparent;
+  color: inherit;
+  outline: none;
+  width: 180px;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--mm-border);
+  background: var(--mm-elev);
+  color: inherit;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.filterChipActive {
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+}
+
+.count {
+  opacity: 0.7;
+  font-weight: 700;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mm-border);
+}
+
+.dot[data-kind="pending"] {
+  background: rgba(212, 175, 55, 0.7);
+}
+.dot[data-kind="completed"] {
+  background: var(--mm-green);
+}
+.dot[data-kind="cancelled"] {
+  background: var(--mm-red);
+}
+
+.listWrap {
+  display: grid;
+  gap: 10px;
+}
+
+.card {
+  border: 1px solid var(--mm-border);
+  background: linear-gradient(180deg, var(--mm-elev), transparent);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tickerBlock {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidePill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  min-width: 48px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid var(--mm-border);
+}
+
+.buy {
+  color: var(--mm-green);
+  background: rgba(0, 179, 134, 0.12);
+  border-color: rgba(0, 179, 134, 0.35);
+}
+
+.sell {
+  color: var(--mm-red);
+  background: rgba(214, 31, 31, 0.12);
+  border-color: rgba(214, 31, 31, 0.35);
+}
+
+.tickerName {
+  font-weight: 800;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid var(--mm-border);
+}
+
+.statusPending {
+  color: #e0b84d;
+  background: rgba(224, 184, 77, 0.12);
+  border-color: rgba(224, 184, 77, 0.4);
+}
+.statusCompleted {
+  color: var(--mm-green);
+  background: rgba(0, 179, 134, 0.12);
+  border-color: rgba(0, 179, 134, 0.35);
+}
+.statusCancelled {
+  color: var(--mm-red);
+  background: rgba(214, 31, 31, 0.12);
+  border-color: rgba(214, 31, 31, 0.35);
+}
+
+.cardBody {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricCell {
+  border: 1px solid var(--mm-border);
+  background: var(--mm-elev);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.metricLabel {
+  font-size: 11px;
+  opacity: 0.7;
+}
+.metricValue {
+  font-weight: 800;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--mm-elev);
+  border: 1px solid var(--mm-border);
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(212, 175, 55, 0.8),
+    rgba(212, 175, 55, 0.35)
+  );
+  width: 0;
+}
+
+.progressText {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.actionBtn {
+  height: 32px;
+  border-radius: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--mm-border);
+  background: var(--mm-elev);
+  color: inherit;
+  font-weight: 700;
+}
+
+.actionBtn:disabled {
+  opacity: 0.6;
+}
+
+.primaryBtn {
+  background: linear-gradient(180deg, #00b386, #039e78);
+  color: #0b0d12;
+  border: none;
+}
+
+.ghostBtn {
+  background: transparent;
+}
+
+.dangerBtn {
+  color: var(--mm-red);
+  border-color: rgba(214, 31, 31, 0.35);
+  background: rgba(214, 31, 31, 0.08);
+}
+
+.emptyWrap {
+  padding: 24px 12px;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.emptyIcon {
+  font-size: 28px;
+}
+.emptyTitle {
+  font-weight: 800;
+  margin-top: 6px;
+}
+.emptyText {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+@media (max-width: 640px) {
+  .searchInput {
+    width: 120px;
+  }
+  .cardBody {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Desktop table layout */
+.tableContainer {
+  display: none;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--mm-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--mm-surface);
+}
+
+.thead th {
+  text-align: left;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 10px 12px;
+  background: var(--mm-elev);
+  border-bottom: 1px solid var(--mm-border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--mm-border);
+}
+
+.tr:nth-child(odd) td {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.tdRight {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--mm-border);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.statusPending {
+  color: #e0b84d;
+  background: rgba(224, 184, 77, 0.12);
+  border-color: rgba(224, 184, 77, 0.4);
+}
+.statusCompleted {
+  color: var(--mm-green);
+  background: rgba(0, 179, 134, 0.12);
+  border-color: rgba(0, 179, 134, 0.35);
+}
+.statusCancelled {
+  color: var(--mm-red);
+  background: rgba(214, 31, 31, 0.12);
+  border-color: rgba(214, 31, 31, 0.35);
+}
+
+.sideBuy {
+  color: var(--mm-green);
+  background: rgba(0, 179, 134, 0.12);
+  border-color: rgba(0, 179, 134, 0.35);
+}
+.sideSell {
+  color: var(--mm-red);
+  background: rgba(214, 31, 31, 0.12);
+  border-color: rgba(214, 31, 31, 0.35);
+}
+
+.tableActions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+@media (min-width: 720px) {
+  .tableContainer {
+    display: block;
+  }
+  .listWrap {
+    display: none;
+  }
+}

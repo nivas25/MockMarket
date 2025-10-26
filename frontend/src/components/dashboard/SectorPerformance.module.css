@@ -1,0 +1,79 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px;
+}
+
+.name {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-color);
+}
+
+.value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-color);
+  font-family: "SF Mono", Monaco, "Fira Code", "Roboto Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.bullish {
+  --accent-color: #16a34a;
+}
+.bearish {
+  --accent-color: #dc2626;
+}
+
+/* tiny trend arrow */
+.trend {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+.trendUp {
+  border-bottom: 6px solid var(--accent-color);
+}
+.trendDown {
+  border-top: 6px solid var(--accent-color);
+}
+
+@media (max-width: 480px) {
+  .name {
+    font-size: 12px;
+  }
+  .chip {
+    height: 24px;
+    padding: 0 8px;
+    gap: 6px;
+  }
+  .value {
+    font-size: 12px;
+  }
+}

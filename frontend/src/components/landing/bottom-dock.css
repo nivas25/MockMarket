@@ -27,6 +27,7 @@
 /* ============================================= */
 /* --- THE "SOFT CLAY" PILL --- */
 /* ============================================= */
+
 .dock-pill {
   display: flex;
   justify-content: space-around;
@@ -36,20 +37,68 @@
   width: 100%;
   max-width: 520px;
 
-  /* --- NEUMORPHISM (LIGHT MODE) --- */
-  background: var(--bg-light);
-  backdrop-filter: none;
+  /* Premium glass effect - matching TopBar */
+  background: rgba(255, 255, 255, 0.42);
   border-radius: 999px;
-  border: 1px solid var(--gold-primary); /* Gold accent border */
-  box-shadow: 10px 10px 24px rgba(174, 174, 192, 0.4), -10px -10px 24px #ffffff;
-  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(12px) saturate(170%);
+  backdrop-filter: blur(12px) saturate(170%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
-/* --- NEUMORPHISM (DARK MODE) --- */
-.dark .dock-pill {
-  background: var(--bg-dark);
-  border: 1px solid var(--gold-primary); /* Gold accent border */
-  box-shadow: 10px 10px 24px #000000, -10px -10px 24px rgba(50, 50, 50, 0.1);
+/* Specular highlight */
+.dock-pill::before {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 2px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.dock-pill:hover {
+  transform: translateY(-2px) translateZ(0);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+}
+
+/* Dark mode glass effect */
+body.dark .dock-pill {
+  background: rgba(10, 10, 10, 0.45);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+
+body.dark .dock-pill:hover {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 1px 0 rgba(255, 255, 255, 0.1) inset;
+}
+
+body.dark .dock-pill::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.12),
+    transparent
+  );
 }
 
 /* ============================================= */
@@ -63,17 +112,20 @@
   gap: 2px;
   padding: 6px 12px;
   border-radius: 16px;
-  color: #555;
-  font-family: "Sora", sans-serif;
+  color: var(--color-text-muted); /* FIX: Was #555 */
+  font-family: var(--font-secondary); /* Use global variable */
   font-weight: 600;
   font-size: 0.75rem;
   text-decoration: none;
-  transition: all 0.25s ease;
+  transition: all var(--transition-fast); /* Use global variable */
 }
 
-.dark .dock-link {
+/* FIX: This rule is no longer needed, var(--color-text-muted) handles it */
+/*
+body.dark .dock-link {
   color: #bbb;
 }
+*/
 
 /* --- "Pressed" effect on hover (ONLY if not active) --- */
 .dock-link:not(.active):hover {
@@ -81,22 +133,23 @@
   color: var(--gold-primary);
 }
 
-/* --- NEW: ACTIVE LINK STYLE --- */
+/* --- ACTIVE LINK STYLE --- */
 .dock-link.active {
   color: var(--gold-primary);
-  background: rgba(212, 175, 55, 0.1); /* Subtle gold background */
-  transform: translateY(0); /* Ensure it's not "pressed" */
+  background: var(--gold-primary-faded); /* Use global variable */
+  transform: translateY(0);
 }
 
-.dark .dock-link.active {
+/* FIX: Corrected selector */
+body.dark .dock-link.active {
   color: var(--gold-secondary);
-  background: rgba(212, 175, 55, 0.15);
+  background: var(--gold-primary-faded);
 }
 
 .dock-icon {
   width: 22px;
   height: 22px;
-  transition: all 0.25s ease;
+  transition: all var(--transition-fast); /* Use global variable */
 }
 
 .dock-label {
@@ -116,7 +169,7 @@
   color: #1a1a1a;
   cursor: pointer;
   box-shadow: 0 8px 22px rgba(255, 215, 0, 0.35);
-  transition: all 0.3s ease;
+  transition: all var(--transition-smooth); /* Use global variable */
 }
 
 .dock-theme-toggle:hover {
@@ -136,7 +189,7 @@
 
   .dock-link {
     flex-direction: row;
-    gap: 8px;
+    gap: var(--space-sm); /* Use global variable */
     padding: 8px 16px;
   }
 

@@ -4,11 +4,14 @@
 .info {
   width: 100%;
   padding: 80px 24px;
-  background-color: #ffffff; /* White background */
+  /* Use global variable for background */
+  background-color: var(--color-bg-widget);
+  transition: background-color var(--transition-fast);
 }
 
-.dark .info {
-  background-color: #000000; /* Pure black background */
+/* Corrected dark mode selector and respected user's pure black choice */
+body.dark .info {
+  background-color: #000000;
 }
 
 .info-container {
@@ -25,10 +28,12 @@
 }
 
 .info-title {
+  font-family: var(--font-primary); /* Use global variable */
   font-size: 2.5rem;
   letter-spacing: -1.5px;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-lg); /* Use global variable */
   line-height: 1.3;
+  color: var(--color-text); /* Use global variable */
 }
 
 .info-title-gold {
@@ -43,42 +48,46 @@
 .info-description {
   font-size: 1.1rem;
   line-height: 1.7;
-  color: #555;
-  margin-bottom: 16px;
+  color: var(--color-text-muted); /* Use global variable */
+  margin-bottom: var(--space-md); /* Use global variable */
   max-width: 550px;
   margin-left: auto;
   margin-right: auto;
 }
 
-.dark .info-description {
-  color: #b5b5b5;
+/* This dark mode rule is no longer needed */
+/*
+body.dark .info-description {
+  color: var(--color-text-muted);
 }
+*/
 
-/* --- NEW Highlights List --- */
+/* --- Highlights List --- */
 .highlights-list {
   list-style: none;
   padding: 0;
   margin: 0;
   display: grid;
   grid-template-columns: 1fr; /* Single column on mobile */
-  gap: 24px; /* Increased gap */
+  gap: var(--space-lg); /* Use global variable */
 }
 
 .highlight-item {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-md); /* Use global variable */
   font-size: 1.1rem;
   font-weight: 600;
-  font-family: "Sora", sans-serif;
+  font-family: var(--font-secondary);
+  color: var(--color-text); /* Use global variable */
 }
 
-/* --- NEW Icon Wrapper Style --- */
+/* --- Icon Wrapper Style --- */
 .highlight-icon-wrapper {
-  flex-shrink: 0; /* Prevents icon from shrinking */
+  flex-shrink: 0;
   width: 44px;
   height: 44px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm); /* Use global variable */
   display: flex;
   align-items: center;
   justify-content: center;

@@ -9,9 +9,10 @@ import {
 } from "react";
 
 // Define the shape of the context data
+type ThemeMode = "light" | "dark";
 interface ThemeContextType {
-  theme: string;
-  setTheme: (theme: string) => void;
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
 }
 
 // Create the context with a default value
@@ -19,32 +20,42 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // Define the provider component
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState("light"); // Default theme
-
-  useEffect(() => {
-    // 1. Check localStorage first
-    const localTheme = localStorage.getItem("theme");
-
-    if (localTheme) {
-      setTheme(localTheme);
-    } else if (
-      // 2. If no localStorage, check system preference
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-    ) {
-      setTheme("dark");
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    // Resolve initial theme once during first render (client only)
+    if (typeof window === "undefined") return "light";
+    const stored = (window.localStorage.getItem("theme") || "").toLowerCase();
+    if (stored === "light" || stored === "dark") return stored as ThemeMode;
+    try {
+      return window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    } catch {
+      return "light";
     }
-  }, []); // Empty array means this runs only once on mount
+  });
 
   // This effect runs whenever the 'theme' state changes
   useEffect(() => {
-    // 1. Update localStorage
+    // 1. Persist selection
     localStorage.setItem("theme", theme);
 
-    // 2. Update the <body> class
+    // 2. Update DOM markers for CSS and components to consume
+    const html = document.documentElement;
     const body = document.body;
+
+    // Classes
+    html.classList.remove("light", "dark");
     body.classList.remove("light", "dark");
+    html.classList.add(theme);
     body.classList.add(theme);
+
+    // data-theme attributes
+    html.setAttribute("data-theme", theme);
+    body.setAttribute("data-theme", theme);
+
+    // Prefer correct UA styling for form controls in supported browsers
+    html.style.colorScheme = theme;
   }, [theme]); // Run this effect when 'theme' changes
 
   return (

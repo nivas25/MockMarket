@@ -1,0 +1,220 @@
+/* ========================================================== */
+/* Page-level structure and layout only                      */
+/* Component-specific styles live beside their components.   */
+/* ========================================================== */
+
+.pageContainer {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* reserve space at top for the fixed header so content doesn't jump under it */
+  padding-top: 72px;
+  background-color: var(--color-bg);
+  transition: background-color var(--transition-fast);
+  position: relative; /* Needed for pseudo-element background */
+  overflow-x: hidden; /* Prevents aurora overflow */
+}
+
+/* Premium Aurora Background Effect */
+.pageContainer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: var(--aurora-bg);
+  background-size: 400% 400%;
+  animation: aurora-animation 16s ease infinite;
+  z-index: 0;
+  opacity: 0.7;
+  will-change: background-position;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+:global(body.dark) .pageContainer::before {
+  opacity: 0.5;
+}
+
+/* Disable aurora animation on low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  .pageContainer::before {
+    animation: none;
+  }
+}
+
+.mainContent {
+  flex: 1;
+  padding: var(--space-md);
+  max-width: var(--layout-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  position: relative; /* Ensure content is above the aurora */
+  z-index: 1;
+}
+
+.contentArea {
+  display: grid;
+  gap: var(--space-md);
+}
+
+/* Skeleton utilities (reused across dashboard sections) */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+}
+
+:global(.dark) .skeleton {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  animation: shimmer 1.2s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
+  }
+}
+
+.skTopStrip {
+  height: 64px;
+  border-radius: 14px;
+  margin-bottom: var(--space-md);
+}
+
+.skTwoCol {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-lg);
+}
+
+.skCardTall {
+  height: 420px;
+}
+
+.skCard {
+  height: 180px;
+}
+
+/* Error boundary styles */
+.errorBox {
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(12px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  padding: var(--space-xl);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  text-align: center;
+  max-width: 480px;
+  margin: 80px auto;
+  position: relative;
+  z-index: 2;
+}
+
+:global(.dark) .errorBox {
+  background: rgba(10, 10, 10, 0.45);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+.errorTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+:global(.dark) .errorTitle {
+  color: var(--color-text-dark);
+}
+
+.errorMessage {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+  margin: 0 0 var(--space-md) 0;
+}
+
+:global(.dark) .errorMessage {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.errorButton {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0.5)
+  );
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.errorButton:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0.6)
+  );
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+:global(.dark) .errorButton {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 30, 0.7),
+    rgba(20, 20, 20, 0.5)
+  );
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--color-text-dark);
+}
+
+:global(.dark) .errorButton:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(40, 40, 40, 0.8),
+    rgba(30, 30, 30, 0.6)
+  );
+}
+
+@media (min-width: 768px) {
+  .mainContent {
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
+  }
+
+  .contentArea {
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-lg);
+  }
+}

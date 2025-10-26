@@ -4,26 +4,31 @@
 .faq {
   width: 100%;
   padding: 80px 24px;
-  /* Use the light off-white from features */
-  background-color: var(--bg-light);
-  border-top: 1px solid var(--border-light);
+  /* Use the global light background */
+  background-color: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  transition: background-color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
-.dark .faq {
-  background-color: #050505; /* Use the dark off-black */
-  border-top: 1px solid var(--border-dark);
+/* Corrected dark mode selector */
+body.dark .faq {
+  background-color: #050505; /* Use the dark off-black from features */
+  border-top: 1px solid var(--color-border);
 }
 
 .faq-container {
-  max-width: 900px; /* FAQs look better a bit narrower */
+  max-width: 900px;
   margin: 0 auto;
   text-align: center;
 }
 
 .faq-title {
+  font-family: var(--font-primary); /* Use global variable */
   font-size: 2.5rem;
   letter-spacing: -1.5px;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-md); /* Use global variable */
+  color: var(--color-text); /* Use global variable */
 }
 
 .faq-title-gold {
@@ -36,16 +41,13 @@
 .faq-subtitle {
   font-size: 1.15rem;
   line-height: 1.7;
-  color: #555;
+  color: var(--color-text-muted); /* Use global variable */
   margin-bottom: 60px;
   max-width: 500px;
   margin-left: auto;
   margin-right: auto;
 }
-
-.dark .faq-subtitle {
-  color: #b5b5b5;
-}
+/* Removed redundant .dark rule, global var handles it */
 
 /* --- FAQ Grid (Mobile-First) --- */
 .faq-grid {
@@ -56,22 +58,25 @@
 }
 
 .faq-item {
-  background-color: #ffffff;
-  border: 1px solid #eee;
-  border-radius: var(--radius);
-  transition: all var(--transition);
+  /* Use global variables */
+  background-color: var(--color-bg-widget);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); /* FIX: Was --radius */
+  transition: all var(--transition-fast); /* FIX: Was --transition */
 }
 
-.dark .faq-item {
-  background-color: #111;
-  border-color: var(--border-dark);
+/* Corrected dark mode selector */
+body.dark .faq-item {
+  background-color: var(--color-bg-widget); /* Uses #0f0f0f */
+  border-color: var(--color-border); /* FIX: Was --border-dark */
 }
 
 .faq-item[open] {
   border-color: var(--gold-primary);
 }
 
-.dark .faq-item[open] {
+/* Corrected dark mode selector */
+body.dark .faq-item[open] {
   border-color: var(--gold-secondary);
 }
 
@@ -80,12 +85,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px;
+  padding: var(--space-lg); /* Use global variable */
   cursor: pointer;
-  font-family: "Sora", sans-serif;
+  font-family: var(--font-secondary);
   font-size: 1.1rem;
   font-weight: 600;
   list-style: none; /* Removes default disclosure marker */
+  color: var(--color-text);
+  transition: color var(--transition-fast);
 }
 
 /* Hide default marker on Chrome/Safari */
@@ -95,14 +102,12 @@
 
 /* The Answer */
 .faq-answer {
-  padding: 0 24px 24px 24px;
+  /* Use 0 for top/left/right, var(--space-lg) for bottom */
+  padding: 0 var(--space-lg) var(--space-lg) var(--space-lg);
   line-height: 1.7;
-  color: #444;
+  color: var(--color-text-muted); /* Use global variable */
 }
-
-.dark .faq-answer {
-  color: #ccc;
-}
+/* Removed redundant .dark rule, global var handles it */
 
 /* --- Icon Animation --- */
 .faq-icon {
@@ -110,10 +115,11 @@
   height: 20px;
   color: var(--gold-primary);
   flex-shrink: 0;
-  margin-left: 16px;
-  transition: transform 0.3s ease;
+  margin-left: var(--space-md); /* Use global variable */
+  transition: transform var(--transition-smooth);
 }
-.dark .faq-icon {
+/* Corrected dark mode selector */
+body.dark .faq-icon {
   color: var(--gold-secondary);
 }
 
@@ -131,7 +137,8 @@
 .faq-item[open] > .faq-question {
   color: var(--gold-primary);
 }
-.dark .faq-item[open] > .faq-question {
+/* Corrected dark mode selector */
+body.dark .faq-item[open] > .faq-question {
   color: var(--gold-secondary);
 }
 
@@ -144,8 +151,7 @@
   /* Make it 2 columns on desktop */
   .faq-grid {
     grid-template-columns: 1fr 1fr;
-    /* THIS IS THE FIX: */
-    /* It stops the closed items from stretching to match the open one */
+    /* This stops closed items from stretching to match open ones */
     align-items: start;
   }
 }

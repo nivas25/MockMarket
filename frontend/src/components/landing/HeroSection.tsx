@@ -19,7 +19,10 @@ export default function HeroSection() {
   const googleLogin = useGoogleLogin({
     flow: "auth-code",
     onSuccess: async (codeResponse) => {
-      console.log("Google login success, sending code to backend:", codeResponse);
+      console.log(
+        "Google login success, sending code to backend:",
+        codeResponse
+      );
       console.log("Google auth code (codeResponse.code):", codeResponse?.code);
 
       try {
@@ -42,28 +45,60 @@ export default function HeroSection() {
           // Redirect to dashboard
           window.location.href = "/dashboard";
         } else {
-          console.error("Backend response missing token — full response:", response);
+          console.error(
+            "Backend response missing token — full response:",
+            response
+          );
           // If backend returned an empty object, show status for debugging
           if (response && Object.keys(response.data || {}).length === 0) {
-            alert(`Login failed: Backend returned empty response (status ${response.status}). Check server logs and CORS.`);
+            alert(
+              `Login failed: Backend returned empty response (status ${response.status}). Check server logs and CORS.`
+            );
           } else {
             alert("Login failed: Could not retrieve session token.");
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Axios error handling — be verbose so we can debug empty bodies / CORS / network issues
-        if (error && error.response) {
-          console.error("Backend login failed — status:", error.response.status);
-          console.error("Backend login failed — headers:", error.response.headers);
-          console.error("Backend login failed — data:", error.response.data);
-          alert(`Login failed: ${error.response.data?.message || 'Unknown error'} (status ${error.response.status})`);
-        } else if (error && error.request) {
-          // Request was made but no response received
-          console.error("No response received from backend (possible CORS or network issue):", error.request);
-          alert('Login failed: No response from server. Check backend is running and CORS is configured.');
+        if (axios.isAxiosError(error)) {
+          if (error.response) {
+            console.error(
+              "Backend login failed — status:",
+              error.response.status
+            );
+            console.error(
+              "Backend login failed — headers:",
+              error.response.headers
+            );
+            console.error("Backend login failed — data:", error.response.data);
+            const dataUnknown = error.response.data as unknown;
+            let errMsg = "Unknown error";
+            if (
+              dataUnknown &&
+              typeof dataUnknown === "object" &&
+              "message" in dataUnknown
+            ) {
+              const maybeMsg = (dataUnknown as { message?: unknown }).message;
+              errMsg =
+                typeof maybeMsg === "string" ? maybeMsg : "Unknown error";
+            }
+            alert(`Login failed: ${errMsg} (status ${error.response.status})`);
+          } else if (error.request) {
+            // Request was made but no response received
+            console.error(
+              "No response received from backend (possible CORS or network issue):",
+              error.request
+            );
+            alert(
+              "Login failed: No response from server. Check backend is running and CORS is configured."
+            );
+          } else {
+            console.error("Error creating request:", error.message);
+            alert("Login failed: Could not create request.");
+          }
         } else {
-          console.error("Error communicating with backend:", error);
-          alert("Login failed: Could not connect to server.");
+          console.error("Unexpected error communicating with backend:", error);
+          alert("Login failed: An unexpected error occurred.");
         }
       }
     },

@@ -1,0 +1,308 @@
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  /* Neutral glass (no color tint) */
+  background: rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(12px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  outline: 1px solid rgba(0, 0, 0, 0.06);
+  outline-offset: -1px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: var(--space-lg);
+  transition: box-shadow 180ms ease, transform 180ms ease;
+}
+
+/* Removed top light per request */
+.header::before {
+  content: none;
+}
+
+/* Remove sheen overlay to avoid any color cast */
+.header::after {
+  content: none;
+}
+
+:global(.dark) .header {
+  /* Neutral dark glass */
+  background: rgba(10, 10, 10, 0.45);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  outline-color: rgba(255, 255, 255, 0.06);
+}
+
+:global(.dark) .header::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.identity {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: rgba(45, 32, 12, 0.9);
+  background: linear-gradient(135deg, #f6d77e 0%, #f0b32a 45%, #d7991b 100%);
+  border: 1px solid rgba(156, 120, 16, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 4px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(6px) saturate(160%);
+}
+
+:global(.dark) .logo {
+  color: rgba(255, 244, 224, 0.92);
+  background: linear-gradient(135deg, #e6b95f 0%, #d99a1a 50%, #b97e12 100%);
+  border-color: rgba(255, 233, 181, 0.22);
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.companyName {
+  font-size: clamp(16px, 1.8vw, 22px);
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+:global(.dark) .companyName {
+  color: var(--color-text-dark);
+}
+
+.metaRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.symbolChip {
+  padding: 4px 9px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(8px) saturate(180%);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.exchangeChip {
+  padding: 4px 9px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 11px;
+  font-weight: 600;
+  backdrop-filter: blur(8px) saturate(180%);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.symbolChip:hover,
+.exchangeChip:hover {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.68);
+}
+.dotSep {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+:global(.dark) .symbolChip,
+:global(.dark) .exchangeChip {
+  background: rgba(20, 20, 20, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+:global(.dark) .symbolChip:hover,
+:global(.dark) .exchangeChip:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(24, 24, 24, 0.74);
+}
+
+.priceBlock {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.currentPrice {
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.priceRow {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.rupee {
+  font-size: 0.6em;
+  opacity: 0.9;
+}
+
+.priceInt {
+  letter-spacing: 0.5px;
+}
+
+.priceFrac {
+  font-size: 0.55em;
+  opacity: 0.9;
+}
+
+:global(.dark) .currentPrice {
+  color: var(--color-text-dark);
+}
+
+.change {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 5px 11px;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(6px) saturate(160%);
+}
+
+.change.positive {
+  background: rgba(16, 185, 129, 0.16);
+  color: #059669;
+}
+
+.change.negative {
+  background: rgba(239, 68, 68, 0.16);
+  color: #dc2626;
+}
+
+:global(.dark) .change.positive {
+  background: rgba(16, 185, 129, 0.22);
+  color: #10b981;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:global(.dark) .change.negative {
+  background: rgba(239, 68, 68, 0.22);
+  color: #ef4444;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.arrow {
+  font-size: 10px;
+}
+
+.changeValue {
+  font-weight: 700;
+}
+
+.changePercent {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+    padding: var(--space-md);
+  }
+  .priceBlock {
+    align-items: flex-start;
+  }
+  .logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    font-size: 16px;
+  }
+  .identity {
+    gap: 12px;
+  }
+  .titleBlock {
+    gap: 6px;
+  }
+  .companyName {
+    font-size: 17px;
+  }
+  .currentPrice {
+    font-size: 22px;
+  }
+  .change {
+    font-size: 12px;
+    padding: 4px 10px;
+    gap: 5px;
+  }
+}
+
+/* Desktop refinements */
+@media (min-width: 992px) {
+  .header {
+    max-width: 960px;
+    margin: 0 auto var(--space-lg);
+  }
+  .priceBlock {
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+    padding-left: var(--space-lg);
+  }
+}
+
+@media (min-width: 992px) {
+  :global(.dark) .priceBlock {
+    border-left-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+/* Subtle premium hover (no color aura) */
+.header:hover {
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.12),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+.header:hover .priceBlock {
+  border-left-color: rgba(197, 147, 18, 0.35);
+}
+:global(.dark) .header:hover .priceBlock {
+  border-left-color: rgba(255, 219, 141, 0.28);
+}
+.header:active {
+  transform: translateY(0.5px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}

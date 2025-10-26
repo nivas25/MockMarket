@@ -1,0 +1,216 @@
+.profileMenuContainer {
+  position: relative;
+  display: inline-block;
+}
+
+/* Button aligns with TopBar icon buttons */
+.profileIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  color: var(--gold-primary);
+  background: transparent;
+  transition: all var(--transition-smooth);
+  outline: none;
+}
+.profileIcon:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 55, 0.1),
+    rgba(229, 193, 108, 0.2)
+  );
+  color: var(--color-text);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--gold-primary-faded);
+}
+.profileIcon:focus-visible {
+  color: var(--color-text);
+  box-shadow: 0 0 0 3px var(--gold-primary-faded),
+    0 0 12px var(--gold-primary-faded);
+}
+.buttonIcon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Floating menu (portal renders with fixed coords) */
+.menuBox {
+  background: rgba(255, 255, 255, 0.42);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(12px) saturate(170%);
+  backdrop-filter: blur(12px) saturate(170%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.25) inset,
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  padding: 16px 18px;
+  min-width: 240px;
+  animation: pm-fadeIn 0.18s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* specular highlight like TopBar capsule */
+.menuBox::before {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 2px;
+  height: 1px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.65),
+    transparent
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ambient aura removed */
+.menuBox::after {
+  content: none;
+}
+
+@keyframes pm-fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.quickInfo {
+  margin-bottom: 12px;
+  color: var(--color-text);
+  font-weight: 600;
+}
+.quickInfo p {
+  margin: 4px 0;
+}
+
+.profileBtn {
+  background: var(--gold-gradient);
+  color: #0b0b0b;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.28);
+  transition: box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+.profileBtn:hover {
+  box-shadow: 0 8px 22px rgba(212, 175, 55, 0.38);
+  transform: translateY(-1px);
+}
+
+:global(body.dark) .menuBox {
+  background: rgba(10, 10, 10, 0.45);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+
+/* New structured sections */
+.headerRow {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.name {
+  font-weight: 700;
+}
+.email {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.iconGhost {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  color: var(--color-text);
+}
+.iconGhost:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+:global(body.dark) .iconGhost {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.06);
+  margin: 12px -18px;
+}
+:global(body.dark) .divider {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.infoList {
+  margin-top: 8px;
+}
+.infoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+.infoLabel {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+.infoValue {
+  font-weight: 700;
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+.resetBtn {
+  flex: 1;
+  background: var(--gold-gradient);
+  color: #0b0b0b;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.28);
+}
+.resetBtn:hover {
+  box-shadow: 0 8px 22px rgba(212, 175, 55, 0.38);
+}
+.logoutBtn {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+}
+:global(body.dark) .logoutBtn {
+  border-color: rgba(255, 255, 255, 0.08);
+}

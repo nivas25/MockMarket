@@ -1,0 +1,439 @@
+/* Section heading for indices */
+/* Premium but subtle heading for all modes */
+.indicesHeading {
+  font-family: var(--font-secondary);
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--color-text);
+  display: inline-block;
+  margin-left: 4px;
+  margin-bottom: 8px; /* small gap above cards */
+}
+.indicesHeading::after {
+  content: "";
+  display: block;
+  height: 2px;
+  width: 28px;
+  margin-top: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #87b6ff 0%, #a8d4ff 100%);
+}
+:global(body.dark) .indicesHeading::after {
+  background: linear-gradient(90deg, #8ea6ff 0%, #b69cff 100%);
+}
+@media (max-width: 767px) {
+  .indicesHeading {
+    font-size: 1.06rem;
+    margin-bottom: 6px; /* even smaller gap on mobile */
+    margin-left: 8px;
+  }
+  .indicesHeading::after {
+    width: 24px;
+  }
+}
+/* IndicesStrip - index cards layout with glassmorphism */
+
+.indicesStrip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+}
+
+.indexCard {
+  padding: var(--space-md);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(
+    135deg,
+    rgba(229, 193, 108, 0.35),
+    rgba(170, 229, 255, 0.25)
+  );
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  transition: transform var(--transition-fast),
+    box-shadow var(--transition-fast), border-color var(--transition-fast);
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+
+:global(body.dark) .indexCard {
+  background: linear-gradient(
+    135deg,
+    rgba(55, 131, 212, 0.18),
+    rgba(88, 28, 135, 0.14)
+  );
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+/* Vary tints per card using nth-child */
+.indexCard:nth-child(1) {
+  background: linear-gradient(
+    135deg,
+    rgba(229, 193, 108, 0.48),
+    rgba(212, 175, 55, 0.32)
+  );
+}
+.indexCard:nth-child(2) {
+  background: linear-gradient(
+    135deg,
+    rgba(55, 170, 212, 0.42),
+    rgba(108, 200, 229, 0.28)
+  );
+}
+.indexCard:nth-child(3) {
+  background: linear-gradient(
+    135deg,
+    rgba(170, 108, 229, 0.42),
+    rgba(200, 150, 229, 0.28)
+  );
+}
+.indexCard:nth-child(4) {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.36),
+    rgba(5, 150, 105, 0.22)
+  );
+}
+
+:global(body.dark) .indexCard:nth-child(1) {
+  background: linear-gradient(
+    135deg,
+    rgba(229, 193, 108, 0.2),
+    rgba(212, 175, 55, 0.12)
+  );
+}
+:global(body.dark) .indexCard:nth-child(2) {
+  background: linear-gradient(
+    135deg,
+    rgba(55, 131, 212, 0.2),
+    rgba(31, 122, 140, 0.14)
+  );
+}
+:global(body.dark) .indexCard:nth-child(3) {
+  background: linear-gradient(
+    135deg,
+    rgba(170, 108, 229, 0.2),
+    rgba(88, 28, 135, 0.14)
+  );
+}
+:global(body.dark) .indexCard:nth-child(4) {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.18),
+    rgba(5, 150, 105, 0.12)
+  );
+}
+
+/* Inner specular highlight */
+.indexCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* Shimmer effect on hover */
+.indexCard::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    135deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+
+.indexCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1), 0 0 24px var(--gold-primary-faded),
+    0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+  border-color: var(--gold-secondary);
+}
+
+.indexCard:hover::after {
+  transform: translateX(100%);
+}
+
+:global(body.dark) .indexCard:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 0 24px var(--gold-primary-faded),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+.indexHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.indexTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-positive);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+.indexName {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+}
+
+:global(body.dark) .indexName {
+  text-shadow: none;
+}
+
+.pill {
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pillUp {
+  background: #ecfdf5;
+  color: var(--color-positive);
+}
+.pillDown {
+  background: #fef2f2;
+  color: var(--color-negative);
+}
+:global(body.dark) .pillUp {
+  background: #052e16;
+}
+:global(body.dark) .pillDown {
+  background: #450a0a;
+}
+
+.indexValue {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: "Inter", "Segoe UI", "Arial", "sans-serif";
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--color-text);
+}
+
+.valueInteger {
+  font-size: 1.6rem;
+  line-height: 1;
+  color: #444;
+  text-shadow: none;
+}
+
+.valueDecimal {
+  font-size: 0.98rem;
+  line-height: 1;
+  color: #888;
+  opacity: 1;
+}
+.indexMeta {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* New concise meaning tag */
+.indexTag {
+  margin-top: 6px;
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--color-text);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+:global(body.dark) .indexTag {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.iconSm {
+  width: 14px;
+  height: 14px;
+}
+
+@media (min-width: 768px) {
+  .indicesStrip {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-lg);
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  .indicesStrip {
+    gap: var(--space-sm);
+  }
+  .indexCard {
+    padding: 18px 8px;
+  }
+  .indexHeader {
+    margin-bottom: var(--space-xs);
+    padding-left: 8px;
+  }
+  .indexName {
+    font-size: 0.76rem;
+    /* padding-left removed for perfect alignment */
+  }
+  .indexMeta {
+    font-size: 0.68rem;
+  }
+  .indexTag {
+    margin-top: 10px;
+    padding: 2px 6px;
+    font-size: 0.66rem;
+  }
+  .indexValue {
+    gap: 1px;
+    justify-content: flex-start;
+    width: 100%;
+    text-align: left;
+    padding-left: 8px;
+  }
+  .valueInteger {
+    font-size: 1.28rem;
+  }
+  .valueDecimal {
+    font-size: 0.82rem;
+  }
+  .pill {
+    padding: 2px 5px;
+    font-size: 0.66rem;
+    gap: 4px;
+  }
+  .iconSm {
+    width: 11px;
+    height: 11px;
+  }
+}
+
+/* Small phones (e.g., iPhone 14 Pro/Max width ~430): keep two-up and tighten */
+@media (max-width: 480px) {
+  .indicesStrip {
+    gap: var(--space-xs);
+  }
+  .indexCard {
+    padding: 18px 8px;
+  }
+  .indexName {
+    font-size: 0.74rem;
+  }
+  .valueInteger {
+    font-size: 1.22rem;
+  }
+  .valueDecimal {
+    font-size: 0.78rem;
+  }
+  .pill {
+    font-size: 0.64rem;
+    padding: 2px 5px;
+  }
+  .indexTag {
+    font-size: 0.64rem;
+    padding: 2px 6px;
+  }
+}
+
+/* Very small screens: keep 2-up, tighten spacing and numbers */
+@media (max-width: 420px) {
+  .indicesStrip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+  .indexCard {
+    padding: 18px 8px;
+  }
+  .indexName {
+    font-size: 0.75rem;
+  }
+  .valueInteger {
+    font-size: 1.18rem;
+  }
+  .valueDecimal {
+    font-size: 0.74rem;
+  }
+  .pill {
+    padding: 2px 6px;
+    font-size: 0.68rem;
+  }
+  .indexTag {
+    font-size: 0.62rem;
+    padding: 2px 6px;
+  }
+}
+
+/* Per-card heading accent tints for light mode */
+.indexCard:nth-child(1) .indexName {
+  color: rgb(234, 200, 80);
+}
+.indexCard:nth-child(2) .indexName {
+  color: rgb(120, 190, 230);
+}
+.indexCard:nth-child(3) .indexName {
+  color: rgb(195, 145, 245);
+}
+.indexCard:nth-child(4) .indexName {
+  color: rgb(60, 220, 170);
+}
+
+/* Light mode override: use neutral high-contrast heading to avoid blending with card tint */
+:global(body:not(.dark)) .indexCard .indexName {
+  color: var(--color-text);
+}
+
+/* Dark mode: keep strong contrast for numbers; avoid over-bright gradients */
+:global(body.dark) .valueInteger {
+  -webkit-text-fill-color: initial;
+  color: var(--color-text);
+  background: none;
+}
+:global(body.dark) .indexCard:nth-child(1) .indexName {
+  color: rgb(234, 200, 80);
+}
+:global(body.dark) .indexCard:nth-child(2) .indexName {
+  color: rgb(120, 190, 230);
+}
+:global(body.dark) .indexCard:nth-child(3) .indexName {
+  color: rgb(195, 145, 245);
+}
+:global(body.dark) .indexCard:nth-child(4) .indexName {
+  color: rgb(60, 220, 170);
+}

@@ -1,0 +1,281 @@
+/* Search Wrapper */
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+/* Search Input */
+.searchInput {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(12px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: var(--color-text);
+  outline: none;
+  transition: all var(--transition-smooth);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.searchInput::placeholder {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.searchInput:focus {
+  border-color: var(--gold-primary);
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+:global(.dark) .searchInput {
+  background: rgba(10, 10, 10, 0.45);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--color-text-dark);
+}
+
+:global(.dark) .searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+:global(.dark) .searchInput:focus {
+  border-color: var(--gold-primary);
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Keyboard Hint */
+.kbdHint {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  font-family: "SF Mono", "Monaco", "Courier New", monospace;
+}
+
+:global(.dark) .kbdHint {
+  background: rgba(30, 30, 30, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Dropdown */
+.dropdown {
+  z-index: 9999;
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(12px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+  animation: dropdownFadeIn 0.2s ease-out;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Glass specular highlight (top edge) */
+.dropdown::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Ambient aura removed in favor of clean glass */
+.dropdown::after {
+  content: none;
+}
+
+:global(.dark) .dropdown {
+  background: rgba(10, 10, 10, 0.45);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark) .dropdown::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* Result Item */
+.resultItem {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.resultItem:last-child {
+  border-bottom: none;
+}
+
+.resultItem:hover,
+.resultItem.selected {
+  background: rgba(212, 175, 55, 0.15);
+}
+
+:global(.dark) .resultItem {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:global(.dark) .resultItem:hover,
+:global(.dark) .resultItem.selected {
+  background: rgba(212, 175, 55, 0.2);
+}
+
+/* Result Main Info */
+.resultMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.symbol {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: 0.02em;
+}
+
+.companyName {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+:global(.dark) .symbol {
+  color: var(--color-text-dark);
+}
+
+:global(.dark) .companyName {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Result Price Info */
+.resultPrice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.price {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.change {
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.change.positive {
+  color: #10b981;
+}
+
+.change.negative {
+  color: #ef4444;
+}
+
+:global(.dark) .price {
+  color: var(--color-text-dark);
+}
+
+/* Animations */
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbar styling */
+.dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.dropdown::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.3);
+  border-radius: 3px;
+}
+
+.dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.5);
+}
+
+:global(.dark) .dropdown::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:global(.dark) .dropdown::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.4);
+}
+
+:global(.dark) .dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.6);
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .searchInput {
+    padding: 6px 10px;
+    font-size: 12px;
+    height: 32px;
+    border-radius: 10px;
+  }
+  .kbdHint {
+    right: 8px;
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+}
+
+/* Ultra small devices (e.g., iPhone SE) */
+@media (max-width: 380px) {
+  .kbdHint {
+    display: none;
+  }
+}

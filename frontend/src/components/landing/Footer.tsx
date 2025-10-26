@@ -1,4 +1,5 @@
 import "./footer.css";
+import Image from "next/image";
 
 // --- ICONS ---
 const IconGitHub = () => (
@@ -35,7 +36,17 @@ export default function Footer() {
       <div className="footer-container">
         {/* Top Section */}
         <div className="footer-top">
-          <div className="footer-logo">MockMarket</div>
+          <div className="footer-logo">
+            <Image
+              src="/rabbit/mm_logo.png"
+              alt="MockMarket"
+              width={100}
+              height={100}
+              quality={100}
+              className="footer-rabbit-logo"
+            />
+            <span>MockMarket</span>
+          </div>
           <div className="footer-socials">
             <a
               href="https://github.com"
@@ -80,9 +91,9 @@ export default function Footer() {
             <a href="mailto:support@mockmarket.com">support@mockmarket.com</a>
           </p>
           <div className="footer-links">
-            <a href="#">Terms of Service</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Risk Disclosure</a>
+            <a href="/terms">Terms of Service</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/risk-disclosure">Risk Disclosure</a>
           </div>
           <p className="footer-copyright">
             &copy; {new Date().getFullYear()} MockMarket. All rights reserved.

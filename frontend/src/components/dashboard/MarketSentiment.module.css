@@ -1,0 +1,201 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Meter */
+.meter {
+  position: relative;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.bullish {
+  --accent-color: #16a34a;
+}
+.bearish {
+  --accent-color: #dc2626;
+}
+.neutral {
+  --accent-color: #64748b;
+}
+
+/* Ultra-minimal chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-color);
+}
+
+.chipLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.75;
+}
+
+.sep {
+  opacity: 0.35;
+}
+
+.chipScore {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-color);
+  font-family: "SF Mono", Monaco, "Fira Code", "Roboto Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* tiny trend arrow */
+.trend {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+.trendUp {
+  border-bottom: 7px solid var(--accent-color);
+}
+.trendDown {
+  border-top: 7px solid var(--accent-color);
+}
+
+.meterTrack {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.35),
+    rgba(255, 255, 255, 0)
+  );
+  pointer-events: none;
+}
+
+.meterFill {
+  position: absolute;
+  left: 8px;
+  right: auto;
+  bottom: 8px;
+  height: 4px;
+  width: 0;
+  background: var(--accent-color);
+  border-radius: 3px;
+  transition: width 180ms ease;
+}
+
+.meterReadout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  font-weight: 700;
+}
+
+.meterLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
+
+.meterScore {
+  font-size: 16px;
+  font-family: "SF Mono", Monaco, "Fira Code", "Roboto Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-color);
+}
+
+.bullish {
+  --accent-color: #16a34a;
+}
+.bearish {
+  --accent-color: #dc2626;
+}
+.neutral {
+  --accent-color: #64748b;
+}
+
+/* Breakdown */
+.breakdown {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 80px 1fr 48px;
+  align-items: center;
+  gap: 10px;
+}
+
+.itemLabel {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.itemValue {
+  justify-self: end;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: "SF Mono", Monaco, "Fira Code", "Roboto Mono", monospace;
+}
+
+.barTrack {
+  grid-column: 2 / span 1;
+  height: 8px;
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.barFill.bullish {
+  background: #22c55e;
+}
+.barFill.neutral {
+  background: #94a3b8;
+}
+.barFill.bearish {
+  background: #ef4444;
+}
+
+.timestamp {
+  font-size: 11px;
+  opacity: 0.6;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .item {
+    grid-template-columns: 70px 1fr 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meterFill {
+    transition: none;
+  }
+}

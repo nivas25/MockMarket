@@ -1,26 +1,34 @@
 /* ============================================= */
-/* --- REFINED FEATURES SECTION (UPGRADED) --- */
+/* --- FEATURES SECTION --- */
 /* ============================================= */
 .features {
   width: 100%;
   padding: 80px 24px;
   position: relative;
+  /* CRITICAL FIX: Re-added this to fix horizontal scroll */
   overflow: hidden;
+
+  /* Using custom colors for this section, but added transitions */
   background-color: #fdfaf0; /* Light, premium cream/gold */
   border-top: 1px solid #f0e6c8;
-}
-.dark .features {
-  background-color: #050505;
-  border-top: 1px solid var(--border-dark);
+  transition: background-color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
+/* Corrected dark mode selector */
+body.dark .features {
+  background-color: #050505;
+  border-top: 1px solid var(--color-border); /* Uses global dark border */
+}
+
+/* Decorative background blur */
 .features::before {
   content: "";
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 1000px;
+  width: 1000px; /* This was causing the horizontal scroll */
   height: 1000px;
   background-image: radial-gradient(
     circle,
@@ -30,7 +38,8 @@
   filter: blur(100px);
   z-index: 1;
 }
-.dark .features::before {
+
+body.dark .features::before {
   background-image: radial-gradient(
     circle,
     rgba(212, 175, 55, 0.1),
@@ -49,28 +58,22 @@
 .features-title {
   font-size: 2.5rem;
   letter-spacing: -1.5px;
-  margin-bottom: 16px;
-  color: var(--text-light);
-}
-.dark .features-title {
-  color: var(--text-dark);
+  margin-bottom: var(--space-md);
+  color: var(--color-text); /* Uses global variable */
 }
 
 .features-subtitle {
   font-size: 1.15rem;
   line-height: 1.7;
-  color: #555;
+  color: var(--color-text-muted); /* Uses global variable */
   margin-bottom: 60px;
   max-width: 450px;
   margin-left: auto;
   margin-right: auto;
 }
-.dark .features-subtitle {
-  color: #b5b5b5;
-}
 
 /* ============================================= */
-/* --- UPGRADED "MILLED GLASS" CARD DESIGN --- */
+/* --- "MILLED GLASS" CARD DESIGN --- */
 /* ============================================= */
 .features-grid {
   display: grid;
@@ -80,26 +83,27 @@
 
 .feature-card {
   position: relative;
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 32px;
   text-align: left;
-  overflow: hidden;
+  /* overflow: hidden; <-- This one stays removed */
 
-  /* --- UPGRADE 1: Use "True" Glass --- */
-  background-color: var(--glass-light);
+  background-color: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border-light);
-
-  /* --- UPGRADE 2: Deeper 3D Effect --- */
-  box-shadow: var(--shadow-liquid), inset 0 1px 1px rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(230, 230, 230, 0.7);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 1px rgba(255, 255, 255, 0.7);
 
   transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
 }
-.dark .feature-card {
-  background-color: var(--glass-dark);
-  border: 1px solid var(--border-dark);
-  box-shadow: var(--shadow-liquid), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+
+/* Corrected dark mode selector */
+body.dark .feature-card {
+  background-color: rgba(15, 15, 15, 0.6);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
 }
 
 /* Accent Bar on Hover */
@@ -119,12 +123,11 @@
 /* "Lift" Effect */
 .feature-card:hover {
   transform: translateY(-6px);
-  /* Brighter shadow on lift */
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12),
     inset 0 1px 1px rgba(255, 255, 255, 0.7);
   border-color: rgba(255, 255, 255, 0.7);
 }
-.dark .feature-card:hover {
+body.dark .feature-card:hover {
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18),
     inset 0 1px 1px rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.3);
@@ -139,7 +142,7 @@
   transform: translateY(-1px);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
-.dark .feature-card:active {
+body.dark .feature-card:active {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
@@ -153,30 +156,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 24px;
-
-  /* --- UPGRADE 3: Solid Gold (like InfoSection) --- */
+  margin-bottom: var(--space-lg);
   background: var(--gold-gradient);
   color: #1a1a1a;
 }
 .feature-icon {
   width: 28px;
   height: 28px;
-  /* color is now inherited from wrapper */
 }
 .card-title {
-  font-family: "Sora", sans-serif;
+  font-family: var(--font-secondary);
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
+  color: var(--color-text);
 }
 .card-description {
   font-size: 1rem;
   line-height: 1.6;
-  color: #444;
-}
-.dark .card-description {
-  color: #ccc;
+  color: var(--color-text-muted);
 }
 
 /* ============================================= */

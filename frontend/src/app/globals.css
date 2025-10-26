@@ -1,70 +1,156 @@
-/* Import fonts */
+@import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap");
+/* src/app/globals.css */
+
+/* --- 1. FONT IMPORTS --- */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@700&family=Sora:wght@600&display=swap");
 
-/* === GLOBAL BASE === */
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent; /* Removes blue tap box on mobile */
-}
-
+/* --- 2. ROOT VARIABLES --- */
 :root {
-  /* --- Gold Palette --- */
+  /* --- PALETTE --- */
+  /* Gold */
   --gold-primary: #d4af37;
   --gold-secondary: #e5c16c;
   --gold-gradient: linear-gradient(
     90deg,
-    var(--gold-secondary),
-    var(--gold-primary)
-  );
-  --gold-text: #8c6d1f;
+    #e5c16c,
+    #d4af37,
+    #e5c16c
+  ); /* UPDATED GRADIENT */
+  --gold-primary-faded: rgba(212, 175, 55, 0.15);
 
-  /* --- Light Mode (NEW "Frosted Glass") --- */
-  --bg-light: #fafaf5;
+  /* Base (Light) */
   --text-light: #1a1a1a;
-  /* A subtle grey tint, not pure white */
-  --glass-light: rgba(240, 240, 245, 0.3);
-  /* Very subtle border */
-  --border-light: rgba(255, 255, 255, 0.25);
+  --bg-light: #fafaf5;
 
-  /* --- Dark Mode (NEW "Frosted Glass") --- */
+  /* Base (Dark) */
+  --text-dark: #f0f0f0;
   --bg-dark: #0b0b0b;
-  --text-dark: #eaeaea;
-  /* A subtle dark grey tint */
-  --glass-dark: rgba(20, 20, 20, 0.3);
-  /* Very subtle border */
-  --border-dark: rgba(255, 255, 255, 0.1);
 
-  /* --- Sizing & Animation --- */
-  --radius: 10px;
-  --transition: 0.3s ease;
+  /* System */
+  --color-positive: #16a34a;
+  --color-negative: #dc2626;
 
-  /* --- NEW "VisionOS" Soft Shadow --- */
-  --shadow-liquid: 0 12px 24px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08);
+  /* --- LIGHT MODE THEME (Default) --- */
+  --color-text: var(--text-light);
+  --color-text-muted: #666;
+  --color-bg: var(--bg-light);
+  --color-bg-widget: #ffffff;
+  --color-border: #e0e0e0;
+  --color-border-input: #dcdcdc;
+
+  /* NEW: Aurora Background */
+  --aurora-bg: linear-gradient(
+    -45deg,
+    rgba(212, 175, 55, 0.15),
+    rgba(250, 250, 245, 0),
+    rgba(90, 190, 255, 0.1),
+    rgba(250, 250, 245, 0)
+  );
+
+  /* --- TYPOGRAPHY --- */
+  --font-primary: "Poppins", sans-serif;
+  --font-secondary: "Sora", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  /* --- LAYOUT & SPACING --- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --layout-max-width: 1200px;
+
+  /* --- TRANSITIONS --- */
+  --transition-fast: 0.2s ease;
+  --transition-smooth: 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  font-family: "Inter", sans-serif;
-  background-color: var(--bg-light);
-  color: var(--text-light);
-  transition: background var(--transition), color var(--transition);
-  scroll-behavior: smooth;
-  overflow-x: hidden;
+/* NEW: Aurora Animation Keyframes */
+@keyframes aurora-animation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Performance: Disable aurora on reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes aurora-animation {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+}
+
+/* --- 3. GLOBAL RESETS & DEFAULTS --- */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+
+  /* REMOVED original background-image */
+  /* background-attachment: fixed; -- Not needed anymore */
+
+  /* CRITICAL FIX: Prevents horizontal scroll without breaking sticky/blur */
+  overflow-x: clip;
+
+  /* Hide scrollbars */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  /* Performance optimizations */
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  will-change: scroll-position;
+}
+
+html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none;
 }
 
-.dark {
-  background-color: var(--bg-dark);
-  color: var(--text-dark);
+/* --- 4. DARK MODE --- */
+body.dark {
+  /* Dark Mode Overrides */
+  --color-text: var(--text-dark);
+  --color-text-muted: #888;
+  --color-bg: var(--bg-dark);
+  --color-bg-widget: #0f0f0f;
+  --color-border: #222;
+  --color-border-input: #333;
+
+  /* NEW: Dark Mode Aurora Background */
+  --aurora-bg: linear-gradient(
+    -45deg,
+    rgba(212, 175, 55, 0.2),
+    rgba(11, 11, 11, 0),
+    rgba(90, 190, 255, 0.15),
+    rgba(11, 11, 11, 0)
+  );
 }
 
+/* --- 5. BASIC TYPOGRAPHY --- */
 h1,
 h2,
 h3,
@@ -76,23 +162,11 @@ h4 {
 
 button {
   cursor: pointer;
+  font-family: inherit;
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-/* --- FIX: "Not full gold" Text Selection --- */
+/* Global Text Selection Color */
 ::selection {
-  /* 40% transparent gold */
-  background: rgba(212, 175, 55, 0.4);
-  /* This lets the original text color show through */
-  color: inherit;
-}
-
-.dark ::selection {
   background: rgba(212, 175, 55, 0.4);
   color: inherit;
 }

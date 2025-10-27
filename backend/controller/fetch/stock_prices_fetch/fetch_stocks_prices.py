@@ -203,4 +203,4 @@ if __name__ == "__main__":
         print(f"[{datetime.now()}] Starting price fetch...")
         fetch_all_stock_prices()
         print(f"[{datetime.now()}] Fetch complete. Sleeping 120s...\n")
-        time.sleep(120)
+        time.sleep(300)

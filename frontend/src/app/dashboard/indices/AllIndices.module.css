@@ -1,0 +1,212 @@
+/* All Indices Page Styles */
+
+.container {
+  min-height: 100vh;
+  padding: var(--space-xl) var(--space-lg);
+  background: var(--color-background);
+}
+
+.header {
+  max-width: 1400px;
+  margin: 0 auto var(--space-xl);
+}
+
+.backLink {
+  display: inline-block;
+  font-family: var(--font-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-decoration: none;
+  margin-bottom: var(--space-md);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.backLink:hover {
+  color: var(--color-accent-hover);
+
+  /* Deprecated styles for the All Indices page.
+     The All Indices page now redirects to the dashboard where indices
+     are shown in a modal. Kept intentionally minimal to avoid unused
+     style bloat. */
+
+  /* intentionally left blank */
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.indexHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-md);
+}
+
+.indexTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.indexName {
+  font-family: var(--font-secondary);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.pillUp {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+:global(body.dark) .pillUp {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.pillDown {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+:global(body.dark) .pillDown {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.iconSm {
+  width: 14px;
+  height: 14px;
+}
+
+.indexPrice {
+  margin: var(--space-md) 0;
+}
+
+.indexValue {
+  font-family: var(--font-secondary);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.valueInteger {
+  font-size: 2rem;
+}
+
+.valueDecimal {
+  font-size: 1.5rem;
+  opacity: 0.7;
+}
+
+.ohlcGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+:global(body.dark) .ohlcGrid {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.ohlcItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ohlcLabel {
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.ohlcValue {
+  font-family: var(--font-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.changeValue {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  font-family: var(--font-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+:global(body.dark) .changeValue {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .subtitle {
+    font-size: 0.95rem;
+  }
+
+  .categoryTitle {
+    font-size: 1.25rem;
+  }
+
+  .indexCard {
+    padding: var(--space-md);
+  }
+
+  .indexValue {
+    font-size: 1.75rem;
+  }
+
+  .valueInteger {
+    font-size: 1.75rem;
+  }
+
+  .valueDecimal {
+    font-size: 1.25rem;
+  }
+}

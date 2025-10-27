@@ -32,4 +32,8 @@ except Exception as e:
 
 def get_connection():
     """Get a connection from the pool"""
-    return connection_pool.get_connection()
+    try:
+        return connection_pool.get_connection()
+    except Exception as e:
+        print("❌ Error getting connection from pool:", str(e))
+        raise Exception("Database connection failed") from e

@@ -6,50 +6,79 @@ import styles from "./ProfileMenu.module.css";
 import { useRouter } from "next/navigation";
 import { ProfileIcon } from "../dashboard/Icons";
 import GlassConfirm from "./GlassConfirm";
+import { jwtDecode } from "jwt-decode";
+
+
+
 
 type ProfileMenuProps = {
   user?: {
     name?: string;
     email?: string;
-    joinedAt?: string; // ISO or readable
-    balanceINR?: number; // current simulation balance
+    joinedAt?: string;
+    balance?: number;
   };
   onReset?: () => void;
   onLogout?: () => void;
 };
 
-const ProfileMenu: React.FC<ProfileMenuProps> = ({
-  user,
-  onReset,
-  onLogout,
-}) => {
+
+
+
+const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(
-    null
-  );
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
-  const name = user?.name ?? "User Name";
-  const email = user?.email ?? "user@email.com";
+  // --- Store user info (from props or decoded JWT) ---
+  const [userData, setUserData] = useState(user);
+
+  useEffect(() => {
+    try {
+      const token =
+        localStorage.getItem("authToken");
+      if (token) {
+        console.log("Decoding JWT token to extract user data.");
+        console.log("JWT token:", token)
+        const decoded: any = jwtDecode(token);
+        setUserData({
+          name: decoded.sub.name || "User",
+          email: decoded.sub.email || "user@email.com",
+          balance: decoded.sub.balance || 0,
+          joinedAt: decoded.sub.joinedAt || new Date().toISOString(),
+        });
+
+      }
+      else{
+        console.log("No auth token found in storage.")
+      }
+    } catch (error) {
+      console.error("JWT decode failed:", error);
+    }
+  }, [user]);
+
+  const name = userData?.name ?? "User Name";
+  const email = userData?.email ?? "user@email.com";
   const joinedAt = useMemo(() => {
     const src =
-      user?.joinedAt ||
+      userData?.joinedAt ||
       (typeof window !== "undefined"
         ? localStorage.getItem("joinedAt") || ""
         : "");
     if (!src) return "—";
     const d = new Date(src);
     return isNaN(d.getTime()) ? src : d.toLocaleDateString();
-  }, [user?.joinedAt]);
+  }, [userData?.joinedAt]);
+
   const balanceLabel = useMemo(() => {
-    const val = user?.balanceINR;
+    const val = userData?.balance;
     if (typeof val === "number")
       return `₹${val.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
     return "₹0.00";
-  }, [user?.balanceINR]);
+  }, [userData?.balance]);
 
   const computePosition = () => {
     const btn = buttonRef.current;
@@ -104,6 +133,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
       >
         <ProfileIcon className={styles.buttonIcon} />
       </button>
+
       {open &&
         coords &&
         createPortal(
@@ -153,11 +183,10 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
                   if (onLogout) {
                     onLogout();
                   } else {
-                    // fallback: clear tokens and go to home
                     try {
                       localStorage.removeItem("authToken");
                       sessionStorage.removeItem("authToken");
-                    } catch {}
+                    } catch { }
                     router.push("/");
                   }
                 }}
@@ -168,6 +197,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
           </div>,
           document.body
         )}
+
       <GlassConfirm
         open={confirmOpen}
         title="Reset simulation?"
@@ -189,7 +219,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
             try {
               localStorage.clear();
               sessionStorage.clear();
-            } catch {}
+            } catch { }
             window.location.reload();
           }
         }}

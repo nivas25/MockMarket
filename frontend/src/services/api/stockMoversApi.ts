@@ -1,6 +1,5 @@
 // API client for fetching stock movers (gainers/losers) from backend
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import http from "../../lib/http";
 
 export interface StockMoverData {
   name: string;
@@ -33,23 +32,10 @@ export async function fetchTopGainers(
   intraday: boolean = false
 ): Promise<StockMoverData[]> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/stocks/top-gainers?limit=${limit}&exchange=${exchange}&intraday=${intraday}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
+    const { data: result } = await http.get<ApiResponse<StockMoverData[]>>(
+      "/stocks/top-gainers",
+      { params: { limit, exchange, intraday } }
     );
-
-    if (!response.ok) {
-      console.error(`Failed to fetch top gainers: ${response.status}`);
-      return [];
-    }
-
-    const result: ApiResponse<StockMoverData[]> = await response.json();
 
     if (result.status === "success" && result.data) {
       return result.data;
@@ -74,23 +60,10 @@ export async function fetchTopLosers(
   intraday: boolean = false
 ): Promise<StockMoverData[]> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/stocks/top-losers?limit=${limit}&exchange=${exchange}&intraday=${intraday}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
+    const { data: result } = await http.get<ApiResponse<StockMoverData[]>>(
+      "/stocks/top-losers",
+      { params: { limit, exchange, intraday } }
     );
-
-    if (!response.ok) {
-      console.error(`Failed to fetch top losers: ${response.status}`);
-      return [];
-    }
-
-    const result: ApiResponse<StockMoverData[]> = await response.json();
 
     if (result.status === "success" && result.data) {
       return result.data;
@@ -114,23 +87,10 @@ export async function fetchMostActive(
   exchange: string = "NSE"
 ): Promise<StockMoverData[]> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/stocks/most-active?limit=${limit}&exchange=${exchange}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
+    const { data: result } = await http.get<ApiResponse<StockMoverData[]>>(
+      "/stocks/most-active",
+      { params: { limit, exchange } }
     );
-
-    if (!response.ok) {
-      console.error(`Failed to fetch most active: ${response.status}`);
-      return [];
-    }
-
-    const result: ApiResponse<StockMoverData[]> = await response.json();
 
     if (result.status === "success" && result.data) {
       return result.data;

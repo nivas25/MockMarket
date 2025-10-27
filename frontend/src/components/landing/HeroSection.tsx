@@ -6,9 +6,11 @@ import { useEffect, useRef, useState } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import { url } from "../../config";
+import Spinner from "../common/Spinner";
 
 export default function HeroSection() {
-  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const [verifying, setVerifying] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const verifyingRef = useRef(false); // ✅ prevent duplicate requests
 
   useEffect(() => {
@@ -22,7 +24,8 @@ export default function HeroSection() {
 
         if (!token) {
           console.log("⚠️ No token found — staying on home.");
-          setIsVerified(false);
+          // not logged in
+          setVerifying(false);
           return;
         }
 
@@ -32,7 +35,6 @@ export default function HeroSection() {
 
         if (res.data.valid) {
           console.log("✅ User verified successfully");
-          setIsVerified(true);
 
           // ✅ redirect only once
           setTimeout(() => {
@@ -41,13 +43,12 @@ export default function HeroSection() {
         } else {
           console.warn("❌ Invalid user token");
           localStorage.removeItem("authToken");
-          setIsVerified(false);
         }
       } catch (err) {
         console.error("User verification failed:", err);
         localStorage.removeItem("authToken");
-        setIsVerified(false);
       }
+      setVerifying(false);
     };
 
     verifyUser();
@@ -64,6 +65,7 @@ export default function HeroSection() {
     flow: "auth-code",
     onSuccess: async (codeResponse) => {
       try {
+        setIsLoading(true);
         const response = await axios.post(
           `${url}/auth/google-login`,
           { code: codeResponse.code },
@@ -78,9 +80,11 @@ export default function HeroSection() {
         } else {
           alert("Login failed: No token received.");
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Login error:", error);
         alert("Login failed. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
     },
     onError: () => {
@@ -89,7 +93,7 @@ export default function HeroSection() {
   });
 
   const handleGoogleLogin = () => {
-    googleLogin();
+    if (!isLoading) googleLogin();
   };
 
   return (
@@ -109,13 +113,21 @@ export default function HeroSection() {
           </h1>
 
           <p className="hero-subtext">
-            Practice trading with real market data and zero loss. MockMarket helps you learn,
-            invest, and grow confidently.
+            Practice trading with real market data and zero loss. MockMarket
+            helps you learn, invest, and grow confidently.
           </p>
 
           <div className="hero-buttons">
-            <button className="btn-primary" onClick={handleGoogleLogin}>
-              Start Trading
+            <button
+              className="btn-primary"
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Spinner size={16} color="#fff" label="Signing in..." />
+              ) : (
+                "Start Trading"
+              )}
             </button>
             <a href="#features" className="btn-secondary">
               Learn More
@@ -133,6 +145,43 @@ export default function HeroSection() {
           />
         </div>
       </div>
+      {(verifying || isLoading) && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            backdropFilter: "blur(2px)",
+          }}
+        >
+          <div
+            style={{
+              background: "#111",
+              color: "#fff",
+              padding: "14px 16px",
+              borderRadius: 10,
+              boxShadow: "0 6px 24px rgba(0,0,0,0.3)",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <Spinner
+              size={18}
+              color="#f1c40f"
+              label={
+                verifying
+                  ? "Checking session..."
+                  : "Preparing your dashboard..."
+              }
+            />
+          </div>
+        </div>
+      )}
     </section>
   );
 }

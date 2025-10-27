@@ -1,6 +1,5 @@
 // API client for fetching market sentiment from backend
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import http from "../../lib/http";
 
 export type SentimentData = {
   overall: "bullish" | "bearish" | "neutral";
@@ -19,16 +18,9 @@ interface ApiResponse<T> {
 }
 
 export async function fetchMarketSentiment(): Promise<SentimentData> {
-  const response = await fetch(`${API_BASE_URL}/sentiment/market`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const result: ApiResponse<SentimentData> = await response.json();
+  const { data: result } = await http.get<ApiResponse<SentimentData>>(
+    "/sentiment/market"
+  );
   if (result.status === "success") {
     // Ensure timestamp is not null, convert to undefined if needed
     const data = result.data;

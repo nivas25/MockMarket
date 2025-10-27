@@ -1,6 +1,6 @@
 // API client for fetching market news from backend
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import http from "../../lib/http";
+import axios from "axios";
 
 export type NewsItem = {
   headline: string;
@@ -23,36 +23,34 @@ export async function fetchLatestNews(
   limit = 12,
   q?: string
 ): Promise<NewsItem[]> {
-  try {
-    const params = new URLSearchParams();
-    if (limit) params.set("limit", String(limit));
-    if (q && q.trim()) params.set("q", q.trim());
+  const params: Record<string, string> = {};
+  if (limit) params["limit"] = String(limit);
+  if (q && q.trim()) params["q"] = q.trim();
 
-    const url = `${API_BASE_URL}/news/latest?${params.toString()}`;
-    console.log("[NEWS API] Fetching from:", url);
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
+  const attempt = async (timeoutMs: number) =>
+    http.get<ApiResponse<NewsItem[]>>("/news/latest", {
+      params,
+      timeout: timeoutMs,
     });
 
-    console.log("[NEWS API] Response status:", response.status);
-
-    if (!response.ok) {
-      console.error("[NEWS API] HTTP error:", response.status);
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result: ApiResponse<NewsItem[]> = await response.json();
-    console.log("[NEWS API] Result:", result);
-
+  try {
+    // Allow up to 15s for the first attempt since backend may aggregate RSS
+    const { data: result } = await attempt(15000);
     if (result.status === "success") {
-      console.log("[NEWS API] Success! Items:", result.data?.length || 0);
       return result.data || [];
     }
     throw new Error(result.message || "Failed to fetch market news");
-  } catch (error) {
-    console.error("[NEWS API] Fetch error:", error);
-    return []; // Return empty array on error instead of throwing
+  } catch (err) {
+    // One quick retry if the first attempt timed out
+    if (axios.isAxiosError(err) && err.code === "ECONNABORTED") {
+      try {
+        const { data: retryResult } = await attempt(8000);
+        if (retryResult.status === "success") {
+          return retryResult.data || [];
+        }
+      } catch {}
+    }
+    console.error("[NEWS API] Fetch error:", err);
+    return [];
   }
 }

@@ -10,6 +10,12 @@
   margin-left: 4px;
   margin-bottom: 8px; /* small gap above cards */
 }
+.indicesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
 .indicesHeading::after {
   content: "";
   display: block;
@@ -22,6 +28,30 @@
 :global(body.dark) .indicesHeading::after {
   background: linear-gradient(90deg, #8ea6ff 0%, #b69cff 100%);
 }
+
+.viewAllLink {
+  font-family: var(--font-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  margin-right: 8px;
+}
+
+.viewAllLink:hover {
+  color: var(--color-accent-hover);
+  transform: translateX(4px);
+}
+
+:global(body.dark) .viewAllLink {
+  color: #93c5fd;
+}
+
+:global(body.dark) .viewAllLink:hover {
+  color: #bfdbfe;
+}
+
 @media (max-width: 767px) {
   .indicesHeading {
     font-size: 1.06rem;
@@ -31,14 +61,54 @@
   .indicesHeading::after {
     width: 24px;
   }
+  .viewAllLink {
+    font-size: 0.85rem;
+  }
 }
 /* IndicesStrip - index cards layout with glassmorphism */
 
 .indicesStrip {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Use a horizontally scrollable strip so users can scroll through all indices.
+     Cards are fixed-width (min) so the strip can overflow horizontally on small screens.
+  */
+  display: flex;
+  flex-direction: row;
   gap: var(--space-md);
   padding: var(--space-md) 0;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar: keep thumb hidden by default. Visible on hover or when the JS toggles .showScrollbar */
+.indicesStrip::-webkit-scrollbar {
+  height: 8px;
+}
+.indicesStrip::-webkit-scrollbar-track {
+  background: transparent;
+}
+.indicesStrip::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 160ms ease, background 160ms ease;
+}
+.indicesStrip:hover::-webkit-scrollbar-thumb,
+.indicesStrip.showScrollbar::-webkit-scrollbar-thumb {
+  opacity: 1;
+}
+
+/* Firefox - thin but hidden until hover / scrolling state */
+.indicesStrip {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.indicesStrip:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.22) transparent;
+}
+
+:global(body.dark) .indicesStrip::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .indexCard {
@@ -57,6 +127,10 @@
   position: relative;
   z-index: 1;
   overflow: hidden;
+  /* keep cards reasonably sized in the scrollable strip */
+  min-width: 220px;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
 }
 
 :global(body.dark) .indexCard {
@@ -100,32 +174,62 @@
   );
 }
 
-:global(body.dark) .indexCard:nth-child(1) {
+.indexCard:nth-child(4n + 1) {
   background: linear-gradient(
     135deg,
     rgba(229, 193, 108, 0.2),
     rgba(212, 175, 55, 0.12)
   );
 }
-:global(body.dark) .indexCard:nth-child(2) {
+.indexCard:nth-child(4n + 2) {
   background: linear-gradient(
     135deg,
     rgba(55, 131, 212, 0.2),
     rgba(31, 122, 140, 0.14)
   );
 }
-:global(body.dark) .indexCard:nth-child(3) {
+.indexCard:nth-child(4n + 3) {
   background: linear-gradient(
     135deg,
     rgba(170, 108, 229, 0.2),
     rgba(88, 28, 135, 0.14)
   );
 }
-:global(body.dark) .indexCard:nth-child(4) {
+.indexCard:nth-child(4n + 4) {
   background: linear-gradient(
     135deg,
     rgba(16, 185, 129, 0.18),
     rgba(5, 150, 105, 0.12)
+  );
+}
+
+/* Repeat the tint pattern every 4 cards for long strips */
+.indexCard:nth-child(4n + 1) {
+  background: linear-gradient(
+    135deg,
+    rgba(229, 193, 108, 0.48),
+    rgba(212, 175, 55, 0.32)
+  );
+}
+.indexCard:nth-child(4n + 2) {
+  background: linear-gradient(
+    135deg,
+    rgba(55, 170, 212, 0.42),
+    rgba(108, 200, 229, 0.28)
+  );
+}
+.indexCard:nth-child(4n + 3) {
+  background: linear-gradient(
+    135deg,
+    rgba(170, 108, 229, 0.42),
+    rgba(200, 150, 229, 0.28)
+  );
+}
+.indexCard:nth-child(4n + 4) {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.36),
+    rgba(5, 150, 105, 0.22)
   );
 }
 
@@ -229,11 +333,19 @@
   background: #fef2f2;
   color: var(--color-negative);
 }
+.pillLoading {
+  background: rgba(150, 150, 150, 0.2);
+  color: rgba(100, 100, 100, 0.6);
+}
 :global(body.dark) .pillUp {
   background: #052e16;
 }
 :global(body.dark) .pillDown {
   background: #450a0a;
+}
+:global(body.dark) .pillLoading {
+  background: rgba(100, 100, 100, 0.2);
+  color: rgba(150, 150, 150, 0.5);
 }
 
 .indexValue {
@@ -436,4 +548,66 @@
 }
 :global(body.dark) .indexCard:nth-child(4) .indexName {
   color: rgb(60, 220, 170);
+}
+
+/* Dark-mode repeated tints every 4 cards (so long strips keep the pattern) */
+:global(body.dark) .indexCard:nth-child(4n + 1) {
+  background: linear-gradient(
+    135deg,
+    rgba(229, 193, 108, 0.2),
+    rgba(212, 175, 55, 0.12)
+  );
+}
+:global(body.dark) .indexCard:nth-child(4n + 2) {
+  background: linear-gradient(
+    135deg,
+    rgba(55, 131, 212, 0.2),
+    rgba(31, 122, 140, 0.14)
+  );
+}
+:global(body.dark) .indexCard:nth-child(4n + 3) {
+  background: linear-gradient(
+    135deg,
+    rgba(170, 108, 229, 0.2),
+    rgba(88, 28, 135, 0.14)
+  );
+}
+:global(body.dark) .indexCard:nth-child(4n + 4) {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.18),
+    rgba(5, 150, 105, 0.12)
+  );
+}
+
+:global(body.dark) .indexCard:nth-child(4n + 1) .indexName {
+  color: rgb(234, 200, 80);
+}
+:global(body.dark) .indexCard:nth-child(4n + 2) .indexName {
+  color: rgb(120, 190, 230);
+}
+:global(body.dark) .indexCard:nth-child(4n + 3) .indexName {
+  color: rgb(195, 145, 245);
+}
+:global(body.dark) .indexCard:nth-child(4n + 4) .indexName {
+  color: rgb(60, 220, 170);
+}
+
+/* Repeat name tinting every 4 cards so headings keep the accent */
+.indexCard:nth-child(4n + 1) .indexName {
+  color: rgb(234, 200, 80);
+}
+.indexCard:nth-child(4n + 2) .indexName {
+  color: rgb(120, 190, 230);
+}
+.indexCard:nth-child(4n + 3) .indexName {
+  color: rgb(195, 145, 245);
+}
+.indexCard:nth-child(4n + 4) .indexName {
+  color: rgb(60, 220, 170);
+}
+
+/* helper class toggled from JS to show the scrollbar briefly on scroll activity */
+.showScrollbar {
+  --show-scrollbar: 1;
 }

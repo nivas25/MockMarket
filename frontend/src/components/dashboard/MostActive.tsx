@@ -23,12 +23,6 @@ export function MostActive({ items, limit = 5 }: MostActiveProps) {
               <div className={widget.stockInfo}>
                 <div className={styles.symbolRow}>
                   <span className={styles.symbol}>{stock.symbol}</span>
-                  <span
-                    className={styles.volume}
-                    title={`Volume: ${stock.volume}`}
-                  >
-                    Vol: {stock.volume}
-                  </span>
                 </div>
                 <div className={styles.name}>{stock.name}</div>
               </div>

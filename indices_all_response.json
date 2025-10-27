@@ -1,0 +1,172 @@
+{
+  "data": {
+    "Banking": [
+      {
+        "change": "+0.71%",
+        "changeValue": "+414.65",
+        "direction": "up",
+        "high": "58,224.55",
+        "lastUpdated": "2025-10-27T11:32:34",
+        "low": "57,652.75",
+        "name": "BANKNIFTY",
+        "open": "57,796.45",
+        "prevClose": "58,114.25",
+        "tag": "Banking",
+        "value": "58,114.25"
+      }
+    ],
+    "Benchmark": [
+      {
+        "change": "+0.65%",
+        "changeValue": "+154.30",
+        "direction": "up",
+        "high": "23,856.30",
+        "lastUpdated": "2025-10-27T11:32:34",
+        "low": "23,723.40",
+        "name": "NIFTY 50",
+        "open": "23,742.70",
+        "prevClose": "23,840.90",
+        "tag": "Benchmark",
+        "value": "23,840.90"
+      },
+      {
+        "change": "+0.67%",
+        "changeValue": "+566.96",
+        "direction": "up",
+        "high": "84,932.08",
+        "lastUpdated": "2025-10-27T11:32:34",
+        "low": "84,294.20",
+        "name": "SENSEX",
+        "open": "84,297.39",
+        "prevClose": "84,778.84",
+        "tag": "Benchmark",
+        "value": "84,778.84"
+      }
+    ],
+    "Broader Market": [
+      {
+        "change": "+1.04%",
+        "changeValue": "+176.45",
+        "direction": "up",
+        "high": "16,921.30",
+        "lastUpdated": "2025-10-27T11:32:35",
+        "low": "16,781.05",
+        "name": "NIFTY MIDCAP 50",
+        "open": "16,807.30",
+        "prevClose": "16,913.25",
+        "tag": "Broader Market",
+        "value": "16,913.25"
+      },
+      {
+        "change": "+0.92%",
+        "changeValue": "+81.80",
+        "direction": "up",
+        "high": "8,873.65",
+        "lastUpdated": "2025-10-27T11:32:35",
+        "low": "8,795.55",
+        "name": "NIFTY SMALLCAP 50",
+        "open": "8,817.60",
+        "prevClose": "8,870.60",
+        "tag": "Broader Market",
+        "value": "8,870.60"
+      }
+    ],
+    "Sectoral": [
+      {
+        "change": "+0.57%",
+        "changeValue": "+154.95",
+        "direction": "up",
+        "high": "27,279.65",
+        "lastUpdated": "2025-10-27T11:32:35",
+        "low": "27,128.30",
+        "name": "NIFTY AUTO",
+        "open": "27,179.70",
+        "prevClose": "27,263.65",
+        "tag": "Sectoral",
+        "value": "27,263.65"
+      },
+      {
+        "change": "+0.14%",
+        "changeValue": "+80.85",
+        "direction": "up",
+        "high": "56,631.30",
+        "lastUpdated": "2025-10-27T11:32:35",
+        "low": "56,265.60",
+        "name": "NIFTY FMCG",
+        "open": "56,385.45",
+        "prevClose": "56,428.95",
+        "tag": "Sectoral",
+        "value": "56,428.95"
+      },
+      {
+        "change": "+0.40%",
+        "changeValue": "+142.75",
+        "direction": "up",
+        "high": "36,279.40",
+        "lastUpdated": "2025-10-27T11:32:34",
+        "low": "35,962.80",
+        "name": "NIFTY IT",
+        "open": "36,075.55",
+        "prevClose": "36,129.10",
+        "tag": "Sectoral",
+        "value": "36,129.10"
+      },
+      {
+        "change": "+1.14%",
+        "changeValue": "+119.70",
+        "direction": "up",
+        "high": "10,477.60",
+        "lastUpdated": "2025-10-27T11:32:35",
+        "low": "10,396.85",
+        "name": "NIFTY METAL",
+        "open": "10,416.45",
+        "prevClose": "10,467.15",
+        "tag": "Sectoral",
+        "value": "10,467.15"
+      },
+      {
+        "change": "-0.21%",
+        "changeValue": "-46.95",
+        "direction": "down",
+        "high": "22,411.55",
+        "lastUpdated": "2025-10-27T11:32:35",
+        "low": "22,272.35",
+        "name": "NIFTY PHARMA",
+        "open": "22,405.70",
+        "prevClose": "22,310.40",
+        "tag": "Sectoral",
+        "value": "22,310.40"
+      },
+      {
+        "change": "+1.44%",
+        "changeValue": "+13.75",
+        "direction": "up",
+        "high": "958.40",
+        "lastUpdated": "2025-10-27T11:32:35",
+        "low": "944.75",
+        "name": "NIFTY REALTY",
+        "open": "945.95",
+        "prevClose": "954.65",
+        "tag": "Sectoral",
+        "value": "954.65"
+      }
+    ],
+    "Volatility": [
+      {
+        "change": "+2.28%",
+        "changeValue": "+0.27",
+        "direction": "up",
+        "high": "12.73",
+        "lastUpdated": "2025-10-27T11:32:34",
+        "low": "11.28",
+        "name": "INDIA VIX",
+        "open": "11.59",
+        "prevClose": "11.86",
+        "tag": "Volatility",
+        "value": "11.86"
+      }
+    ]
+  },
+  "status": "success",
+  "totalIndices": 12
+}

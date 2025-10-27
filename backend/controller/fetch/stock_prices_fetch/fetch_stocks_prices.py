@@ -6,6 +6,11 @@ from datetime import datetime
 from db_pool import get_connection
 import os
 import time
+from dotenv import load_dotenv
+from utils.pretty_log import banner, status_ok, status_warn, status_err
+
+# Ensure .env is loaded so we can use user's real environment variables
+load_dotenv()
 
 # Load your Upstox token from environment variables
 UPSTOX_TOKEN = os.environ.get("UPSTOX_ACCESS_TOKEN")  # set this in .env
@@ -15,7 +20,7 @@ BATCH_SIZE = 100  # Reduced for safety (query length limits)
 def get_all_nse_instruments():
     """Download and filter active NSE EQ instruments, return dict of ik: trading_symbol"""
     url = "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz"
-    print("[📦] Downloading NSE instruments...")
+    status_ok("Downloading NSE instruments...")
 
     resp = requests.get(url)
     resp.raise_for_status()
@@ -28,7 +33,7 @@ def get_all_nse_instruments():
         i for i in instruments
         if i.get("exchange") == "NSE" and i.get("instrument_type") == "EQ"
     ]
-    print(f"[+] Found {len(nse_eq_instruments)} NSE_EQ instruments.")
+    status_ok(f"Found {len(nse_eq_instruments)} NSE_EQ instruments.")
     # Return dict: instrument_key -> trading_symbol
     return {
         inst["instrument_key"]: inst["trading_symbol"]
@@ -38,6 +43,7 @@ def get_all_nse_instruments():
 
 def fetch_all_stock_prices():
     """Fetch prices for valid NSE EQ stocks in batches and insert into DB"""
+    banner("Stock Price Fetcher", "NSE Equities", style="bold cyan")
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -56,10 +62,10 @@ def fetch_all_stock_prices():
         ]
 
         if not valid_stocks:
-            print("[!] No valid NSE EQ stocks found in DB")
+            status_warn("No valid NSE EQ stocks found in DB")
             return
 
-        print(f"[+] Filtered to {len(valid_stocks)} valid NSE EQ stocks from DB")
+        status_ok(f"Filtered to {len(valid_stocks)} valid NSE EQ stocks from DB")
 
         headers = {
             "Content-Type": "application/json",
@@ -86,14 +92,15 @@ def fetch_all_stock_prices():
                 json_data = resp.json()
 
                 if json_data.get("status") != "success":
-                    print(f"[!] API error for batch {i//BATCH_SIZE + 1}: {json_data}")
+                    status_warn(f"API error for batch {i//BATCH_SIZE + 1}: {json_data}")
                     continue
 
                 data = json_data.get('data', {})
-                print(f"[DEBUG] Batch {i//BATCH_SIZE + 1}: {len(instrument_keys)} requested, {len(data)} returned")  # Debug
+                # Debug
+                status_ok(f"Batch {i//BATCH_SIZE + 1}: {len(instrument_keys)} requested, {len(data)} returned")
 
                 if not data:
-                    print(f"[!] No data for batch {i//BATCH_SIZE + 1}")
+                    status_warn(f"No data for batch {i//BATCH_SIZE + 1}")
                     continue
 
                 # Log sample response for first batch (debug only)
@@ -170,26 +177,26 @@ def fetch_all_stock_prices():
                     """, insert_data)
                     conn.commit()
                     success_rate = (batch_inserted / len(batch)) * 100
-                    print(f"[+] Inserted {batch_inserted}/{len(batch)} prices ({success_rate:.1f}%) for batch {i//BATCH_SIZE + 1} "
+                    status_ok(f"Inserted {batch_inserted}/{len(batch)} prices ({success_rate:.1f}%) for batch {i//BATCH_SIZE + 1} "
                           f"({unchanged_count} unchanged, {skipped_count} skipped)")
                     total_inserted += batch_inserted
                 else:
-                    print(f"[!] No valid data in batch {i//BATCH_SIZE + 1} ({skipped_count} skipped, {unchanged_count} unchanged)")
+                    status_warn(f"No valid data in batch {i//BATCH_SIZE + 1} ({skipped_count} skipped, {unchanged_count} unchanged)")
 
                 # Small delay between batches
                 time.sleep(1)
 
             except requests.HTTPError as http_err:
-                print(f"[!] HTTP error for batch {i//BATCH_SIZE + 1}: {http_err}")
+                status_err(f"HTTP error for batch {i//BATCH_SIZE + 1}: {http_err}")
             except Exception as e:
-                print(f"[!] Batch error {i//BATCH_SIZE + 1}: {e}")
+                status_err(f"Batch error {i//BATCH_SIZE + 1}: {e}")
                 import traceback
                 traceback.print_exc()
 
-        print(f"[✅] Full fetch complete: {total_inserted} total prices inserted from {len(valid_stocks)} valid stocks")
+        status_ok(f"Full fetch complete: {total_inserted} total prices inserted from {len(valid_stocks)} valid stocks")
 
     except Exception as e:
-        print(f"[!] DB Error: {e}")
+        status_err(f"DB Error: {e}")
         import traceback
         traceback.print_exc()
     finally:
@@ -200,7 +207,6 @@ def fetch_all_stock_prices():
 if __name__ == "__main__":
     # Repeat every 2 minutes (120 seconds)
     while True:
-        print(f"[{datetime.now()}] Starting price fetch...")
         fetch_all_stock_prices()
-        print(f"[{datetime.now()}] Fetch complete. Sleeping 120s...\n")
+        status_ok(f"Next update in 120 seconds...")
         time.sleep(120)

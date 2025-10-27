@@ -3,6 +3,7 @@ export type StockMover = {
   symbol: string;
   price: string;
   change: string;
+  volume?: number; // For most active stocks
 };
 
 export type ActiveStock = {

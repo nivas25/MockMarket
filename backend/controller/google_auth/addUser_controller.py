@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token
 from datetime import timedelta
 
 def add_user_to_db(full_name, email):
-    print(f"🔹 Adding user to DB: {full_name}, {email}")
+    print(f"🔹 Processing user: {full_name}, {email}")
     conn = None
     cursor = None
     
@@ -14,42 +14,53 @@ def add_user_to_db(full_name, email):
             raise Exception("Could not get database connection")
             
         cursor = conn.cursor(dictionary=True)
-        print("fetching user from DB if exists")
-        select_query = "SELECT user_id, name, email_id, balance FROM `Users` WHERE email_id = %s"
-        user = cursor.execute(select_query, (email,))
-        user = cursor.fetchone()
         
-        if user:
-            print("User already exists")
-        else:
-            insert_query = "INSERT INTO `Users` (name, email_id, balance) VALUES (%s, %s, %s)"
-            cursor.execute(insert_query, (full_name, email, 100000.00))
+        # Optimized: Try insert first, if duplicate then just fetch
+        try:
+            insert_query = "INSERT INTO `Users` (name, email_id, balance) VALUES (%s, %s, 100000.00)"
+            cursor.execute(insert_query, (full_name, email))
             conn.commit()
+            user_id = cursor.lastrowid
+            print(f"✅ New user created with ID: {user_id}")
             
-            cursor.execute(select_query, (email,))
+            # Fetch the newly created user
+            select_query = "SELECT user_id, name, email_id, balance, created_at FROM `Users` WHERE user_id = %s"
+            cursor.execute(select_query, (user_id,))
             user = cursor.fetchone()
-            print("New user added to database")
+            
+        except Exception as insert_error:
+            # User already exists (duplicate email), just fetch
+            if "Duplicate entry" in str(insert_error) or "duplicate" in str(insert_error).lower():
+                print("✅ User exists, fetching...")
+                select_query = "SELECT user_id, name, email_id, balance, created_at FROM `Users` WHERE email_id = %s"
+                cursor.execute(select_query, (email,))
+                user = cursor.fetchone()
+            else:
+                raise insert_error
+        
+        if not user:
+            raise Exception("Failed to retrieve user data")
             
         token = create_access_token(
             identity={
                 "user_id": user["user_id"],
                 "name": user["name"],
                 "email": user["email_id"],
-                "balance": float(user["balance"]),  # ✅ match frontend key
-                "joinedAt": str(user.get("created_at", ""))  # optional
+                "balance": float(user["balance"]),
+                "joinedAt": str(user.get("created_at", ""))
             },
             expires_delta=timedelta(days=3)
         )
 
-        return jsonify(
-            {
-                "message":"Authentication successful",
-                "token":token,
-                
-            }
-        ),200
+        return jsonify({
+            "message": "Authentication successful",
+            "token": token,
+        }), 200
+        
     except Exception as e:
         print(f"❌ Error in add_user_to_db: {e}")
+        if conn:
+            conn.rollback()
         return jsonify({"error": str(e)}), 500
             
     finally: 

@@ -1,9 +1,16 @@
 import os
+import time
+start_time = time.time()
+
 from dotenv import load_dotenv
-from utils.pretty_log import status_ok, status_warn
-from services.index_scheduler import start_index_scheduler
 from flask import Flask, jsonify
 from flask_cors import CORS
+
+# Lazy imports - only import when needed
+def get_index_scheduler():
+    from services.index_scheduler import start_index_scheduler
+    return start_index_scheduler
+
 from routes.google_auth_routes.auth_routes import auth_bp
 from routes.fetch_routes.stock_price_fetch_routes import stock_prices_bp
 from routes.fetch_routes.index_fetch_routes import index_fetch_bp
@@ -37,6 +44,8 @@ app.register_blueprint(index_fetch_bp, url_prefix='/indices')
 app.register_blueprint(news_bp, url_prefix='/news')
 app.register_blueprint(sentiment_bp, url_prefix='/sentiment')
 
+print(f"✅ Flask app initialized in {time.time() - start_time:.2f}s")
+
 if __name__ == '__main__':
     # Optionally start the in-process index fetcher so logs appear here
     enable_sched = (os.getenv("ENABLE_INDEX_SCHEDULER", "false").lower() in ("1", "true", "yes", "on"))
@@ -47,9 +56,12 @@ if __name__ == '__main__':
 
     if enable_sched and is_reloader_main:
         try:
+            from utils.pretty_log import status_ok, status_warn
+            start_index_scheduler = get_index_scheduler()
             start_index_scheduler(interval)
             status_ok(f"In-process index scheduler started (every {interval}s)")
         except Exception as e:
+            from utils.pretty_log import status_warn
             status_warn(f"Failed to start scheduler: {e}")
 
     app.run(debug=True)

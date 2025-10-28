@@ -2,19 +2,16 @@
 
 import os
 import requests
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
 from .addUser_controller import add_user_to_db
 from flask import jsonify
 
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 
 def handle_google_login(code):
-    print("🔹 Received /google-login request")
-    print(f"🔹 Code from request: {code}")
+    print("🔹 Google login request received")
 
     if not code:
-        print("❌ No code provided in request")
+        print("❌ No code provided")
         return jsonify({"message": "Authorization code not provided."}), 400
 
     try:
@@ -28,31 +25,32 @@ def handle_google_login(code):
             'grant_type': 'authorization_code'
         }
 
-        print("🔹 Sending POST request to Google for token exchange...")
-        token_response = requests.post(token_url, data=token_data)
-        print(f"🔹 Raw response from Google: {token_response.text}")
-
+        token_response = requests.post(token_url, data=token_data, timeout=3)  # 3 second timeout
         token_response_json = token_response.json()
+        
         if 'id_token' not in token_response_json:
             print("❌ 'id_token' not found in Google response")
             return jsonify({"message": "Error exchanging Google code."}), 500
 
         google_id_token = token_response_json['id_token']
-        print("🔹 Verifying Google ID token...")
 
-        # Step 2: Verify token
+        # Step 2: Decode token (skip verification since we got it from Google's OAuth endpoint)
+        import json
+        import base64
+        
+        # Decode JWT payload (second part of JWT)
         try:
-            idinfo = id_token.verify_oauth2_token(
-                google_id_token,
-                google_requests.Request(),
-                GOOGLE_CLIENT_ID,
-            )
-            print("✅ Token verified successfully")
-        except ValueError as e:
-            print(f"❌ Token verification failed: {e}")
+            # JWT format: header.payload.signature
+            payload_encoded = google_id_token.split('.')[1]
+            # Add padding if needed
+            payload_encoded += '=' * (4 - len(payload_encoded) % 4)
+            payload_decoded = base64.urlsafe_b64decode(payload_encoded)
+            idinfo = json.loads(payload_decoded)
+        except Exception as e:
+            print(f"❌ Token decode failed: {e}")
             return jsonify({"message": "Invalid Google token."}), 401
 
-        # Step 3: Extract user info
+        # Step 3: Extract user info and process
         email = idinfo.get('email')
         full_name = idinfo.get('name')
         

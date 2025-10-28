@@ -20,19 +20,28 @@ dbconfig = {
     "use_pure": True
 }
 
-try:
-    connection_pool = pooling.MySQLConnectionPool(
-        pool_name="mockmarket_pool",
-        pool_size=5,
-        **dbconfig
-    )
-    print("✅ Connection pool created successfully!")
-except Exception as e:
-    print("❌ Error creating pool:", e)
+# Lazy initialization - pool created on first use
+connection_pool = None
+
+def _ensure_pool():
+    """Create connection pool if not exists"""
+    global connection_pool
+    if connection_pool is None:
+        try:
+            connection_pool = pooling.MySQLConnectionPool(
+                pool_name="mockmarket_pool",
+                pool_size=5,
+                **dbconfig
+            )
+            print("✅ Connection pool created successfully!")
+        except Exception as e:
+            print("❌ Error creating pool:", e)
+            raise
 
 def get_connection():
     """Get a connection from the pool"""
     try:
+        _ensure_pool()
         return connection_pool.get_connection()
     except Exception as e:
         print("❌ Error getting connection from pool:", str(e))

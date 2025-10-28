@@ -56,7 +56,7 @@ Make sure your `backend/.env` file has:
 ```env
 UPSTOX_ACCESS_TOKEN=your_actual_token
 DB_HOST=localhost
-DB_USER=your_db_user
+curl http://localhost:5000/indices/all
 DB_PASSWORD=your_db_password
 DB_NAME=your_db_name
 JWT_SECRET_KEY=your_secret_key
@@ -82,7 +82,7 @@ python controller/fetch/index_fetch/runner_fetch_indices.py
 [+] Updated SENSEX: 76,180.50 (+0.91%)
 [+] Updated BANKNIFTY: 48,989.15 (-0.12%)
 [+] Updated INDIA VIX: 12.30 (+1.50%)
-... (8 more indices)
+curl http://localhost:5000/indices/all
 [✅] Successfully updated 12 indices
 [⏰] Next update in 120 seconds...
 ```
@@ -118,10 +118,10 @@ python app.py
 
 Open a **third terminal** or use your browser:
 
-**Test 1: Get Top 4 Indices**
+**Test 1: Get All Indices**
 
 ```powershell
-curl http://localhost:5000/indices/top4
+curl http://localhost:5000/indices/all
 ```
 
 **Expected Response:**
@@ -372,7 +372,7 @@ If something doesn't work, check:
 
 1. All 3 terminals are running (fetcher, flask, next)
 2. Database has data (`SELECT * FROM Index_Prices;`)
-3. API returns data (`curl http://localhost:5000/indices/top4`)
+3. API returns data (`curl http://localhost:5000/indices/all`)
 4. Browser console for errors (F12 → Console)
 5. Network tab for failed API calls (F12 → Network)
 

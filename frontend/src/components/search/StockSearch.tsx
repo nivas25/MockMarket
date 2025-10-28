@@ -3,14 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { mockSearchStocks } from "@/data/mockStocks";
+import { searchStocks } from "@/services/api/stockSearchApi";
 import styles from "./StockSearch.module.css";
 
 type StockResult = {
   symbol: string;
   companyName: string;
-  currentPrice: number;
-  changePercent: number;
+  currentPrice: number | null;
+  changePercent: number | null;
   exchange: string;
 };
 
@@ -26,12 +26,14 @@ export default function StockSearch({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<StockResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
   const [isMobile, setIsMobile] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const resultItemsRef = useRef<Map<number, HTMLDivElement>>(new Map());
   const router = useRouter();
 
   // Detect mobile viewport to adjust placeholder and sizing
@@ -44,29 +46,36 @@ export default function StockSearch({
     return () => mq.removeEventListener?.("change", update);
   }, []);
 
-  // Using shared mock data list for development
-  const mockStocks = useRef<StockResult[]>(mockSearchStocks);
-
-  // Debounced search
+  // Instant search with minimal debounce
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Show loading immediately for better UX
+    if (query.trim()) {
+      setIsLoading(true);
+    }
+
+    const timer = setTimeout(async () => {
       if (!query.trim()) {
         setResults([]);
         setIsOpen(false);
         setSelectedIndex(-1);
+        setIsLoading(false);
         return;
       }
 
-      // Search logic - matches symbol or company name
-      const filtered = mockStocks.current.filter(
-        (stock) =>
-          stock.symbol.toLowerCase().includes(query.toLowerCase()) ||
-          stock.companyName.toLowerCase().includes(query.toLowerCase())
-      );
-      setResults(filtered.slice(0, 8)); // Limit to 8 results
-      setIsOpen(filtered.length > 0);
-      setSelectedIndex(-1);
-    }, 300);
+      try {
+        // Call real API
+        const stockResults = await searchStocks(query, 10);
+        setResults(stockResults);
+        setIsOpen(stockResults.length > 0);
+        setSelectedIndex(-1);
+      } catch (error) {
+        console.error("Search error:", error);
+        setResults([]);
+        setIsOpen(false);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 150); // Reduced from 300ms to 150ms for faster response
 
     return () => clearTimeout(timer);
   }, [query]);
@@ -75,11 +84,21 @@ export default function StockSearch({
   const computePosition = useCallback(() => {
     if (inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
-      setCoords({
-        top: rect.bottom + 8,
-        left: rect.left,
-        width: rect.width,
-      });
+
+      // On mobile, use full width with some padding
+      if (window.innerWidth <= 480) {
+        setCoords({
+          top: rect.bottom + 8,
+          left: 16, // 16px padding from left
+          width: window.innerWidth - 32, // 32px total padding (16px each side)
+        });
+      } else {
+        setCoords({
+          top: rect.bottom + 8,
+          left: rect.left,
+          width: rect.width,
+        });
+      }
     }
   }, []);
 
@@ -102,6 +121,11 @@ export default function StockSearch({
         wrapperRef.current &&
         !wrapperRef.current.contains(e.target as Node)
       ) {
+        // Check if click is inside dropdown (which is portaled to body)
+        const dropdown = document.querySelector(`.${styles.dropdown}`);
+        if (dropdown && dropdown.contains(e.target as Node)) {
+          return; // Don't close if clicking inside dropdown
+        }
         setIsOpen(false);
       }
     };
@@ -109,6 +133,20 @@ export default function StockSearch({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Auto-scroll selected item into view when using keyboard navigation
+  useEffect(() => {
+    if (selectedIndex >= 0) {
+      const selectedElement = resultItemsRef.current.get(selectedIndex);
+      if (selectedElement) {
+        selectedElement.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "nearest",
+        });
+      }
+    }
+  }, [selectedIndex]);
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -140,13 +178,16 @@ export default function StockSearch({
   };
 
   // Handle stock selection
-  const handleSelect = (stock: StockResult) => {
-    setQuery("");
-    setIsOpen(false);
-    setSelectedIndex(-1);
-    inputRef.current?.blur();
-    router.push(`/stocks/${stock.symbol}`);
-  };
+  const handleSelect = useCallback(
+    (stock: StockResult) => {
+      setQuery("");
+      setIsOpen(false);
+      setSelectedIndex(-1);
+      inputRef.current?.blur();
+      router.push(`/stocks/${stock.symbol}`);
+    },
+    [router]
+  );
 
   // Ctrl+K to focus search
   useEffect(() => {
@@ -172,43 +213,76 @@ export default function StockSearch({
               left: `${coords.left}px`,
               width: `${coords.width}px`,
             }}
+            onMouseDown={(e) => e.stopPropagation()} // Prevent click from bubbling
+            onTouchStart={(e) => e.stopPropagation()} // Prevent touch from bubbling
           >
-            {results.map((stock, idx) => (
-              <div
-                key={stock.symbol}
-                className={`${styles.resultItem} ${
-                  idx === selectedIndex ? styles.selected : ""
-                }`}
-                onClick={() => handleSelect(stock)}
-                onMouseEnter={() => setSelectedIndex(idx)}
-              >
-                <div className={styles.resultMain}>
-                  <span className={styles.symbol}>{stock.symbol}</span>
-                  <span className={styles.companyName}>
-                    {stock.companyName}
-                  </span>
-                </div>
-                <div className={styles.resultPrice}>
-                  <span className={styles.price}>
-                    ₹
-                    {stock.currentPrice.toLocaleString("en-IN", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
-                  <span
-                    className={`${styles.change} ${
-                      stock.changePercent >= 0
-                        ? styles.positive
-                        : styles.negative
-                    }`}
-                  >
-                    {stock.changePercent >= 0 ? "▲" : "▼"}{" "}
-                    {Math.abs(stock.changePercent).toFixed(2)}%
-                  </span>
-                </div>
+            {isLoading && results.length === 0 ? (
+              <div className={styles.loadingMessage}>
+                <span className={styles.loadingSpinnerLarge}>⏳</span>
+                <span>Searching...</span>
               </div>
-            ))}
+            ) : (
+              results.map((stock, idx) => (
+                <div
+                  key={stock.symbol}
+                  ref={(el) => {
+                    if (el) {
+                      resultItemsRef.current.set(idx, el);
+                    } else {
+                      resultItemsRef.current.delete(idx);
+                    }
+                  }}
+                  className={`${styles.resultItem} ${
+                    idx === selectedIndex ? styles.selected : ""
+                  }`}
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Prevent input blur
+                    handleSelect(stock);
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault(); // Prevent double-tap zoom on mobile
+                    handleSelect(stock);
+                  }}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className={styles.resultMain}>
+                    <span className={styles.symbol}>{stock.symbol}</span>
+                    <span className={styles.companyName}>
+                      {stock.companyName}
+                    </span>
+                  </div>
+                  <div className={styles.resultPrice}>
+                    <span className={styles.price}>
+                      {stock.currentPrice !== null ? (
+                        <>
+                          ₹
+                          {stock.currentPrice.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </>
+                      ) : (
+                        <span className={styles.noPrice}>N/A</span>
+                      )}
+                    </span>
+                    {stock.changePercent !== null && (
+                      <span
+                        className={`${styles.change} ${
+                          stock.changePercent >= 0
+                            ? styles.positive
+                            : styles.negative
+                        }`}
+                      >
+                        {stock.changePercent >= 0 ? "▲" : "▼"}{" "}
+                        {Math.abs(stock.changePercent).toFixed(2)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>,
           document.body
         )
@@ -228,7 +302,11 @@ export default function StockSearch({
         autoComplete="off"
         spellCheck={false}
       />
-      <span className={styles.kbdHint}>Ctrl K</span>
+      {isLoading ? (
+        <span className={styles.loadingSpinner}>⏳</span>
+      ) : (
+        <span className={styles.kbdHint}>Ctrl K</span>
+      )}
       {dropdown}
     </div>
   );

@@ -332,10 +332,11 @@
     gap: var(--space-xs);
     padding: 8px var(--space-sm);
   }
-  /* Constrain search so actions (profile icon) always fit */
+  /* Make search bar take reasonable width - better for all phone sizes */
   .searchCluster {
-    flex: 0 0 auto;
-    width: clamp(96px, 30vw, 180px);
+    flex: 1;
+    min-width: 0; /* Allow flex shrinking */
+    max-width: none; /* Remove constraint */
   }
   .logoIcon {
     width: 22px;
@@ -366,5 +367,22 @@
   }
   .actionsCluster {
     gap: 6px;
+    flex-shrink: 0; /* Prevent actions from shrinking */
+  }
+}
+
+/* Larger phones (iPhone 12/13/14 Pro Max, etc.) - optimize search bar width */
+@media (min-width: 390px) and (max-width: 768px) {
+  .searchCluster {
+    flex: 1;
+    max-width: 400px; /* Give more space on larger phones */
+  }
+}
+
+/* Medium phones (iPhone 12/13/14 regular) */
+@media (min-width: 375px) and (max-width: 389px) {
+  .searchCluster {
+    flex: 1;
+    max-width: 300px;
   }
 }

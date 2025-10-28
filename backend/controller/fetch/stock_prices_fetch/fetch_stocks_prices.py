@@ -8,6 +8,7 @@ import os
 import time
 from dotenv import load_dotenv
 from utils.pretty_log import banner, status_ok, status_warn, status_err
+from services.http_client import upstox_get
 
 # Ensure .env is loaded so we can use user's real environment variables
 load_dotenv()
@@ -82,12 +83,11 @@ def fetch_all_stock_prices():
             symbols = [ik_to_symbol[ik] for ik in instrument_keys]
             batch_iks_str = ",".join(instrument_keys)  # Let requests handle encoding
             stock_ids = [stock['stock_id'] for stock in batch]
-            stock_names = [stock['company_name'] or "Unknown" for stock in batch]  # Use company_name for stock_name
 
             try:
                 # Use /quotes endpoint for batch OHLC data
                 url = "https://api.upstox.com/v2/market-quote/quotes"
-                resp = requests.get(url, params={"instrument_key": batch_iks_str}, headers=headers)
+                resp = upstox_get(url, params={"instrument_key": batch_iks_str}, headers=headers)
                 resp.raise_for_status()
                 json_data = resp.json()
 
@@ -146,7 +146,7 @@ def fetch_all_stock_prices():
                     last_record = cursor.fetchone()
                     if last_record and float(last_record['ltp']) == ltp:
                         unchanged_count += 1
-                        print(f"[⏭️] Skipped unchanged LTP for {stock_names[idx]} ({ltp})")
+                        print(f"[⏭️] Skipped unchanged LTP for stock_id={stock_ids[idx]} ({ltp})")
                         continue
 
                     price_data = {
@@ -160,7 +160,6 @@ def fetch_all_stock_prices():
 
                     insert_data.append((
                         stock_ids[idx],
-                        stock_names[idx],  # Maps to stock_name column
                         price_data['ltp'],
                         price_data['day_high'],
                         price_data['day_low'],
@@ -172,8 +171,8 @@ def fetch_all_stock_prices():
                 batch_inserted = len(insert_data)
                 if insert_data:
                     cursor.executemany("""
-                        INSERT INTO Stock_Prices (stock_id, stock_name, ltp, day_high, day_low, day_open, prev_close, as_of)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO Stock_Prices (stock_id, ltp, day_high, day_low, day_open, prev_close, as_of)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """, insert_data)
                     conn.commit()
                     success_rate = (batch_inserted / len(batch)) * 100

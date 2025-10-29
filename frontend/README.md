@@ -1,5 +1,20 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Configuration
+
+Copy `.env.local.example` to `.env.local` and set your values:
+
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
+```
+
+HTTP calls use a shared Axios client at `src/lib/http.ts` which:
+
+- reads the base URL from `src/config.js`
+- injects `Authorization: Bearer <token>` from `localStorage` when present
+- centralizes error logging
+
 ## Getting Started
 
 First, run the development server:

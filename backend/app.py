@@ -18,6 +18,7 @@ from routes.news_routes import news_bp
 from routes.sentiment_routes import sentiment_bp
 from routes.valid_user_routes.check_valid_user_routes import verify_bp
 from routes.order_routes.buy_sell_order_routes import order_bp
+from routes.health_routes import health_bp
 from flask_jwt_extended import JWTManager
 
 # Load environment variables
@@ -44,6 +45,7 @@ app.register_blueprint(stock_prices_bp, url_prefix='/stocks')
 app.register_blueprint(index_fetch_bp, url_prefix='/indices')
 app.register_blueprint(news_bp, url_prefix='/news')
 app.register_blueprint(sentiment_bp, url_prefix='/sentiment')
+app.register_blueprint(health_bp)
 
 app.register_blueprint(order_bp, url_prefix='/order')
 

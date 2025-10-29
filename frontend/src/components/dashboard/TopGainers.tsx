@@ -24,6 +24,52 @@ export function TopGainers({ items, limit = 5 }: TopGainersProps) {
 
   return (
     <div className={styles.list}>
+      {sorted.length === 0 && (
+        <>
+          {Array.from({ length: limit }).map((_, i) => (
+            <div key={i} className={widget.stockRow} aria-busy="true">
+              <div className={styles.leading}>
+                <span className={styles.rankBadge}>{i + 1}</span>
+                <div className={widget.stockInfo}>
+                  <div className={styles.symbolRow}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 48,
+                        height: 14,
+                        borderRadius: 6,
+                        background: "rgba(0,0,0,0.08)",
+                      }}
+                    />
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 120,
+                        height: 12,
+                        borderRadius: 6,
+                        background: "rgba(0,0,0,0.06)",
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className={styles.trailing}>
+                <div
+                  style={{
+                    width: 54,
+                    height: 12,
+                    borderRadius: 6,
+                    background: "rgba(0,0,0,0.06)",
+                  }}
+                />
+                <div className={widget.changePill} style={{ opacity: 0.5 }}>
+                  —
+                </div>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
       {sorted.map((stock, idx) => (
         <div className={widget.stockRow} key={`${stock.symbol}-${idx}`}>
           <div className={styles.leading}>

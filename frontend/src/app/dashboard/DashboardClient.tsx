@@ -8,7 +8,6 @@ import type {
   DashboardTab,
   Order,
   StockMover,
-  ActiveStock,
 } from "./types";
 import {
   TopBar,
@@ -20,20 +19,11 @@ import {
   WatchlistTab,
 } from "../../components/dashboard";
 import Footer from "../../components/landing/Footer";
-import {
-  fetchTopGainers,
-  fetchTopLosers,
-  fetchMostActive,
-} from "../../services/api/stockMoversApi";
-import { fetchLatestNews } from "../../services/api/newsApi";
-import { fetchMarketSentiment } from "../../services/api/sentimentApi";
-import type { SentimentData } from "../../services/api/sentimentApi";
+import { useMovers } from "../../hooks/useMovers";
+import { useNews } from "../../hooks/useNews";
+import { useSentiment } from "../../hooks/useSentiment";
 
 export default function DashboardClient({
-  topGainers = [],
-  topLosers = [],
-  mostActive = [],
-  marketNews = [],
   holdings = [],
   orders = [],
   watchlist = [],
@@ -43,75 +33,11 @@ export default function DashboardClient({
   const [isScrolled, setIsScrolled] = useState(false);
 
   // Real-time stock movers data
-  const [liveGainers, setLiveGainers] = useState<StockMover[]>(topGainers);
-  const [liveLosers, setLiveLosers] = useState<StockMover[]>(topLosers);
-  const [liveMostActive, setLiveMostActive] =
-    useState<ActiveStock[]>(mostActive);
-  const [liveNews, setLiveNews] = useState(marketNews);
-  const [liveSentiment, setLiveSentiment] = useState<SentimentData | null>(
-    null
-  );
+  const { gainers, losers, mostActive: activeList } = useMovers(10, "NSE");
+  const { news } = useNews(12);
+  const { sentiment: liveSentiment } = useSentiment();
 
-  // Fetch stock movers on mount and poll every 10 seconds
-  useEffect(() => {
-    const loadStockMovers = async () => {
-      const [gainers, losers, active] = await Promise.all([
-        fetchTopGainers(10, "NSE", false),
-        fetchTopLosers(10, "NSE", false),
-        fetchMostActive(10, "NSE"),
-      ]);
-      if (gainers.length > 0) setLiveGainers(gainers);
-      if (losers.length > 0) setLiveLosers(losers);
-      if (active.length > 0) {
-        // Convert to ActiveStock format with volume as string
-        const activeStocks: ActiveStock[] = active.map((stock) => ({
-          name: stock.name,
-          symbol: stock.symbol,
-          price: stock.price,
-          change: stock.change,
-          volume: stock.volume ? stock.volume.toLocaleString() : "0",
-        }));
-        setLiveMostActive(activeStocks);
-      }
-    };
-
-    loadStockMovers();
-    const interval = setInterval(loadStockMovers, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Fetch latest market news (refresh every 2 minutes)
-  useEffect(() => {
-    console.log("[DASHBOARD] News useEffect initialized");
-    const loadNews = async () => {
-      try {
-        console.log("[DASHBOARD] Loading news...");
-        const news = await fetchLatestNews(12);
-        console.log("[NEWS] Fetched news items:", news.length);
-        setLiveNews(news); // Update even if empty to show no news available
-      } catch (e) {
-        console.error("Error fetching latest news:", e);
-      }
-    };
-    loadNews();
-    const interval = setInterval(loadNews, 120_000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Fetch market sentiment (refresh every 30 seconds)
-  useEffect(() => {
-    const loadSentiment = async () => {
-      try {
-        const sentiment = await fetchMarketSentiment();
-        setLiveSentiment(sentiment);
-      } catch (e) {
-        console.error("Error fetching market sentiment:", e);
-      }
-    };
-    loadSentiment();
-    const interval = setInterval(loadSentiment, 30_000);
-    return () => clearInterval(interval);
-  }, []);
+  // SWR handles polling and caching for movers, news, and sentiment
 
   // Mock data for testing
   const mockHoldings = [
@@ -268,10 +194,10 @@ export default function DashboardClient({
         <div className={styles.contentArea}>
           {activeTab === "Explore" && (
             <ExploreTab
-              topGainers={liveGainers}
-              topLosers={liveLosers}
-              mostActive={liveMostActive}
-              marketNews={liveNews}
+              topGainers={gainers}
+              topLosers={losers}
+              mostActive={activeList}
+              marketNews={news}
               sentiment={liveSentiment}
             />
           )}

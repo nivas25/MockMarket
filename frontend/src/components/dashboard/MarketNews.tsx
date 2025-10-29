@@ -20,6 +20,37 @@ export function MarketNews({ items, limit = 5 }: MarketNewsProps) {
 
   return (
     <div className={styles.newsList}>
+      {displayItems.length === 0 && (
+        <>
+          {Array.from({ length: limit }).map((_, i) => (
+            <article key={i} className={styles.newsCard} aria-busy="true">
+              <div className={styles.newsContent}>
+                <h3
+                  className={styles.newsHeadline}
+                  style={{
+                    height: 16,
+                    width: "80%",
+                    borderRadius: 6,
+                    background: "rgba(0,0,0,0.06)",
+                  }}
+                />
+                <div className={styles.newsFooter}>
+                  <span
+                    className={styles.newsSource}
+                    style={{
+                      display: "inline-block",
+                      height: 12,
+                      width: 80,
+                      borderRadius: 6,
+                      background: "rgba(0,0,0,0.06)",
+                    }}
+                  />
+                </div>
+              </div>
+            </article>
+          ))}
+        </>
+      )}
       {displayItems.map((news, idx) => (
         <article
           key={`${news.headline}-${idx}`}

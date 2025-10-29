@@ -2,6 +2,8 @@ import "./globals.css";
 import { ReactNode } from "react";
 import { ThemeProvider } from "../components/contexts/ThemeProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google"; // 1. Import
+import SWRProvider from "../components/providers/SWRProvider";
+import RouteProgress from "../components/providers/RouteProgress";
 
 export const metadata = {
   metadataBase: new URL(
@@ -50,7 +52,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* 2. Wrap the app. It's okay to put it inside ThemeProvider. */}
         <ThemeProvider>
           <GoogleOAuthProvider clientId={googleClientId}>
-            {children}
+            <RouteProgress />
+            <SWRProvider>{children}</SWRProvider>
           </GoogleOAuthProvider>
         </ThemeProvider>
       </body>

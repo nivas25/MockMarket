@@ -3,7 +3,7 @@ import { url as API_BASE_URL } from "../config";
 
 const http = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 8000,
+  timeout: 20000, // Increased to 20s for stock movers queries
   headers: {
     "Content-Type": "application/json",
   },

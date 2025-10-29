@@ -3,20 +3,19 @@ import StockHeader from "../components/StockHeader";
 import OrderPanel from "../components/OrderPanel";
 import StockStats from "../components/StockStats";
 import StocksTopBar from "../components/StocksTopBar";
-import { getMockStockDetail } from "@/data/mockStocks";
+import StockStorage from "../components/StockStorage"; // Adjust path if your components folder is different (e.g., ../components/StockStorage)
+import { fetchStockDetail } from "@/services/api/stockDetailApi";
 
 type StockPageProps = {
   params: Promise<{ symbol: string }>;
 };
-
-// Using shared mock data util for development
 
 export async function generateMetadata({ params }: StockPageProps) {
   const { symbol: rawSymbol } = await params;
   const symbol = rawSymbol?.toUpperCase() || "RELIANCE";
 
   const title = `${symbol} Stock | MockMarket`;
-  const description = `View ${symbol} price, day range, volume, and 52W stats.`;
+  const description = `View ${symbol} live price, day range, and key market statistics.`;
 
   return {
     title,
@@ -46,7 +45,37 @@ export async function generateMetadata({ params }: StockPageProps) {
 export default async function StockPage({ params }: StockPageProps) {
   const { symbol: rawSymbol } = await params;
   const symbol = rawSymbol?.toUpperCase() || "RELIANCE";
-  const stockData = getMockStockDetail(symbol);
+
+  // Fetch real stock data from backend
+  const stockData = await fetchStockDetail(symbol);
+
+  if (!stockData) {
+    return (
+      <div className={styles.stockPage}>
+        <StocksTopBar />
+        <div className={styles.container}>
+          <div className={styles.errorMessage}>
+            <h2>Stock Not Found</h2>
+            <p>Unable to load data for {symbol}. Please try another stock.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Map backend data to component format
+  const stockFormatted = {
+    symbol: stockData.symbol,
+    companyName: stockData.companyName,
+    currentPrice: stockData.currentPrice || 0,
+    changePercent: stockData.changePercent || 0,
+    exchange: stockData.exchange,
+    previousClose: stockData.previousClose || 0,
+    changeValue: stockData.changeValue || 0,
+    dayHigh: stockData.dayHigh || 0,
+    dayLow: stockData.dayLow || 0,
+    dayOpen: stockData.dayOpen || 0,
+  };
 
   return (
     <div className={styles.stockPage}>
@@ -54,14 +83,17 @@ export default async function StockPage({ params }: StockPageProps) {
       <StocksTopBar />
       <div className={styles.container}>
         {/* Stock Header with price and basic info */}
-        <StockHeader stock={stockData} />
+        <StockHeader stock={stockFormatted} />
+
+        {/* Persist full stock details to sessionStorage (client-side only) */}
+        <StockStorage stock={stockFormatted} />
 
         {/* Main content grid */}
         <div className={styles.contentGrid}>
           {/* Left: Chart area (placeholder for now) */}
           <div className={styles.chartSection}>
             <div className={styles.chartToolbar}>
-              <div className={styles.exchangePill}>NSE</div>
+              <div className={styles.exchangePill}>{stockData.exchange}</div>
               <div className={styles.timeframeGroup}>
                 {(["1D", "1W", "1M", "3M", "6M", "1Y"] as const).map((tf) => (
                   <button
@@ -94,11 +126,11 @@ export default async function StockPage({ params }: StockPageProps) {
           </div>
 
           {/* Right: Order Panel */}
-          <OrderPanel currentPrice={stockData.currentPrice} />
+          <OrderPanel currentPrice={stockFormatted.currentPrice} />
         </div>
 
         {/* Stock Statistics */}
-        <StockStats stock={stockData} />
+        <StockStats stock={stockFormatted} />
       </div>
     </div>
   );

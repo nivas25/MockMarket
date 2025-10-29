@@ -37,23 +37,6 @@ interface ApiResponse<T> {
 /**
  * Fetch top 4 indices for dashboard strip
  */
-export async function fetchTop4Indices(): Promise<IndexData[]> {
-  try {
-    const { data: result } = await http.get<ApiResponse<IndexData[]>>(
-      `/indices/top4`
-    );
-
-    if (result.status === "success") {
-      return result.data;
-    } else {
-      throw new Error(result.message || "Failed to fetch indices");
-    }
-  } catch (error) {
-    console.error("Error fetching top 4 indices:", error);
-    throw error;
-  }
-}
-
 /**
  * Fetch all indices for 'View All' page
  */

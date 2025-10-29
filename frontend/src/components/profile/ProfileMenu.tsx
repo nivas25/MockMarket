@@ -7,9 +7,8 @@ import { useRouter } from "next/navigation";
 import { ProfileIcon } from "../dashboard/Icons";
 import GlassConfirm from "./GlassConfirm";
 import { jwtDecode } from "jwt-decode";
-
-
-
+import axios from "axios";
+import { url } from "../../config"
 
 type ProfileMenuProps = {
   user?: {
@@ -22,9 +21,6 @@ type ProfileMenuProps = {
   onLogout?: () => void;
 };
 
-
-
-
 const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -32,33 +28,72 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
 
   // --- Store user info (from props or decoded JWT) ---
   const [userData, setUserData] = useState(user);
+  const [userId, setUserId] = useState<string | number | null>(null); // Track user_id separately
 
-  useEffect(() => {
+  const fetchUserBalance = async (user_id: string | number) => {
     try {
-      const token =
-        localStorage.getItem("authToken");
+      if (!user_id) {
+        alert("User ID not found for fetching balance.");
+        localStorage.removeItem("authToken");
+        window.location.href = '/';
+        return;
+      }
+      console.log("Fetching balance for user_id:", user_id); // Debug log
+      const response = await axios.post(`${url}/fetch/user_balance`, { user_id }); // Send as JSON body
+      console.log("Balance API response:", response.data); // Debug log
+      if (response.data.status === "success") {
+        setBalance(response.data.balance); // Update state
+      } else {
+        console.warn("Unexpected API status:", response.data.status);
+      }
+    } catch (err: any) {
+      console.error("Error fetching user balance:", err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        alert("Session expired. Please log in again.");
+        localStorage.removeItem("authToken");
+        window.location.href = '/';
+      }
+    } finally {
+      console.log("Fetch user balance attempt finished.");
+    }
+  };
+
+  // First useEffect: Decode JWT and set userData + userId
+  useEffect(() => {
+    let decodedUserId: string | number;
+    try {
+      const token = localStorage.getItem("authToken");
       if (token) {
         console.log("Decoding JWT token to extract user data.");
-        console.log("JWT token:", token)
+        console.log("JWT token:", token);
         const decoded: any = jwtDecode(token);
+        decodedUserId = decoded.sub.user_id;
         setUserData({
           name: decoded.sub.name || "User",
           email: decoded.sub.email || "user@email.com",
-          balance: decoded.sub.balance || 0,
           joinedAt: decoded.sub.joinedAt || new Date().toISOString(),
         });
-
-      }
-      else{
-        console.log("No auth token found in storage.")
+        setUserId(decodedUserId); // Set user_id after decoding
+      } else {
+        console.log("No auth token found in storage.");
       }
     } catch (error) {
       console.error("JWT decode failed:", error);
+      // Optionally clear invalid token
+      localStorage.removeItem("authToken");
     }
-  }, [user]);
+  }, [user]); // Re-run if props.user changes
+
+  // Second useEffect: Fetch balance once userId is available
+  useEffect(() => {
+    if (userId !== null) { // Only fetch if userId is set (not initial null)
+      fetchUserBalance(userId);
+    }
+  }, [userId]); // Depend on userId
 
   const name = userData?.name ?? "User Name";
   const email = userData?.email ?? "user@email.com";
@@ -73,12 +108,11 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
     return isNaN(d.getTime()) ? src : d.toLocaleDateString();
   }, [userData?.joinedAt]);
 
+  // Use fetched balance or fallback
+  const currentBalance = balance ?? userData?.balance ?? 0;
   const balanceLabel = useMemo(() => {
-    const val = userData?.balance;
-    if (typeof val === "number")
-      return `₹${val.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
-    return "₹0.00";
-  }, [userData?.balance]);
+    return `₹${currentBalance.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  }, [currentBalance]);
 
   const computePosition = () => {
     const btn = buttonRef.current;
@@ -164,7 +198,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Current Balance</span>
-                <span className={styles.infoValue}>{balanceLabel}</span>
+                <span className={styles.infoValue}>{balanceLabel}</span> {/* Use formatted label */}
               </div>
             </div>
 

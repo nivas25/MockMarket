@@ -7,11 +7,6 @@ type StockData = {
   dayLow: number;
   dayOpen: number;
   previousClose: number;
-  volume: number;
-  marketCap: string;
-  peRatio: number;
-  week52High: number;
-  week52Low: number;
 };
 
 type StockStatsProps = {
@@ -24,15 +19,6 @@ export default function StockStats({ stock }: StockStatsProps) {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-  };
-
-  const formatVolume = (vol: number) => {
-    if (vol >= 10000000) {
-      return `${(vol / 10000000).toFixed(2)} Cr`;
-    } else if (vol >= 100000) {
-      return `${(vol / 100000).toFixed(2)} L`;
-    }
-    return vol.toLocaleString("en-IN");
   };
 
   return (
@@ -142,141 +128,6 @@ export default function StockStats({ stock }: StockStatsProps) {
           </div>
           <div className={styles.statValue}>
             ₹{formatNumber(stock.previousClose)}
-          </div>
-        </div>
-
-        {/* Volume & Market Data */}
-        <div className={`${styles.statCard} ${styles.cardBlue}`}>
-          <div className={styles.statHead}>
-            <span
-              className={`${styles.icon} ${styles.iconBlue}`}
-              aria-hidden="true"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M6 18V9" />
-                <path d="M12 18V5" />
-                <path d="M18 18v-7" />
-              </svg>
-            </span>
-            <div className={styles.statLabel}>Volume</div>
-          </div>
-          <div className={styles.statValue}>{formatVolume(stock.volume)}</div>
-        </div>
-
-        <div className={`${styles.statCard} ${styles.cardPurple}`}>
-          <div className={styles.statHead}>
-            <span
-              className={`${styles.icon} ${styles.iconPurple}`}
-              aria-hidden="true"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <ellipse cx="12" cy="6" rx="6" ry="2.5" />
-                <path d="M6 6v6c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V6" />
-                <path d="M6 12v6c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-6" />
-              </svg>
-            </span>
-            <div className={styles.statLabel}>Market Cap</div>
-          </div>
-          <div className={styles.statValue}>₹{stock.marketCap}</div>
-        </div>
-
-        <div className={`${styles.statCard} ${styles.cardAmber}`}>
-          <div className={styles.statHead}>
-            <span
-              className={`${styles.icon} ${styles.iconAmber}`}
-              aria-hidden="true"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M7 12h10" />
-                <path d="M5 12h2" />
-                <path d="M17 12h2" />
-                <path d="M8 12c0-3 1-6 4-6s4 3 4 6-1 6-4 6-4-3-4-6z" />
-              </svg>
-            </span>
-            <div className={styles.statLabel}>P/E Ratio</div>
-          </div>
-          <div className={styles.statValue}>{stock.peRatio.toFixed(2)}</div>
-        </div>
-
-        {/* 52 Week Range */}
-        <div className={`${styles.statCard} ${styles.cardGreen}`}>
-          <div className={styles.statHead}>
-            <span
-              className={`${styles.icon} ${styles.iconGreen}`}
-              aria-hidden="true"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M8 18l4-10 4 6 2-3" />
-                <path d="M4 18h16" />
-              </svg>
-            </span>
-            <div className={styles.statLabel}>52W High</div>
-          </div>
-          <div className={styles.statValue}>
-            ₹{formatNumber(stock.week52High)}
-          </div>
-        </div>
-
-        <div className={`${styles.statCard} ${styles.cardRed}`}>
-          <div className={styles.statHead}>
-            <span
-              className={`${styles.icon} ${styles.iconRed}`}
-              aria-hidden="true"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="8" />
-                <path d="M15 9l-6 6" />
-              </svg>
-            </span>
-            <div className={styles.statLabel}>52W Low</div>
-          </div>
-          <div className={styles.statValue}>
-            ₹{formatNumber(stock.week52Low)}
           </div>
         </div>
       </div>

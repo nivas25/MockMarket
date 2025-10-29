@@ -8,6 +8,7 @@ import os
 import time
 from dotenv import load_dotenv
 from utils.pretty_log import console, banner, status_ok, status_warn, status_err, rule, updates_table
+from services.http_client import upstox_get
 
 # Ensure .env is loaded so we can use user's real environment variables
 load_dotenv()
@@ -209,7 +210,7 @@ def fetch_index_quotes():
     banner("Fetching Index Quotes", f"{len(instrument_keys)} instruments", style="bold cyan")
     
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = upstox_get(url, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
         
@@ -231,7 +232,7 @@ def fetch_index_quotes():
         if e.response.status_code == 401:
             status_err("Authentication failed. Check UPSTOX_ACCESS_TOKEN.")
         elif e.response.status_code == 429:
-            status_warn("Rate limit exceeded. Consider increasing interval_seconds.")
+            status_warn("Rate limit exceeded. Backing off and will retry automatically if configured.")
         return None
     except requests.exceptions.ConnectionError:
         status_err("Network error: Failed to connect to Upstox API.")

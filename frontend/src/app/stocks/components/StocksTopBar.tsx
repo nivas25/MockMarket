@@ -20,8 +20,6 @@ export default function StocksTopBar() {
       theme={theme}
       isScrolled={isScrolled}
       onToggleTheme={() => setTheme(theme === "light" ? "dark" : "light")}
-      /* keep actions optional for now; ProfileMenu will still render */
-      onOpenNotifications={() => {}}
     />
   );
 }

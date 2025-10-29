@@ -19,6 +19,12 @@ def fetch_prices():
             "success": False,
             "error": str(e)
         }), 500
+    # Dev endpoint: trigger a one-time full fetch and return a simple status
+    try:
+        fetch_all_stock_prices()
+        return jsonify({"status": "success", "message": "Stock prices fetch completed"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 def _top_movers_query(order: str, limit: int, exchange: str | None, use_intraday: bool = True):
@@ -144,6 +150,210 @@ def top_losers():
             "status": "error",
             "message": str(e)
         }), 500
+
+
+@stock_prices_bp.route('/detail/<string:symbol>', methods=['GET'])
+def get_stock_detail(symbol):
+    """Get detailed stock information by symbol"""
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Query stock info + latest price
+        sql = """
+            SELECT 
+                s.stock_id,
+                s.symbol,
+                s.company_name,
+                s.exchange,
+                sp.ltp,
+                sp.day_open,
+                sp.day_high,
+                sp.day_low,
+                sp.prev_close,
+                sp.as_of,
+                ((sp.ltp - sp.prev_close) / NULLIF(sp.prev_close, 0)) * 100 AS change_percent,
+                (sp.ltp - sp.prev_close) AS change_value
+            FROM Stocks s
+            LEFT JOIN (
+                SELECT stock_id, MAX(as_of) AS max_as_of
+                FROM Stock_Prices
+                GROUP BY stock_id
+            ) latest ON latest.stock_id = s.stock_id
+            LEFT JOIN Stock_Prices sp ON sp.stock_id = s.stock_id AND sp.as_of = latest.max_as_of
+            WHERE s.symbol = %s
+            LIMIT 1
+        """
+        
+        cursor.execute(sql, (symbol.upper(),))
+        stock = cursor.fetchone()
+        
+        if not stock:
+            return jsonify({
+                "status": "error",
+                "message": f"Stock '{symbol}' not found in database"
+            }), 404
+        
+        # Format response - handle None values safely
+        ltp = float(stock['ltp']) if stock.get('ltp') is not None else None
+        prev_close = float(stock['prev_close']) if stock.get('prev_close') is not None else None
+        day_open = float(stock['day_open']) if stock.get('day_open') is not None else None
+        day_high = float(stock['day_high']) if stock.get('day_high') is not None else None
+        day_low = float(stock['day_low']) if stock.get('day_low') is not None else None
+        change_pct = float(stock['change_percent']) if stock.get('change_percent') is not None else None
+        change_val = float(stock['change_value']) if stock.get('change_value') is not None else None
+        
+        response = {
+            "symbol": stock['symbol'],
+            "companyName": stock['company_name'],
+            "exchange": stock['exchange'],
+            "currentPrice": ltp,
+            "previousClose": prev_close,
+            "dayOpen": day_open,
+            "dayHigh": day_high,
+            "dayLow": day_low,
+            "changePercent": change_pct,
+            "changeValue": change_val,
+            "asOf": stock['as_of'].isoformat() if stock.get('as_of') else None,
+        }
+        
+        return jsonify({
+            "status": "success",
+            "data": response
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        print(f"ERROR in get_stock_detail for '{symbol}':")
+        print(traceback.format_exc())
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "detail": traceback.format_exc() if __debug__ else None
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@stock_prices_bp.route('/search', methods=['GET'])
+def search_stocks():
+    """Search stocks by symbol or company name"""
+    conn = None
+    cursor = None
+    try:
+        query = request.args.get('q', '').strip()
+        limit = int(request.args.get('limit', 10))
+        
+        if not query:
+            return jsonify({
+                "status": "success",
+                "data": [],
+                "count": 0
+            }), 200
+        
+        if limit > 50:
+            limit = 50  # Max 50 results
+        
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Optimize search with indexed prefix matching
+        search_upper = query.upper()
+        
+        # For short queries (1-2 chars), only search by symbol prefix (fastest)
+        # For longer queries, search both symbol and company name
+        if len(search_upper) <= 2:
+            sql = """
+                SELECT 
+                    s.stock_id,
+                    s.symbol,
+                    s.company_name,
+                    s.exchange,
+                    sp.ltp,
+                    sp.prev_close,
+                    ((sp.ltp - sp.prev_close) / NULLIF(sp.prev_close, 0)) * 100 AS change_percent
+                FROM Stocks s
+                LEFT JOIN (
+                    SELECT stock_id, MAX(as_of) AS max_as_of
+                    FROM Stock_Prices
+                    GROUP BY stock_id
+                ) latest ON latest.stock_id = s.stock_id
+                LEFT JOIN Stock_Prices sp ON sp.stock_id = s.stock_id AND sp.as_of = latest.max_as_of
+                WHERE s.symbol LIKE %s
+                ORDER BY s.symbol
+                LIMIT %s
+            """
+            cursor.execute(sql, (f"{search_upper}%", limit))
+        else:
+            # Longer queries - search both fields but prioritize symbol matches
+            sql = """
+                SELECT 
+                    s.stock_id,
+                    s.symbol,
+                    s.company_name,
+                    s.exchange,
+                    sp.ltp,
+                    sp.prev_close,
+                    ((sp.ltp - sp.prev_close) / NULLIF(sp.prev_close, 0)) * 100 AS change_percent,
+                    CASE 
+                        WHEN s.symbol LIKE %s THEN 1
+                        WHEN s.symbol LIKE %s THEN 2
+                        ELSE 3
+                    END AS match_priority
+                FROM Stocks s
+                LEFT JOIN (
+                    SELECT stock_id, MAX(as_of) AS max_as_of
+                    FROM Stock_Prices
+                    GROUP BY stock_id
+                ) latest ON latest.stock_id = s.stock_id
+                LEFT JOIN Stock_Prices sp ON sp.stock_id = s.stock_id AND sp.as_of = latest.max_as_of
+                WHERE s.symbol LIKE %s OR s.company_name LIKE %s
+                ORDER BY match_priority, s.symbol
+                LIMIT %s
+            """
+            exact_match = f"{search_upper}%"
+            contains_match = f"%{search_upper}%"
+            cursor.execute(sql, (search_upper, exact_match, exact_match, contains_match, limit))
+        
+        stocks = cursor.fetchall()
+        
+        results = []
+        for stock in stocks:
+            ltp = float(stock['ltp']) if stock.get('ltp') is not None else None
+            change_pct = float(stock['change_percent']) if stock.get('change_percent') is not None else None
+            
+            results.append({
+                "symbol": stock['symbol'],
+                "companyName": stock['company_name'],
+                "exchange": stock['exchange'],
+                "currentPrice": ltp,
+                "changePercent": change_pct
+            })
+        
+        return jsonify({
+            "status": "success",
+            "data": results,
+            "count": len(results)
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        print(f"ERROR in search_stocks:")
+        print(traceback.format_exc())
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @stock_prices_bp.route('/most-active', methods=['GET'])

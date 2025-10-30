@@ -57,6 +57,8 @@ app.register_blueprint(balance_bp, url_prefix='/fetch')
 app.register_blueprint(health_bp)
 app.register_blueprint(metrics_bp)
 
+# Initialize SocketIO with the Flask app
+init_socketio(app)
 
 print(f"✅ Flask app initialized in {time.time() - start_time:.2f}s")
 
@@ -91,4 +93,28 @@ if __name__ == '__main__':
     #         from utils.pretty_log import status_warn
     #         status_warn(f"Failed to start stock scheduler: {e}")
 
-    socketio.run(app, debug=True)
+    # Start the automated index service scheduler
+    try:
+        from services.index_service_scheduler import start_index_service_scheduler
+        start_index_service_scheduler()
+    except Exception as e:
+        from utils.pretty_log import status_err
+        status_err(f"Failed to start index service scheduler: {e}")
+    
+    # Start the automated stock service scheduler
+    try:
+        from services.stock_service_scheduler import start_stock_service_scheduler
+        start_stock_service_scheduler()
+    except Exception as e:
+        from utils.pretty_log import status_err
+        status_err(f"Failed to start stock service scheduler: {e}")
+    
+    # Run with SocketIO support - disable reloader to avoid WebSocket issues
+    socketio.run(
+        app, 
+        host='0.0.0.0', 
+        port=5000, 
+        debug=True,
+        use_reloader=False,  # Disable reloader to fix WebSocket issues
+        log_output=True
+    )

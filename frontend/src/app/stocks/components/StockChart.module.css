@@ -1,0 +1,170 @@
+.chartContainer {
+  width: 100%;
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.4) 0%,
+    rgba(30, 41, 59, 0.4) 100%
+  );
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.intervalButtons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.intervalBtn {
+  padding: 8px 16px;
+  background: rgba(148, 163, 184, 0.05);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.intervalBtn:hover {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+.intervalBtn.active {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border-color: #22c55e;
+  color: white;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.3);
+}
+
+.chart {
+  width: 100%;
+  height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.statusMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: #94a3b8;
+  font-size: 14px;
+  gap: 12px;
+}
+
+.statusMessage .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(148, 163, 184, 0.1);
+  border-top-color: #22c55e;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hint {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 4px;
+}
+
+.errorMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: #ef4444;
+  font-size: 14px;
+}
+
+.priceInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgba(34, 197, 94, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(34, 197, 94, 0.1);
+}
+
+.priceInfo .label {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.priceInfo .price {
+  color: #22c55e;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dark mode specific adjustments */
+:global(body.dark) .chartContainer {
+  background: linear-gradient(
+    135deg,
+    rgba(15, 23, 42, 0.6) 0%,
+    rgba(30, 41, 59, 0.6) 100%
+  );
+  border-color: rgba(148, 163, 184, 0.15);
+}
+
+:global(body.dark) .intervalBtn {
+  background: rgba(148, 163, 184, 0.08);
+  border-color: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+}
+
+:global(body.dark) .intervalBtn:hover {
+  background: rgba(148, 163, 184, 0.15);
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #e2e8f0;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .chartContainer {
+    padding: 16px;
+  }
+
+  .intervalButtons {
+    gap: 6px;
+  }
+
+  .intervalBtn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .chart {
+    height: 300px;
+  }
+
+  .priceInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .priceInfo .price {
+    font-size: 16px;
+  }
+}

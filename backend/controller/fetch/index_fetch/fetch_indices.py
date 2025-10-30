@@ -17,54 +17,43 @@ load_dotenv()
 UPSTOX_TOKEN = os.environ.get("UPSTOX_ACCESS_TOKEN")
 
 # Map of index display names to Upstox instrument keys (will be resolved from BOD instruments if possible)
+# Using exact Upstox trading symbols for resolution
 INDEX_MAPPING = {
     "NIFTY 50": {
-        "instrument_key": None,
+        "instrument_key": "NSE_INDEX|Nifty 50",  # Hardcoded - Upstox uses "Nifty 50" (with space, capital N)
         "tag": "Benchmark"
+    },
+    "BANKNIFTY": {
+        "instrument_key": None,  # Resolves to "Nifty Bank"
+        "tag": "Banking"
     },
     "SENSEX": {
         "instrument_key": None,
         "tag": "Benchmark"
     },
-    "BANKNIFTY": {
+    "FINNIFTY": {
+        "instrument_key": None,  # Resolves to "Nifty Fin Service"
+        "tag": "Sectoral"
+    },
+    "BANKEX": {
         "instrument_key": None,
         "tag": "Banking"
+    },
+    "SENSEX50": {
+        "instrument_key": None,
+        "tag": "Broader Market"
+    },
+    "NIFTY MIDCAP 50": {  # Changed from MIDCAPNIFTY - exact Upstox symbol
+        "instrument_key": None,
+        "tag": "Broader Market"
+    },
+    "NIFTY NEXT 50": {  # Changed from NIFTYNXT50 - better display label
+        "instrument_key": None,
+        "tag": "Broader Market"
     },
     "INDIA VIX": {
         "instrument_key": None,
         "tag": "Volatility"
-    },
-    "NIFTY IT": {
-        "instrument_key": None,
-        "tag": "Sectoral"
-    },
-    "NIFTY PHARMA": {
-        "instrument_key": None,
-        "tag": "Sectoral"
-    },
-    "NIFTY AUTO": {
-        "instrument_key": None,
-        "tag": "Sectoral"
-    },
-    "NIFTY FMCG": {
-        "instrument_key": None,
-        "tag": "Sectoral"
-    },
-    "NIFTY METAL": {
-        "instrument_key": None,
-        "tag": "Sectoral"
-    },
-    "NIFTY REALTY": {
-        "instrument_key": None,
-        "tag": "Sectoral"
-    },
-    "NIFTY MIDCAP 50": {
-        "instrument_key": None,
-        "tag": "Broader Market"
-    },
-    "NIFTY SMALLCAP 50": {
-        "instrument_key": None,
-        "tag": "Broader Market"
     }
 }
 
@@ -105,18 +94,15 @@ def _resolve_index_instrument_keys():
 
         # Map display names to potential trading symbols and preferred segment
         candidates = {
-            "NIFTY 50": [("NSE_INDEX", "NIFTY 50"), ("NSE_INDEX", "NIFTY50")],
+            "NIFTY 50": [("NSE_INDEX", "Nifty 50"), ("NSE_INDEX", "NIFTY 50"), ("NSE_INDEX", "NIFTY50"), ("NSE_INDEX", "NIFTY 50 PR 1X"), ("NSE_INDEX", "NIFTY 50 TR 1X")],
             "SENSEX": [("BSE_INDEX", "SENSEX"), ("BSE_INDEX", "BSE SENSEX")],
             "BANKNIFTY": [("NSE_INDEX", "NIFTY BANK"), ("NSE_INDEX", "BANKNIFTY")],
             "INDIA VIX": [("NSE_INDEX", "INDIA VIX")],
-            "NIFTY IT": [("NSE_INDEX", "NIFTY IT")],
-            "NIFTY PHARMA": [("NSE_INDEX", "NIFTY PHARMA")],
-            "NIFTY AUTO": [("NSE_INDEX", "NIFTY AUTO")],
-            "NIFTY FMCG": [("NSE_INDEX", "NIFTY FMCG")],
-            "NIFTY METAL": [("NSE_INDEX", "NIFTY METAL")],
-            "NIFTY REALTY": [("NSE_INDEX", "NIFTY REALTY")],
+            "FINNIFTY": [("NSE_INDEX", "FINNIFTY")],
+            "BANKEX": [("BSE_INDEX", "BANKEX")],
+            "SENSEX50": [("BSE_INDEX", "SENSEX50")],
             "NIFTY MIDCAP 50": [("NSE_INDEX", "NIFTY MIDCAP 50")],
-            "NIFTY SMALLCAP 50": [("NSE_INDEX", "NIFTY SMLCAP 50"), ("NSE_INDEX", "NIFTY SMALLCAP 50")],
+            "NIFTY NEXT 50": [("NSE_INDEX", "Nifty Next 50"), ("NSE_INDEX", "NIFTYNXT50")],
         }
 
         resolved = 0
@@ -135,25 +121,30 @@ def _resolve_index_instrument_keys():
                 try:
                     match_key = None
                     if display_name == "NIFTY 50":
-                        # Collect candidates and prefer in order: exact 'NIFTY 50' > 'NIFTY 50 PR' > 'NIFTY 50 TR' > any other 'NIFTY 50*'
+                        # Collect candidates - looking for NIFTY 50 (not 500, not Next 50, not Alpha 50, etc.)
                         candidates_ik = []
+                        import re
                         for (seg, sym), ik in index_lookup.items():
-                            if seg == "NSE_INDEX" and ("NIFTY" in sym) and ("50" in sym):
-                                # Exclude unrelated NIFTY variants
-                                if any(bad in sym for bad in ["BANK", "MID", "SML", "SMALL", "IT", "AUTO", "PHARMA", "FMCG", "METAL", "REALTY", "VIX"]):
-                                    continue
-                                # Exclude leveraged and inverse variants (1X, 2X, INV, etc.)
-                                if any(bad in sym.upper() for bad in ["1X", "2X", "3X", "INV", "INVERSE", "LEVER"]):
-                                    continue
-                                # Rank by preference: exact match first
-                                rank = 3
-                                if sym == "NIFTY 50":
-                                    rank = 0
-                                elif "PR" in sym and "1X" not in sym.upper():
-                                    rank = 1
-                                elif "TR" in sym and "1X" not in sym.upper():
-                                    rank = 2
-                                candidates_ik.append((rank, sym, ik))
+                            if seg == "NSE_INDEX" and ("NIFTY" in sym.upper() or "NIFTY" in sym):
+                                # Must contain "50" but NOT as part of "500"
+                                # Use word boundary matching
+                                if re.search(r'\b50\b', sym):  # "50" as standalone word
+                                    # Exclude unrelated NIFTY variants - be very strict
+                                    exclude_words = ["BANK", "MID", "SML", "SMALL", "IT", "AUTO", "PHARMA", "FMCG", "METAL", "REALTY", "VIX", "NEXT", "ALPHA", "QUALITY", "VALUE", "GROWTH", "MOMENTUM", "DIV", "DIVIDEND", "OPPS", "LOW", "HIGH", "ENERGY", "INFRA", "COMMODIT", "CONSUM", "HEALTH", "FINANCE", "SERVICE"]
+                                    if any(bad in sym.upper() for bad in exclude_words):
+                                        continue
+                                    # Exclude leveraged and inverse variants
+                                    if any(bad in sym.upper() for bad in ["1X", "2X", "3X", "INV", "INVERSE", "LEVER"]):
+                                        continue
+                                    # Rank by preference
+                                    rank = 3
+                                    if sym.upper() == "NIFTY 50" or sym == "Nifty 50":
+                                        rank = 0
+                                    elif "PR" in sym and "1X" not in sym.upper():
+                                        rank = 1
+                                    elif "TR" in sym and "1X" not in sym.upper():
+                                        rank = 2
+                                    candidates_ik.append((rank, sym, ik))
                         if candidates_ik:
                             candidates_ik.sort(key=lambda t: (t[0], t[1]))
                             best = candidates_ik[0]

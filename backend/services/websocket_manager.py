@@ -10,7 +10,13 @@ socketio: SocketIO = SocketIO(cors_allowed_origins="*", async_mode="threading")
 
 def init_socketio(app: Flask) -> None:
     """Bind the global SocketIO instance to the Flask app."""
-    socketio.init_app(app, cors_allowed_origins="*")
+    socketio.init_app(
+        app, 
+        cors_allowed_origins="*",
+        async_mode="threading",
+        logger=True,
+        engineio_logger=False  # Set to True for more verbose debugging
+    )
 
 
 def broadcast_prices(updates: List[Dict[str, Any]]) -> None:

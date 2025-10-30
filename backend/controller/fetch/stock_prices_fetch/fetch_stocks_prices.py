@@ -49,8 +49,15 @@ def get_all_nse_instruments():
     }
 
 
-def fetch_all_stock_prices():
-    """Fetch prices for valid NSE EQ stocks in batches and insert into DB"""
+def fetch_all_stock_prices(save_to_db=False):
+    """
+    Fetch prices for valid NSE EQ stocks in batches
+    
+    Args:
+        save_to_db (bool): If True, saves to database. If False, only broadcasts via WebSocket
+                          Use False during market hours for live ticking
+                          Use True during EOD window to save closing prices
+    """
     banner("Stock Price Fetcher", "NSE Equities", style="bold cyan")
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -182,7 +189,9 @@ def fetch_all_stock_prices():
                     })
 
                 batch_inserted = len(insert_data)
-                if insert_data:
+                
+                # Save to database only if save_to_db=True (EOD window)
+                if save_to_db and insert_data:
                     cursor.executemany(
                         """
                         INSERT INTO Stock_Prices (stock_id, ltp, day_high, day_low, day_open, prev_close, as_of)
@@ -198,18 +207,22 @@ def fetch_all_stock_prices():
                         insert_data,
                     )
                     conn.commit()
-                    # Best-effort broadcast to WebSocket listeners
-                    if broadcast_prices and updates_for_ws:
-                        try:
-                            broadcast_prices(updates_for_ws)
-                        except Exception:
-                            pass
                     success_rate = (batch_inserted / len(batch)) * 100
-                    status_ok(f"Inserted {batch_inserted}/{len(batch)} prices ({success_rate:.1f}%) for batch {i//BATCH_SIZE + 1} "
-                          f"({unchanged_count} unchanged, {skipped_count} skipped)")
+                    status_ok(f"💾 DB: Inserted {batch_inserted}/{len(batch)} prices ({success_rate:.1f}%) for batch {i//BATCH_SIZE + 1}")
                     total_inserted += batch_inserted
-                else:
-                    status_warn(f"No valid data in batch {i//BATCH_SIZE + 1} ({skipped_count} skipped, {unchanged_count} unchanged)")
+                
+                # Always broadcast to WebSocket (live updates during market hours)
+                if broadcast_prices and updates_for_ws:
+                    try:
+                        broadcast_prices(updates_for_ws)
+                        if not save_to_db:
+                            # During market hours - only WebSocket broadcast
+                            status_ok(f"📡 WebSocket: Broadcasted {len(updates_for_ws)} live prices for batch {i//BATCH_SIZE + 1}")
+                    except Exception:
+                        pass
+                
+                if not save_to_db and not insert_data:
+                    status_warn(f"No valid data in batch {i//BATCH_SIZE + 1}")
 
                 # Small delay between batches
                 time.sleep(1)

@@ -304,6 +304,48 @@
   );
 }
 
+/* Order Section (Buy/Sell Panel) */
+.orderSection {
+  background: transparent;
+  backdrop-filter: blur(12px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  padding: var(--space-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  position: sticky;
+  top: 100px;
+  height: fit-content;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+:global(.dark) .orderSection {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Market Statistics Section */
+.statsSection {
+  background: transparent;
+  backdrop-filter: blur(12px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  padding: var(--space-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  margin-top: var(--space-lg);
+}
+
+:global(.dark) .statsSection {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .contentGrid {
@@ -312,6 +354,12 @@
 
   .chartSection {
     min-height: 400px;
+  }
+
+  .orderSection {
+    position: relative;
+    top: 0;
+    max-height: none;
   }
 
   .placeholderContent {

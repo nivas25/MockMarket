@@ -5,9 +5,13 @@ import { useEffect, useState, useRef } from "react";
 import styles from "./IndicesStrip.module.css";
 import { TrendingDownIcon, TrendingUpIcon } from "./Icons";
 import { fetchAllIndices, type IndexData } from "@/services/api/indexApi";
+import { useRealtimeIndices } from "@/hooks/useRealtimeIndices";
 
 export function IndicesStrip() {
   const [indices, setIndices] = useState<IndexData[] | null>(null);
+
+  // WebSocket hook for live updates during market hours
+  const { indices: liveIndices, isLive } = useRealtimeIndices();
 
   const loadIndices = async () => {
     try {
@@ -21,18 +25,25 @@ export function IndicesStrip() {
   };
 
   useEffect(() => {
-    // Initial load
+    // Initial load from REST API
     (async () => {
       await loadIndices();
     })();
 
-    // Refresh every 10 seconds for a more live feel
+    // Fallback polling (REST API) when market is closed
+    // During market hours, WebSocket will provide live updates
     const interval = setInterval(() => {
-      loadIndices();
+      if (!isLive) {
+        // Only poll if NOT receiving live WebSocket updates
+        loadIndices();
+      }
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isLive]);
+
+  // Prefer live WebSocket data when available, fallback to REST API data
+  const displayIndices = liveIndices || indices;
 
   const stripRef = useRef<HTMLDivElement | null>(null);
   const scrollTimer = useRef<number | null>(null);
@@ -102,7 +113,10 @@ export function IndicesStrip() {
   return (
     <>
       <div className={styles.indicesHeader}>
-        <div className={styles.indicesHeading}>Market Indices</div>
+        <div className={styles.indicesHeading}>
+          Market Indices
+          {isLive && <span className={styles.liveIndicator}> • LIVE</span>}
+        </div>
       </div>
       <div
         ref={stripRef}
@@ -120,7 +134,7 @@ export function IndicesStrip() {
         onMouseEnter={() => setShowScrollbar(true)}
         onMouseLeave={() => setShowScrollbar(false)}
       >
-        {!indices && (
+        {!displayIndices && (
           <>
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className={styles.indexCard} aria-busy="true">
@@ -141,7 +155,7 @@ export function IndicesStrip() {
             ))}
           </>
         )}
-        {indices?.map(
+        {displayIndices?.map(
           ({
             name,
             value,

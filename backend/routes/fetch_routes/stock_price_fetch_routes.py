@@ -11,6 +11,17 @@ stock_prices_bp = Blueprint('stock_prices_bp', __name__)
 
 @stock_prices_bp.route('/fetch-prices', methods=['GET'])
 def fetch_prices():
+    try:
+        fetch_all_stock_prices()
+        return jsonify({
+            "success": True,
+            "message": "Stock prices fetched and stored successfully"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
     # Dev endpoint: trigger a one-time full fetch and return a simple status
     try:
         fetch_all_stock_prices()

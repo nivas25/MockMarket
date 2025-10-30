@@ -22,6 +22,8 @@ from routes.fetch_routes.index_fetch_routes import index_fetch_bp
 from routes.news_routes import news_bp
 from routes.sentiment_routes import sentiment_bp
 from routes.valid_user_routes.check_valid_user_routes import verify_bp
+from routes.order_routes.buy_sell_order_routes import trade_bp
+from routes.fetch_balance.fetch_balance_routes import balance_bp
 from routes.health_routes import health_bp
 from routes.metrics_routes import metrics_bp
 from flask_jwt_extended import JWTManager
@@ -50,14 +52,15 @@ app.register_blueprint(stock_prices_bp, url_prefix='/stocks')
 app.register_blueprint(index_fetch_bp, url_prefix='/indices')
 app.register_blueprint(news_bp, url_prefix='/news')
 app.register_blueprint(sentiment_bp, url_prefix='/sentiment')
+app.register_blueprint(trade_bp, url_prefix='/order')
+app.register_blueprint(balance_bp, url_prefix='/fetch')
 app.register_blueprint(health_bp)
 app.register_blueprint(metrics_bp)
+
 
 print(f"✅ Flask app initialized in {time.time() - start_time:.2f}s")
 
 if __name__ == '__main__':
-    # Initialize Socket.IO
-    init_socketio(app)
     # Optionally start the in-process index fetcher so logs appear here
     enable_sched = (os.getenv("ENABLE_INDEX_SCHEDULER", "false").lower() in ("1", "true", "yes", "on"))
     interval = int(os.getenv("INDEX_FETCH_INTERVAL", "120"))
@@ -65,27 +68,27 @@ if __name__ == '__main__':
     enable_stock_sched = (os.getenv("ENABLE_STOCK_SCHEDULER", "true").lower() in ("1", "true", "yes", "on"))
     stock_interval = int(os.getenv("STOCK_FETCH_INTERVAL", "120"))
 
-    # In debug mode, Flask spawns a reloader process; guard to avoid double-start
-    is_reloader_main = os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug
+    # # In debug mode, Flask spawns a reloader process; guard to avoid double-start
+    # is_reloader_main = os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug
 
-    if enable_sched and is_reloader_main:
-        try:
-            from utils.pretty_log import status_ok, status_warn
-            start_index_scheduler = get_index_scheduler()
-            start_index_scheduler(interval)
-            status_ok(f"In-process index scheduler started (every {interval}s)")
-        except Exception as e:
-            from utils.pretty_log import status_warn
-            status_warn(f"Failed to start scheduler: {e}")
+    # if enable_sched and is_reloader_main:
+    #     try:
+    #         from utils.pretty_log import status_ok, status_warn
+    #         start_index_scheduler = get_index_scheduler()
+    #         start_index_scheduler(interval)
+    #         status_ok(f"In-process index scheduler started (every {interval}s)")
+    #     except Exception as e:
+    #         from utils.pretty_log import status_warn
+    #         status_warn(f"Failed to start scheduler: {e}")
 
-    if enable_stock_sched and is_reloader_main:
-        try:
-            from utils.pretty_log import status_ok, status_warn
-            start_stock_scheduler = get_stock_scheduler()
-            start_stock_scheduler(stock_interval)
-            status_ok(f"In-process stock scheduler started (every {stock_interval}s)")
-        except Exception as e:
-            from utils.pretty_log import status_warn
-            status_warn(f"Failed to start stock scheduler: {e}")
+    # if enable_stock_sched and is_reloader_main:
+    #     try:
+    #         from utils.pretty_log import status_ok, status_warn
+    #         start_stock_scheduler = get_stock_scheduler()
+    #         start_stock_scheduler(stock_interval)
+    #         status_ok(f"In-process stock scheduler started (every {stock_interval}s)")
+    #     except Exception as e:
+    #         from utils.pretty_log import status_warn
+    #         status_warn(f"Failed to start stock scheduler: {e}")
 
     socketio.run(app, debug=True)

@@ -234,7 +234,5 @@ def fetch_all_stock_prices():
 
 if __name__ == "__main__":
     # Repeat every 2 minutes (120 seconds)
-    while True:
-        fetch_all_stock_prices()
-        status_ok(f"Next update in 120 seconds...")
-        time.sleep(120)
+    fetch_all_stock_prices()
+    

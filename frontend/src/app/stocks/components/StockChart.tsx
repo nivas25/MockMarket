@@ -13,19 +13,29 @@ import {
   CartesianGrid,
 } from "recharts";
 import { fetchStockHistory, type Candle } from "@/services/api/stockHistoryApi";
+import styles from "./StockChart.module.css"; // Import the CSS module
+import { useTheme } from "@/components/contexts/ThemeProvider"; // Import useTheme
+
+type Interval = "1D" | "1W" | "1M" | "1Y";
+
+const INTERVAL_MAP: Record<
+  Interval,
+  { backend: "day" | "week" | "month"; limit: number }
+> = {
+  "1D": { backend: "day", limit: 5 },
+  "1W": { backend: "day", limit: 10 },
+  "1M": { backend: "day", limit: 30 },
+  "1Y": { backend: "day", limit: 365 },
+};
 
 const fetcher = async (key: string) => {
-  const [symbol, interval, limitStr] = key.split("|");
-  const limit = parseInt(limitStr || "180", 10);
-  // Map UI "year" to backend "month" with 12 candles
-  const effectiveInterval = (interval === "year" ? "month" : interval) as
-    | "day"
-    | "week"
-    | "month";
-  const effectiveLimit = interval === "year" ? 12 : limit;
-  const data = await fetchStockHistory(symbol, effectiveInterval, {
-    limit: effectiveLimit,
-  });
+  const [symbol, backend, limitStr] = key.split("|");
+  const limit = parseInt(limitStr, 10);
+  const data = await fetchStockHistory(
+    symbol,
+    backend as "day" | "week" | "month",
+    { limit }
+  );
   return data;
 };
 
@@ -39,110 +49,111 @@ function formatTooltipLabel(val: string) {
 }
 
 export default function StockChart({ symbol }: { symbol: string }) {
-  const [interval, setInterval] = useState<"day" | "week" | "month" | "year">("day");
-
-  const limit = useMemo(() => {
-    if (interval === "day") return 180; // ~6M daily
-    if (interval === "week") return 156; // ~3Y weekly
-    if (interval === "month") return 24; // ~2Y monthly
-    return 12; // year view -> 12 monthly candles
-  }, [interval]);
+  const [interval, setInterval] = useState<Interval>("1M");
+  const { theme } = useTheme();
+  const { backend, limit } = INTERVAL_MAP[interval];
 
   const { data, isLoading, error } = useSWR<Candle[]>(
-    `${symbol.toUpperCase()}|${interval}|${limit}`,
+    `${symbol.toUpperCase()}|${backend}|${limit}`,
     fetcher,
     {
       revalidateOnFocus: false,
     }
   );
 
-  // Recharts expects array of objects; we map close as primary
   const chartData = (data || []).map((d) => ({
     time: d.time,
     close: d.close,
   }));
 
+  // Define theme-aware colors
+  const isDark = theme === "dark";
+  const axisColor = isDark ? "#94a3b8" : "#666";
+  const gridOpacity = isDark ? 0.08 : 0.05;
+  const tooltipStyle: React.CSSProperties = {
+    background: isDark ? "rgba(15,23,42,0.9)" : "rgba(255,255,255,0.9)",
+    border: `1px solid ${isDark ? "rgba(148,163,184,0.2)" : "rgba(0,0,0,0.1)"}`,
+    borderRadius: 8,
+    color: isDark ? "#f0f0f0" : "#333",
+  };
+
   return (
-    <div style={{ width: "100%", height: 360 }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        {(["day", "week", "month", "year"] as const).map((tf) => (
+    // --- 1. REMOVED fixed height from this div ---
+    <div style={{ width: "100%" }}>
+      {/* Buttons (already styled correctly from module) */}
+      <div className={styles.intervalButtons}>
+        {(["1D", "1W", "1M", "1Y"] as Interval[]).map((int) => (
           <button
-            key={tf}
+            key={int}
             type="button"
-            onClick={() => setInterval(tf)}
-            style={{
-              padding: "6px 10px",
-              borderRadius: 999,
-              border: "1px solid rgba(255,255,255,0.12)",
-              background:
-                interval === tf ? "rgba(255,255,255,0.12)" : "transparent",
-              color: "inherit",
-              fontSize: 12,
-            }}
+            onClick={() => setInterval(int)}
+            className={`${styles.intervalBtn} ${
+              interval === int ? styles.active : ""
+            }`}
           >
-            {tf.toUpperCase()}
+            {int}
           </button>
         ))}
       </div>
 
-      {error && (
-        <div style={{ fontSize: 12, color: "#f87171" }}>
-          Failed to load chart
+      {error && <div className={styles.errorMessage}>Failed to load chart</div>}
+      {isLoading && (
+        <div className={styles.statusMessage}>
+          <div className={styles.spinner}></div>
+          <span>Loading chart data...</span>
         </div>
       )}
-      {isLoading && (
-        <div style={{ fontSize: 12, opacity: 0.6 }}>Loading chart…</div>
-      )}
 
+      {/* --- 2. ADDED this wrapper div --- */}
+      {/* This div uses the .chart class from your CSS for responsive height */}
       {!isLoading && chartData.length > 0 && (
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={chartData}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="colorClose" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" opacity={0.08} />
-            <XAxis
-              dataKey="time"
-              tickFormatter={formatXAxisLabel}
-              minTickGap={24}
-              stroke="#94a3b8"
-              tick={{ fontSize: 12 }}
-            />
-            <YAxis
-              domain={["dataMin", "dataMax"]}
-              width={60}
-              stroke="#94a3b8"
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip
-              labelFormatter={formatTooltipLabel}
-              formatter={(v) => [Number(v).toFixed(2), "Close"]}
-              contentStyle={{
-                background: "rgba(15,23,42,0.9)",
-                border: "1px solid rgba(148,163,184,0.2)",
-                borderRadius: 8,
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="close"
-              stroke="#22c55e"
-              fillOpacity={1}
-              fill="url(#colorClose)"
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <div className={styles.chart}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorClose" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" opacity={gridOpacity} />
+              <XAxis
+                dataKey="time"
+                tickFormatter={formatXAxisLabel}
+                minTickGap={24}
+                stroke={axisColor}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis
+                domain={["dataMin", "dataMax"]}
+                width={60}
+                stroke={axisColor}
+                tick={{ fontSize: 12 }}
+              />
+              <Tooltip
+                labelFormatter={formatTooltipLabel}
+                formatter={(v) => [Number(v).toFixed(2), "Close"]}
+                contentStyle={tooltipStyle}
+                itemStyle={{ color: isDark ? "#f0f0f0" : "#333" }}
+              />
+              <Area
+                type="monotone"
+                dataKey="close"
+                stroke="#22c55e"
+                fillOpacity={1}
+                fill="url(#colorClose)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       )}
 
       {!isLoading && chartData.length === 0 && (
-        <div style={{ fontSize: 12, opacity: 0.6 }}>No data</div>
+        <div className={styles.statusMessage}>No data</div>
       )}
     </div>
   );

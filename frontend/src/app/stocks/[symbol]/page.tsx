@@ -1,7 +1,8 @@
 import styles from "./StockDetail.module.css";
 import StockHeader from "../components/StockHeader";
 import StocksTopBar from "../components/StocksTopBar";
-import ModernStockChart from "../components/ModernStockChart";
+// --- 1. Import the new container ---
+import StockChartContainer from "../components/StockChartContainer";
 import StockStorage from "../components/StockStorage";
 import StockStats from "../components/StockStats";
 import OrderPanel from "../components/OrderPanel";
@@ -65,6 +66,7 @@ export default async function StockPage({ params }: StockPageProps) {
   }
 
   // Map backend data to component format
+  // This now includes all fields for the upgraded StockStats
   const stockFormatted = {
     symbol: stockData.symbol,
     companyName: stockData.companyName,
@@ -91,16 +93,11 @@ export default async function StockPage({ params }: StockPageProps) {
 
         {/* Main content grid */}
         <div className={styles.contentGrid}>
-          {/* Left: Chart area */}
-          <div className={styles.chartSection}>
-            <div className={styles.chartToolbar}>
-              <div className={styles.exchangePill}>{stockData.exchange}</div>
-            </div>
-            <ModernStockChart
-              symbol={symbol}
-              currentPrice={stockFormatted.currentPrice}
-            />
-          </div>
+          {/* --- 2. Use the new StockChartContainer --- */}
+          <StockChartContainer
+            symbol={symbol}
+            currentPrice={stockFormatted.currentPrice}
+          />
 
           {/* Right: Order Panel (Buy/Sell) */}
           <div className={styles.orderSection}>
@@ -110,6 +107,7 @@ export default async function StockPage({ params }: StockPageProps) {
 
         {/* Market Statistics Section */}
         <div className={styles.statsSection}>
+          {/* This will now show the upgraded stats */}
           <StockStats stock={stockFormatted} />
         </div>
       </div>

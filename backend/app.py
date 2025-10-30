@@ -28,11 +28,16 @@ from routes.health_routes import health_bp
 from routes.metrics_routes import metrics_bp
 from routes.fetch_holdings.holdings_routes import holdings_bp
 from flask_jwt_extended import JWTManager
+from flask_socketio import SocketIO
+
+
+
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 
 # ✅ Set JWT secret key properly
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
@@ -111,12 +116,10 @@ if __name__ == '__main__':
         from utils.pretty_log import status_err
         status_err(f"Failed to start stock service scheduler: {e}")
     
-    # Run with SocketIO support - disable reloader to avoid WebSocket issues
-    socketio.run(
-        app, 
-        host='0.0.0.0', 
-        port=5000, 
+    # Run with default Flask development server (no SocketIO/Eventlet)
+    app.run(
+        host='0.0.0.0',
+        port=5000,
         debug=True,
-        use_reloader=False,  # Disable reloader to fix WebSocket issues
-        log_output=True
+        use_reloader=False
     )

@@ -1,6 +1,7 @@
 "use client";
 
 import styles from "./StockHeader.module.css";
+import { useRealtimePrices } from "@/hooks/useRealtimePrices";
 
 type StockData = {
   symbol: string;
@@ -17,8 +18,17 @@ type StockHeaderProps = {
 };
 
 export default function StockHeader({ stock }: StockHeaderProps) {
-  const isPositive = stock.changePercent >= 0;
-  const priceParts = stock.currentPrice
+  const live = useRealtimePrices([stock.symbol]);
+  const liveLtp = live[stock.symbol?.toUpperCase()]?.ltp;
+  const current = typeof liveLtp === "number" ? liveLtp : stock.currentPrice;
+  const changeValue = typeof liveLtp === "number" && typeof stock.previousClose === "number"
+    ? liveLtp - stock.previousClose
+    : stock.changeValue;
+  const changePercent = typeof liveLtp === "number" && typeof stock.previousClose === "number" && stock.previousClose !== 0
+    ? ((liveLtp - stock.previousClose) / stock.previousClose) * 100
+    : stock.changePercent;
+  const isPositive = (changePercent ?? 0) >= 0;
+  const priceParts = current
     .toLocaleString("en-IN", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -58,12 +68,9 @@ export default function StockHeader({ stock }: StockHeaderProps) {
           }`}
         >
           <span className={styles.arrow}>{isPositive ? "▲" : "▼"}</span>
-          <span className={styles.changeValue}>
-            ₹{Math.abs(stock.changeValue).toFixed(2)}
-          </span>
+          <span className={styles.changeValue}>₹{Math.abs(changeValue || 0).toFixed(2)}</span>
           <span className={styles.changePercent}>
-            ({isPositive ? "+" : ""}
-            {stock.changePercent.toFixed(2)}%)
+            ({isPositive ? "+" : ""}{(changePercent || 0).toFixed(2)}%)
           </span>
         </div>
       </div>

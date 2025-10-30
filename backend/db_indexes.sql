@@ -25,3 +25,19 @@ ON Stock_Prices(day_high, day_low);
 -- Verify indexes were created
 SHOW INDEX FROM Stock_Prices;
 SHOW INDEX FROM Stocks;
+
+-- =============================================
+-- Stock_History performance and deduplication
+-- =============================================
+
+-- Ensure a unique key to support upsert semantics from API backfills
+ALTER TABLE Stock_History
+	ADD UNIQUE KEY IF NOT EXISTS uk_stock_history (stock_id, timeframe, timestamp);
+
+-- Fast time-series reads for a single stock/timeframe
+CREATE INDEX IF NOT EXISTS idx_stock_history_stock_tf_ts
+ON Stock_History(stock_id, timeframe, timestamp);
+
+-- Optional covering index for reverse-chron fetches
+CREATE INDEX IF NOT EXISTS idx_stock_history_stock_ts_desc
+ON Stock_History(stock_id, timestamp DESC);

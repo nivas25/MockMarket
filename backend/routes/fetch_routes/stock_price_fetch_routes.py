@@ -1,6 +1,9 @@
 # routes/stock_prices.py
 
 from flask import Blueprint, request, jsonify
+import os
+from datetime import datetime, timedelta
+from services.http_client import upstox_get
 from controller.fetch.stock_prices_fetch.fetch_stocks_prices import fetch_all_stock_prices
 from db_pool import get_connection
 
@@ -439,3 +442,267 @@ def most_active():
             "status": "error",
             "message": str(e)
         }), 500
+
+
+@stock_prices_bp.route('/history/<string:symbol>', methods=['GET'])
+def get_stock_history(symbol: str):
+    """Return OHLCV candles for a symbol.
+
+    Query params:
+      - interval: one of [day, week, month] (default: day)
+      - from: YYYY-MM-DD (optional)
+      - to: YYYY-MM-DD (optional, default: today)
+      - limit: integer number of candles (optional; if set, overrides from)
+
+    Strategy:
+      - Prefer minimal storage: persist only daily candles into Stock_History
+      - For week/month, aggregate from daily on the fly to avoid duplicate storage
+      - On cache miss, fetch from Upstox and upsert into Stock_History
+    """
+    conn = None
+    cursor = None
+    try:
+        interval = (request.args.get('interval') or 'day').lower()
+        if interval not in ('day', 'week', 'month', 'year'):
+            return jsonify({"status": "error", "message": "invalid interval; use day|week|month|year"}), 400
+
+        # Resolve date range
+        to_param = request.args.get('to')
+        from_param = request.args.get('from')
+        limit_param = request.args.get('limit')
+
+        today = datetime.now().date()
+        to_date = datetime.strptime(to_param, "%Y-%m-%d").date() if to_param else today
+
+        if limit_param and limit_param.isdigit():
+            n = int(limit_param)
+            if n <= 0:
+                n = 90
+            # Reasonable defaults based on interval
+            if interval == 'day':
+                from_date = to_date - timedelta(days=max(n, 1) * 2)  # include weekends/holidays slack
+            elif interval == 'week':
+                from_date = to_date - timedelta(weeks=max(n, 1) + 2)
+            elif interval == 'month':
+                # approx months -> days
+                from_date = to_date - timedelta(days=max(n, 1) * 31)
+            else:  # year -> n years -> days
+                from_date = to_date - timedelta(days=max(n, 1) * 365)
+        else:
+            if from_param:
+                from_date = datetime.strptime(from_param, "%Y-%m-%d").date()
+            else:
+                # Defaults: day=6M, week=3Y, month=5Y (storage-light)
+                if interval == 'day':
+                    from_date = to_date - timedelta(days=180)
+                elif interval == 'week':
+                    from_date = to_date - timedelta(days=365*3)
+                elif interval == 'month':
+                    from_date = to_date - timedelta(days=365*2)
+                else:  # year
+                    from_date = to_date - timedelta(days=365)
+
+        # Lookup stock_id and ISIN
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT stock_id, isin, exchange FROM Stocks WHERE symbol = %s LIMIT 1", (symbol.upper(),))
+        stock = cursor.fetchone()
+        if not stock:
+            return jsonify({"status": "error", "message": f"symbol '{symbol}' not found"}), 404
+
+        stock_id = stock['stock_id']
+        isin = stock.get('isin')
+        exchange = stock.get('exchange') or 'NSE'
+
+        if not isin:
+            return jsonify({"status": "error", "message": f"ISIN missing for '{symbol}'"}), 400
+
+        # Always ensure we have daily cached range before serving
+        # Query existing daily candles in range
+        cursor.execute(
+            """
+            SELECT timestamp, open_price, high_price, low_price, close_price, volume
+            FROM Stock_History
+            WHERE stock_id = %s AND timeframe = 'day' AND timestamp BETWEEN %s AND %s
+            ORDER BY timestamp ASC
+            """,
+            (stock_id, from_date, to_date)
+        )
+        existing = cursor.fetchall()
+
+        have_enough = len(existing) >= 5  # heuristics: if we have some data, we can serve; will still try to backfill if stale
+
+        # Decide if we need to fetch from Upstox (when empty or last day missing)
+        need_fetch = True
+        if existing:
+            last_ts = existing[-1]['timestamp']
+            # If we already have up to 'to_date' (or last business day), skip fetch
+            need_fetch = last_ts < to_date
+
+        if need_fetch:
+            token = os.environ.get("UPSTOX_ACCESS_TOKEN")
+            if not token:
+                # Can't fetch; if we have some cached data, proceed; else return empty gracefully
+                if not have_enough:
+                    return jsonify({
+                        "status": "success",
+                        "symbol": symbol.upper(),
+                        "interval": interval,
+                        "count": 0,
+                        "data": []
+                    }), 200
+            else:
+                # Fetch from Upstox Historical Candle API (daily)
+                instrument_key = f"{exchange}_EQ|{isin}"
+                url = f"https://api.upstox.com/v2/historical-candle/{instrument_key}/day/{to_date:%Y-%m-%d}/{from_date:%Y-%m-%d}"
+                headers = {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Authorization": f"Bearer {token}",
+                }
+                resp = upstox_get(url, headers=headers)
+                resp.raise_for_status()
+                payload = resp.json() or {}
+                if payload.get("status") != "success":
+                    # Fall back gracefully
+                    if not have_enough:
+                        return jsonify({
+                            "status": "success",
+                            "symbol": symbol.upper(),
+                            "interval": interval,
+                            "count": 0,
+                            "data": []
+                        }), 200
+                else:
+                    candles = payload.get("data", {}).get("candles", []) or []
+                    # Upsert into Stock_History
+                    if candles:
+                        insert_rows = []
+                        for row in candles:
+                            # row = [ts, open, high, low, close, volume, oi]
+                            ts_iso = row[0]
+                            try:
+                                ts_date = datetime.fromisoformat(ts_iso.replace("Z", "+00:00")).date()
+                            except Exception:
+                                # Fallback: take date part
+                                ts_date = datetime.strptime(ts_iso[:10], "%Y-%m-%d").date()
+                            o, h, l, c = float(row[1] or 0), float(row[2] or 0), float(row[3] or 0), float(row[4] or 0)
+                            v = int(row[5] or 0)
+                            insert_rows.append((stock_id, 'day', ts_date, o, h, l, c, v))
+
+                        if insert_rows:
+                            # Ensure table has a unique key on (stock_id, timeframe, timestamp) for proper upsert
+                            cursor.executemany(
+                                """
+                                INSERT INTO Stock_History (stock_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                ON DUPLICATE KEY UPDATE
+                                  open_price=VALUES(open_price),
+                                  high_price=VALUES(high_price),
+                                  low_price=VALUES(low_price),
+                                  close_price=VALUES(close_price),
+                                  volume=VALUES(volume)
+                                """,
+                                insert_rows
+                            )
+                            conn.commit()
+
+                    # Refresh existing after insert
+                    cursor.execute(
+                        """
+                        SELECT timestamp, open_price, high_price, low_price, close_price, volume
+                        FROM Stock_History
+                        WHERE stock_id = %s AND timeframe = 'day' AND timestamp BETWEEN %s AND %s
+                        ORDER BY timestamp ASC
+                        """,
+                        (stock_id, from_date, to_date)
+                    )
+                    existing = cursor.fetchall()
+
+        # Aggregate if needed
+        def rows_to_series(rows):
+            return [
+                {
+                    "time": r["timestamp"].strftime("%Y-%m-%d"),
+                    "open": float(r["open_price"]),
+                    "high": float(r["high_price"]),
+                    "low": float(r["low_price"]),
+                    "close": float(r["close_price"]),
+                    "volume": int(r["volume"]) if r.get("volume") is not None else 0,
+                }
+                for r in rows
+            ]
+
+        if interval == 'day':
+            data = rows_to_series(existing)
+        else:
+            # Aggregate to week or month from daily rows
+            buckets = {}
+            for r in existing:
+                d: datetime = r['timestamp']
+                if interval == 'week':
+                    # ISO year-week key
+                    key = f"{d.isocalendar().year}-W{d.isocalendar().week:02d}"
+                    key_date = d - timedelta(days=d.weekday())  # Monday of that week
+                else:  # month or year -> aggregate by month
+                    key = f"{d.year}-{d.month:02d}"
+                    key_date = d.replace(day=1)
+
+                b = buckets.get(key)
+                o, h, l, c = float(r['open_price']), float(r['high_price']), float(r['low_price']), float(r['close_price'])
+                v = int(r['volume'] or 0)
+                if not b:
+                    buckets[key] = {
+                        'time': key_date.strftime('%Y-%m-%d'),
+                        'open': o,
+                        'high': h,
+                        'low': l,
+                        'close': c,
+                        'volume': v,
+                        '_first_ts': d,
+                        '_last_ts': d,
+                    }
+                else:
+                    b['high'] = max(b['high'], h)
+                    b['low'] = min(b['low'], l)
+                    # open is first
+                    if d < b['_first_ts']:
+                        b['open'] = o
+                        b['_first_ts'] = d
+                    # close is last
+                    if d > b['_last_ts']:
+                        b['close'] = c
+                        b['_last_ts'] = d
+                    b['volume'] += v
+
+            # Sort by time
+            data = [
+                {k: v for k, v in b.items() if not k.startswith('_')}
+                for _, b in sorted(buckets.items(), key=lambda kv: kv[1]['_first_ts'])
+            ]
+            # For year interval, cap to last 12 monthly buckets if no explicit limit logic on caller
+            if interval == 'year' and data:
+                data = data[-12:]
+
+        return jsonify({
+            "status": "success",
+            "symbol": symbol.upper(),
+            "interval": interval,
+            "count": len(data),
+            "data": data,
+        }), 200
+
+    except Exception as e:
+        # Graceful empty response on unexpected errors for better UX
+        return jsonify({
+            "status": "success",
+            "symbol": symbol.upper(),
+            "interval": (request.args.get('interval') or 'day').lower(),
+            "count": 0,
+            "data": []
+        }), 200
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()

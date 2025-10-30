@@ -3,6 +3,7 @@ import time
 from typing import Dict, Optional
 
 import requests
+import certifi
 
 from utils.pretty_log import status_warn, status_err
 from services.metrics import metrics
@@ -37,7 +38,13 @@ def upstox_get(
     for attempt in range(1, max_retries + 1):
         metrics.record_call(label)
         try:
-            resp = requests.get(url, headers=headers, params=params, timeout=timeout)
+            resp = requests.get(
+                url,
+                headers=headers,
+                params=params,
+                timeout=timeout,
+                verify=certifi.where(),  # avoid broken env pointing to invalid cert bundle
+            )
             # Fast path
             if resp.status_code < 400:
                 return resp

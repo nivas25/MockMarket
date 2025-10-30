@@ -1,4 +1,5 @@
 import requests
+import certifi
 import gzip
 import io
 import json
@@ -8,6 +9,11 @@ import os
 import time
 from dotenv import load_dotenv
 from utils.pretty_log import banner, status_ok, status_warn, status_err
+try:
+    # Optional: broadcast live updates if socket server is initialized
+    from services.websocket_manager import broadcast_prices
+except Exception:  # pragma: no cover - optional dep
+    broadcast_prices = None  # type: ignore
 from services.http_client import upstox_get
 
 # Ensure .env is loaded so we can use user's real environment variables
@@ -23,7 +29,8 @@ def get_all_nse_instruments():
     url = "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz"
     status_ok("Downloading NSE instruments...")
 
-    resp = requests.get(url)
+    # Override any broken SSL_CERT_FILE/REQUESTS_CA_BUNDLE env with certifi bundle
+    resp = requests.get(url, verify=certifi.where())
     resp.raise_for_status()
 
     with gzip.GzipFile(fileobj=io.BytesIO(resp.content)) as gz_file:
@@ -112,6 +119,7 @@ def fetch_all_stock_prices():
                     first_batch = False
 
                 insert_data = []
+                updates_for_ws = []
                 skipped_count = 0
                 unchanged_count = 0
                 for idx, ik in enumerate(instrument_keys):
@@ -167,14 +175,35 @@ def fetch_all_stock_prices():
                         price_data['prev_close'],
                         price_data['as_of']
                     ))
+                    updates_for_ws.append({
+                        "symbol": symbols[idx],
+                        "ltp": price_data['ltp'],
+                        "as_of": price_data['as_of'].isoformat(),
+                    })
 
                 batch_inserted = len(insert_data)
                 if insert_data:
-                    cursor.executemany("""
+                    cursor.executemany(
+                        """
                         INSERT INTO Stock_Prices (stock_id, ltp, day_high, day_low, day_open, prev_close, as_of)
                         VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    """, insert_data)
+                        ON DUPLICATE KEY UPDATE
+                          ltp = VALUES(ltp),
+                          day_high = VALUES(day_high),
+                          day_low = VALUES(day_low),
+                          day_open = VALUES(day_open),
+                          prev_close = VALUES(prev_close),
+                          as_of = VALUES(as_of)
+                        """,
+                        insert_data,
+                    )
                     conn.commit()
+                    # Best-effort broadcast to WebSocket listeners
+                    if broadcast_prices and updates_for_ws:
+                        try:
+                            broadcast_prices(updates_for_ws)
+                        except Exception:
+                            pass
                     success_rate = (batch_inserted / len(batch)) * 100
                     status_ok(f"Inserted {batch_inserted}/{len(batch)} prices ({success_rate:.1f}%) for batch {i//BATCH_SIZE + 1} "
                           f"({unchanged_count} unchanged, {skipped_count} skipped)")

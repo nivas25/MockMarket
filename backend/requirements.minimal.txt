@@ -30,3 +30,7 @@ rich==13.7.0
 
 # Upstox SDK (optional, if using their client library)
 # upstox-python-sdk==2.18.0
+
+Flask-SocketIO==5.4.1
+python-socketio==5.11.4
+simple-websocket==1.0.0

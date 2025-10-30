@@ -1,9 +1,11 @@
 import styles from "./StockDetail.module.css";
 import StockHeader from "../components/StockHeader";
-import OrderPanel from "../components/OrderPanel";
-import StockStats from "../components/StockStats";
 import StocksTopBar from "../components/StocksTopBar";
+<<<<<<< HEAD
+import StockChart from "../components/StockChart";
+=======
 import StockStorage from "../components/StockStorage"; // Adjust path if your components folder is different (e.g., ../components/StockStorage)
+>>>>>>> d42ce86777a2b66e9851d22ae4ad1b985f60e6c6
 import { fetchStockDetail } from "@/services/api/stockDetailApi";
 
 type StockPageProps = {
@@ -90,47 +92,14 @@ export default async function StockPage({ params }: StockPageProps) {
 
         {/* Main content grid */}
         <div className={styles.contentGrid}>
-          {/* Left: Chart area (placeholder for now) */}
+          {/* Left: Chart area */}
           <div className={styles.chartSection}>
             <div className={styles.chartToolbar}>
               <div className={styles.exchangePill}>{stockData.exchange}</div>
-              <div className={styles.timeframeGroup}>
-                {(["1D", "1W", "1M", "3M", "6M", "1Y"] as const).map((tf) => (
-                  <button
-                    key={tf}
-                    className={styles.timeframeBtn}
-                    type="button"
-                  >
-                    {tf}
-                  </button>
-                ))}
-              </div>
             </div>
-            <div className={styles.chartPlaceholder}>
-              <div className={styles.placeholderContent}>
-                <svg
-                  width="64"
-                  height="64"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path d="M3 3v18h18" />
-                  <path d="M18 9l-5 5-3-3-4 4" />
-                </svg>
-                <p>Price Chart Coming Soon</p>
-                <span>Real-time candlestick chart will appear here</span>
-              </div>
-            </div>
+            <StockChart symbol={symbol} />
           </div>
-
-          {/* Right: Order Panel */}
-          <OrderPanel currentPrice={stockFormatted.currentPrice} />
         </div>
-
-        {/* Stock Statistics */}
-        <StockStats stock={stockFormatted} />
       </div>
     </div>
   );

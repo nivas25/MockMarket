@@ -40,13 +40,15 @@ def _ensure_pool():
     global connection_pool
     if connection_pool is None:
         try:
+            # Cap pool to avoid exhausting MySQL max_connections
+            pool_size = int(os.getenv("DB_POOL_SIZE", "5"))
             connection_pool = pooling.MySQLConnectionPool(
                 pool_name="mockmarket_pool",
-                pool_size=20,  # Increased from 5 to 20 for better concurrent performance
+                pool_size=pool_size,
                 pool_reset_session=True,
                 **dbconfig
             )
-            print("✅ Connection pool created successfully with 20 connections!")
+            print(f"✅ Connection pool created successfully with {pool_size} connections!")
         except Exception as e:
             print("❌ Error creating pool:", e)
             raise

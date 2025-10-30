@@ -5,6 +5,7 @@ start_time = time.time()
 from dotenv import load_dotenv
 from flask import Flask, jsonify
 from flask_cors import CORS
+from services.websocket_manager import init_socketio, socketio
 
 # Lazy imports - only import when needed
 def get_index_scheduler():
@@ -62,12 +63,12 @@ app.register_blueprint(metrics_bp)
 print(f"✅ Flask app initialized in {time.time() - start_time:.2f}s")
 
 if __name__ == '__main__':
-    # # Optionally start the in-process index fetcher so logs appear here
-    # enable_sched = (os.getenv("ENABLE_INDEX_SCHEDULER", "false").lower() in ("1", "true", "yes", "on"))
-    # interval = int(os.getenv("INDEX_FETCH_INTERVAL", "120"))
-    # # Optionally start the in-process stock fetcher
-    # enable_stock_sched = (os.getenv("ENABLE_STOCK_SCHEDULER", "true").lower() in ("1", "true", "yes", "on"))
-    # stock_interval = int(os.getenv("STOCK_FETCH_INTERVAL", "120"))
+    # Optionally start the in-process index fetcher so logs appear here
+    enable_sched = (os.getenv("ENABLE_INDEX_SCHEDULER", "false").lower() in ("1", "true", "yes", "on"))
+    interval = int(os.getenv("INDEX_FETCH_INTERVAL", "120"))
+    # Optionally start the in-process stock fetcher
+    enable_stock_sched = (os.getenv("ENABLE_STOCK_SCHEDULER", "true").lower() in ("1", "true", "yes", "on"))
+    stock_interval = int(os.getenv("STOCK_FETCH_INTERVAL", "120"))
 
     # # In debug mode, Flask spawns a reloader process; guard to avoid double-start
     # is_reloader_main = os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug
@@ -92,4 +93,4 @@ if __name__ == '__main__':
     #         from utils.pretty_log import status_warn
     #         status_warn(f"Failed to start stock scheduler: {e}")
 
-    app.run(debug=True)
+    socketio.run(app, debug=True)

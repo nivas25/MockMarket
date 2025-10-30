@@ -1,11 +1,41 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import styles from "./DashboardWidgets.module.css";
 import type { Holding } from "../../app/dashboard/types";
 import { HoldingDetailModal } from "./HoldingDetailModal";
+import { jwtDecode } from "jwt-decode";
 
 type HoldingsTabProps = {
-  holdings: Holding[];
-  balance?: number; // Available balance
+  // No props needed now, fetches internally
+};
+
+type ApiHolding = {
+  avg_buy_price: string;
+  company_name: string;
+  current_price: string;
+  current_value: string;
+  profit_loss: string;
+  profit_loss_percent: string;
+  stocks_quantity: number;
+  symbol: string;
+  total_invested: string;
+  user_balance: string;
+  // ... other fields
+};
+
+type ProcessedHolding = {
+  name: string;
+  qty: number;
+  avg: number;
+  ltp: number;
+  prevClose: number;
+  invested: number;
+  value: number;
+  pnlAbs: number;
+  pnlPct: number;
+  dayAbs: number;
+  dayPct: number;
+  allocation: number;
 };
 
 function parseNumber(value: string | number): number {
@@ -26,89 +56,80 @@ function formatINR(n: number): string {
   }
 }
 
-export function HoldingsTab({ holdings, balance = 50000 }: HoldingsTabProps) {
-  const [query, setQuery] = useState("");
-  const [sortKey, setSortKey] = useState<
-    "value" | "pnlPct" | "name" | "allocation"
-  >("allocation");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [selectedHolding, setSelectedHolding] = useState<
-    (typeof processed)[0] | null
-  >(null);
+export function HoldingsTab() {
+  const [processed, setProcessed] = useState<ProcessedHolding[]>([]);
+  const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [selectedHolding, setSelectedHolding] = useState<ProcessedHolding | null>(null);
 
-  const processed = useMemo(() => {
-    const rows = holdings.map((h) => {
-      const qty = h.qty ?? 0;
-      const avg = parseNumber(h.avg);
-      const ltp = parseNumber(h.current);
-      const prevClose = parseNumber(h.prevClose ?? "0");
-      const invested = qty * avg;
-      const value = qty * ltp;
-      const pnlAbs = value - invested;
-      const pnlPct = invested > 0 ? (pnlAbs / invested) * 100 : 0;
-      const dayAbsPerShare = prevClose > 0 ? ltp - prevClose : 0;
-      const dayPct = prevClose > 0 ? (dayAbsPerShare / prevClose) * 100 : 0;
-      const dayAbs = dayAbsPerShare * qty;
-      return {
-        name: h.name,
-        qty,
-        avg,
-        ltp,
-        prevClose,
-        invested,
-        value,
-        pnlAbs,
-        pnlPct,
-        dayAbs,
-        dayPct,
-      };
-    });
-    const totalValue = rows.reduce((s, r) => s + r.value, 0);
-    const withAlloc = rows.map((r) => ({
-      ...r,
-      allocation: totalValue > 0 ? (r.value / totalValue) * 100 : 0,
-    }));
-    return withAlloc;
-  }, [holdings]);
+  useEffect(() => {
+    async function fetchHoldings() {
+      try {
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+          console.error("No auth token found");
+          return;
+        }
+        const decoded: any = jwtDecode(token);
+        const userId = decoded.sub.user_id; // Assuming user_id is in the token payload
 
-  const totals = useMemo(() => {
-    const invested = processed.reduce((s, r) => s + r.invested, 0);
-    const value = processed.reduce((s, r) => s + r.value, 0);
-    const pnlAbs = value - invested;
-    const pnlPct = invested > 0 ? (pnlAbs / invested) * 100 : 0;
-    const dayAbs = processed.reduce((s, r) => s + r.dayAbs, 0);
-    const dayPct = value - dayAbs !== 0 ? (dayAbs / (value - dayAbs)) * 100 : 0; // approx
-    return { invested, value, pnlAbs, pnlPct, dayAbs, dayPct };
-  }, [processed]);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let out = processed;
-    if (q) out = out.filter((r) => r.name.toLowerCase().includes(q));
-    out = [...out].sort((a, b) => {
-      const dir = sortDir === "asc" ? 1 : -1;
-      switch (sortKey) {
-        case "value":
-          return dir * (a.value - b.value);
-        case "pnlPct":
-          return dir * (a.pnlPct - b.pnlPct);
-        case "name":
-          return dir * a.name.localeCompare(b.name);
-        case "allocation":
-        default:
-          return dir * (a.allocation - b.allocation);
+        const response = await axios.post("http://localhost:5000/holdings/portfolio", { user_id: userId });
+        if (response.data.status === "success") {
+          const apiHoldings: ApiHolding[] = response.data.holdings;
+          if (apiHoldings.length > 0) {
+            setBalance(parseNumber(apiHoldings[0].user_balance));
+          }
+          const rows = apiHoldings.map((h) => {
+            const qty = h.stocks_quantity ?? 0;
+            const avg = parseNumber(h.avg_buy_price);
+            const ltp = parseNumber(h.current_price);
+            const prevClose = ltp; // Assuming no prevClose, use current for 1D (will show 0%)
+            const invested = parseNumber(h.total_invested);
+            const value = parseNumber(h.current_value);
+            const pnlAbs = parseNumber(h.profit_loss);
+            const pnlPct = parseNumber(h.profit_loss_percent);
+            const dayAbsPerShare = prevClose > 0 ? ltp - prevClose : 0;
+            const dayPct = prevClose > 0 ? (dayAbsPerShare / prevClose) * 100 : 0;
+            const dayAbs = dayAbsPerShare * qty;
+            return {
+              name: h.company_name,
+              qty,
+              avg,
+              ltp,
+              prevClose,
+              invested,
+              value,
+              pnlAbs,
+              pnlPct,
+              dayAbs,
+              dayPct,
+            };
+          });
+          const totalValue = rows.reduce((s, r) => s + r.value, 0);
+          const withAlloc = rows.map((r) => ({
+            ...r,
+            allocation: totalValue > 0 ? (r.value / totalValue) * 100 : 0,
+          }));
+          setProcessed(withAlloc);
+        }
+      } catch (error) {
+        console.error("Error fetching holdings:", error);
+      } finally {
+        setLoading(false);
       }
-    });
-    return out;
-  }, [processed, query, sortKey, sortDir]);
-
-  function toggleSort(key: typeof sortKey) {
-    if (key === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else {
-      setSortKey(key);
-      setSortDir("desc");
     }
-  }
+    fetchHoldings();
+  }, []);
+
+  const invested = processed.reduce((s, r) => s + r.invested, 0);
+  const value = processed.reduce((s, r) => s + r.value, 0);
+  const pnlAbs = processed.reduce((s, r) => s + r.pnlAbs, 0);
+  const pnlPct = invested > 0 ? (pnlAbs / invested) * 100 : 0;
+  const dayAbs = processed.reduce((s, r) => s + r.dayAbs, 0);
+  const dayPct = value > 0 ? (dayAbs / value) * 100 : 0;
+  const totals = { invested, value, pnlAbs, pnlPct, dayAbs, dayPct };
+
+  const filtered = processed; // No search/sort for simplicity, as logics removed except return
 
   function exportCsv() {
     const header = [
@@ -145,13 +166,17 @@ export function HoldingsTab({ holdings, balance = 50000 }: HoldingsTabProps) {
 
   const pnlPositive = totals.pnlAbs >= 0;
 
+  if (loading) {
+    return <div className={styles.widget} style={{ gridColumn: "1 / -1" }}>Loading...</div>;
+  }
+
   return (
     <div
       className={`${styles.widget} ${styles.holdingsWidget}`}
       style={{ gridColumn: "1 / -1" }}
     >
       <div className={styles.widgetHeader}>
-        <h2 className={styles.widgetTitle}>Holdings ({holdings.length})</h2>
+        <h2 className={styles.widgetTitle}>Holdings ({processed.length})</h2>
       </div>
 
       {/* Balance Section */}
@@ -178,7 +203,7 @@ export function HoldingsTab({ holdings, balance = 50000 }: HoldingsTabProps) {
         </div>
         <div className={styles.hSummaryRight}>
           <div className={styles.returnsRow}>
-            <div className={styles.returnLabel}>1D returns</div>
+            {/* <div className={styles.returnLabel}>1D returns</div>
             <div
               className={
                 totals.dayAbs >= 0
@@ -192,7 +217,7 @@ export function HoldingsTab({ holdings, balance = 50000 }: HoldingsTabProps) {
                 ({totals.dayAbs >= 0 ? "+" : "-"}
                 {Math.abs(totals.dayPct).toFixed(2)}%)
               </span>
-            </div>
+            </div> */}
           </div>
           <div className={styles.returnsRow}>
             <div className={styles.returnLabel}>Total returns</div>
@@ -215,20 +240,23 @@ export function HoldingsTab({ holdings, balance = 50000 }: HoldingsTabProps) {
         <input
           className={styles.holdingsSearch}
           placeholder="Search holdings"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          // value={query}
+          // onChange={(e) => setQuery(e.target.value)}
+          disabled
         />
         <div className={styles.holdingsActions}>
           <button
             className={styles.sortButton}
-            onClick={() => toggleSort("pnlPct")}
+            // onClick={() => toggleSort("pnlPct")}
+            disabled
             aria-label="Sort by P&L%"
           >
             P&L%
           </button>
           <button
             className={styles.sortButton}
-            onClick={() => toggleSort("value")}
+            // onClick={() => toggleSort("value")}
+            disabled
             aria-label="Sort by Value"
           >
             Value
@@ -279,7 +307,7 @@ export function HoldingsTab({ holdings, balance = 50000 }: HoldingsTabProps) {
                 key={r.name}
                 className={`${styles.hRow} ${styles.clickableRow}`}
                 role="row"
-                onClick={() => setSelectedHolding(r)}
+                // onClick={() => setSelectedHolding(r)}
               >
                 <div className={styles.hCell} role="cell">
                   <div className={styles.stockName}>{r.name}</div>

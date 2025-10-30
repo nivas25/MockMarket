@@ -26,6 +26,7 @@ from routes.order_routes.buy_sell_order_routes import trade_bp
 from routes.fetch_balance.fetch_balance_routes import balance_bp
 from routes.health_routes import health_bp
 from routes.metrics_routes import metrics_bp
+from routes.fetch_holdings.holdings_routes import holdings_bp
 from flask_jwt_extended import JWTManager
 
 # Load environment variables
@@ -54,6 +55,7 @@ app.register_blueprint(news_bp, url_prefix='/news')
 app.register_blueprint(sentiment_bp, url_prefix='/sentiment')
 app.register_blueprint(trade_bp, url_prefix='/order')
 app.register_blueprint(balance_bp, url_prefix='/fetch')
+app.register_blueprint(holdings_bp, url_prefix='/holdings')
 app.register_blueprint(health_bp)
 app.register_blueprint(metrics_bp)
 

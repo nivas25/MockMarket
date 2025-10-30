@@ -62,13 +62,19 @@ app.register_blueprint(metrics_bp)
 
 print(f"✅ Flask app initialized in {time.time() - start_time:.2f}s")
 
+# ... (existing code above)
+
 if __name__ == '__main__':
-    # Optionally start the in-process index fetcher so logs appear here
     enable_sched = (os.getenv("ENABLE_INDEX_SCHEDULER", "false").lower() in ("1", "true", "yes", "on"))
     interval = int(os.getenv("INDEX_FETCH_INTERVAL", "120"))
-    # Optionally start the in-process stock fetcher
     enable_stock_sched = (os.getenv("ENABLE_STOCK_SCHEDULER", "true").lower() in ("1", "true", "yes", "on"))
     stock_interval = int(os.getenv("STOCK_FETCH_INTERVAL", "120"))
+
+    # ✅ Initialize Socket.IO properly before running
+    init_socketio(app)
+
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+
 
     # # In debug mode, Flask spawns a reloader process; guard to avoid double-start
     # is_reloader_main = os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug
@@ -93,4 +99,3 @@ if __name__ == '__main__':
     #         from utils.pretty_log import status_warn
     #         status_warn(f"Failed to start stock scheduler: {e}")
 
-    socketio.run(app, debug=True)

@@ -1,11 +1,8 @@
 import styles from "./StockDetail.module.css";
 import StockHeader from "../components/StockHeader";
 import StocksTopBar from "../components/StocksTopBar";
-<<<<<<< HEAD
 import StockChart from "../components/StockChart";
-=======
 import StockStorage from "../components/StockStorage"; // Adjust path if your components folder is different (e.g., ../components/StockStorage)
->>>>>>> d42ce86777a2b66e9851d22ae4ad1b985f60e6c6
 import { fetchStockDetail } from "@/services/api/stockDetailApi";
 
 type StockPageProps = {

@@ -18,8 +18,9 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
   const [buysellBtn, setBuySellBtn] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const [pricechangedUI,setPriceChangedUI] = useState<boolean>(false);
-  const [showPriceChangeModal, setShowPriceChangeModal] = useState<boolean>(false);
+  const [pricechangedUI, setPriceChangedUI] = useState<boolean>(false);
+  const [showPriceChangeModal, setShowPriceChangeModal] =
+    useState<boolean>(false);
   const [newPrice, setNewPrice] = useState<number>(0);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
@@ -28,12 +29,12 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
   const totalValue = quantity * price;
 
   const cleanErrorMessage = (msg: string): string => {
-    if (typeof msg !== 'string') return "An unexpected error occurred.";
+    if (typeof msg !== "string") return "An unexpected error occurred.";
     if (msg.startsWith("Database error: ")) {
       // Split by ':' and take the part after the code, trim any extra
-      const parts = msg.split(':');
+      const parts = msg.split(":");
       if (parts.length >= 3) {
-        return parts.slice(2).join(':').trim();
+        return parts.slice(2).join(":").trim();
       }
     }
     return msg;
@@ -67,7 +68,7 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
       intended_price: confirmPrice,
       user_id: user_id,
       quantity: quantity,
-      trade_type: "Buy"
+      trade_type: "Buy",
     };
 
     try {
@@ -76,10 +77,17 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
 
       // Handle response status
       if (response.data.status === "success") {
-        setModalMessage(response.data.message || "Buy order placed successfully at the new price!");
+        setModalMessage(
+          response.data.message ||
+            "Buy order placed successfully at the new price!"
+        );
         setShowSuccessModal(true);
       } else if (response.data.status === "error") {
-        setModalMessage(cleanErrorMessage(response.data.message || "Failed to place the confirmed buy order."));
+        setModalMessage(
+          cleanErrorMessage(
+            response.data.message || "Failed to place the confirmed buy order."
+          )
+        );
         setShowErrorModal(true);
       } else if (response.data.status === "price_changed") {
         setNewPrice(response.data.current_price || confirmPrice);
@@ -87,7 +95,9 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
       }
     } catch (error: any) {
       console.error("Error confirming buy order:", error);
-      const errMsg = error.response?.data?.message || "Failed to place the confirmed buy order. Please try again.";
+      const errMsg =
+        error.response?.data?.message ||
+        "Failed to place the confirmed buy order. Please try again.";
       setModalMessage(cleanErrorMessage(errMsg));
       setShowErrorModal(true);
     }
@@ -103,21 +113,21 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
         intended_price: finalPrice,
         user_id: user_id,
         quantity: quantity,
-        trade_type: "Buy"
-      }
+        trade_type: "Buy",
+      };
       let response;
       try {
         response = await axios.post(`${url}/order/trade`, obj);
         console.log("Buy order response:", response.data);
-      }
-      catch (error: any) {
+      } catch (error: any) {
         console.error("Error placing buy order:", error);
-        const errMsg = error.response?.data?.message || "Error placing buy order. Please try again.";
+        const errMsg =
+          error.response?.data?.message ||
+          "Error placing buy order. Please try again.";
         setModalMessage(cleanErrorMessage(errMsg));
         setShowErrorModal(true);
         throw error; // Re-throw to handle in caller if needed
-      }
-      finally {
+      } finally {
         console.log("Buy order process completed.");
       }
 
@@ -126,17 +136,20 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
         setNewPrice(response.data.current_price || finalPrice);
         setShowPriceChangeModal(true);
       } else if (response?.data?.status === "success") {
-        setModalMessage(response.data.message || "Buy order placed successfully!");
+        setModalMessage(
+          response.data.message || "Buy order placed successfully!"
+        );
         setShowSuccessModal(true);
       } else if (response?.data?.status === "error") {
-        setModalMessage(cleanErrorMessage(response.data.message || "Buy order failed."));
+        setModalMessage(
+          cleanErrorMessage(response.data.message || "Buy order failed.")
+        );
         setShowErrorModal(true);
       }
     }
-  }
+  };
 
   const sellStock = async (finalPrice: number, user_id: number) => {
-
     const stock_data = sessionStorage.getItem("currentStock");
     console.log("Stock data from sessionStorage: of selling", stock_data);
     if (stock_data) {
@@ -146,23 +159,21 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
         intended_price: finalPrice,
         user_id: user_id,
         quantity: quantity,
-        trade_type: "Sell"
-      }
+        trade_type: "Sell",
+      };
       let response;
       try {
         response = await axios.post(`${url}/order/trade`, obj);
         console.log("Sell order response:", response.data);
-      }
-      catch (error: any) {
+      } catch (error: any) {
         console.error("Error placing sell order:", error);
-        const errMsg = error.response?.data?.message || "Error placing sell order. Please try again.";
+        const errMsg =
+          error.response?.data?.message ||
+          "Error placing sell order. Please try again.";
         setModalMessage(cleanErrorMessage(errMsg));
         setShowErrorModal(true);
-      }
-      finally {
-        
+      } finally {
         console.log("Sell order process completed.");
-
       }
 
       // Check for response status
@@ -170,18 +181,20 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
         setNewPrice(response.data.current_price || finalPrice);
         setShowPriceChangeModal(true);
       } else if (response?.data?.status === "success") {
-        setModalMessage(response.data.message || "Sell order placed successfully!");
+        setModalMessage(
+          response.data.message || "Sell order placed successfully!"
+        );
         setShowSuccessModal(true);
       } else if (response?.data?.status === "error") {
-        setModalMessage(cleanErrorMessage(response.data.message || "Sell order failed."));
+        setModalMessage(
+          cleanErrorMessage(response.data.message || "Sell order failed.")
+        );
         setShowErrorModal(true);
       }
     }
-
-  }
+  };
 
   const handleSubmit = async () => {
-
     console.log("Submitting order...");
     if (quantity <= 0) {
       alert("Please enter a valid quantity");
@@ -190,8 +203,6 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
 
     const stock_data = sessionStorage.getItem("currentStock");
     const token = localStorage.getItem("authToken");
-
-
 
     if (!token) {
       alert("You must be logged in to place an order.");
@@ -207,7 +218,6 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
     const decoded: any = jwtDecode(token);
     const user_id = decoded.sub.user_id;
 
-
     const finalPrice = orderType === "market" ? currentPrice : price;
     setIsLoading(true);
     try {
@@ -220,8 +230,7 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
         await sellStock(finalPrice, user_id);
         return;
       }
-    }
-    finally {
+    } finally {
       setIsLoading(false);
     }
 
@@ -236,15 +245,17 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
         {/* Tab Switcher */}
         <div className={styles.tabSwitcher}>
           <button
-            className={`${styles.tab} ${activeTab === "buy" ? styles.active : ""
-              } ${styles.buyTab}`}
+            className={`${styles.tab} ${
+              activeTab === "buy" ? styles.active : ""
+            } ${styles.buyTab}`}
             onClick={() => setActiveTab("buy")}
           >
             Buy
           </button>
           <button
-            className={`${styles.tab} ${activeTab === "sell" ? styles.active : ""
-              } ${styles.sellTab}`}
+            className={`${styles.tab} ${
+              activeTab === "sell" ? styles.active : ""
+            } ${styles.sellTab}`}
             onClick={() => setActiveTab("sell")}
           >
             Sell
@@ -295,7 +306,9 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
             type="number"
             step="0.05"
             value={orderType === "market" ? currentPrice : price}
-            onChange={(e) => setPrice(parseFloat(e.target.value) || currentPrice)}
+            onChange={(e) =>
+              setPrice(parseFloat(e.target.value) || currentPrice)
+            }
             className={styles.input}
             disabled={orderType === "market"}
           />
@@ -315,14 +328,20 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
 
         {/* Submit Button */}
         <button
-          className={`${styles.submitBtn} ${activeTab === "buy" ? styles.buyBtn : styles.sellBtn
-            }`}
+          className={`${styles.submitBtn} ${
+            activeTab === "buy" ? styles.buyBtn : styles.sellBtn
+          }`}
           onClick={handleSubmit}
           disabled={isLoading}
         >
           {isLoading ? (
             <>
-              <svg className={styles.spinner} viewBox="0 0 24 24" width="16" height="16">
+              <svg
+                className={styles.spinner}
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+              >
                 <circle
                   cx="12"
                   cy="12"
@@ -336,8 +355,10 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
               </svg>
               Placing Order...
             </>
+          ) : activeTab === "buy" ? (
+            "Place Buy Order"
           ) : (
-            activeTab === "buy" ? "Place Buy Order" : "Place Sell Order"
+            "Place Sell Order"
           )}
         </button>
 
@@ -352,152 +373,80 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
 
       {/* Price Change Confirmation Modal */}
       {showPriceChangeModal && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-        >
-          <div 
-            style={{
-              backgroundColor: 'white',
-              padding: '20px',
-              borderRadius: '8px',
-              maxWidth: '400px',
-              textAlign: 'center'
-            }}
-          >
-            <h3 style={{ marginBottom: '10px' }}>Price Changed</h3>
-            <p style={{ marginBottom: '20px' }}>
-              The price has changed to ₹{newPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. 
-              Would you like to buy at this price?
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalIcon}>⚠️</div>
+            <h3 className={`${styles.modalTitle} ${styles.warning}`}>
+              Price Changed
+            </h3>
+            <p className={styles.modalMessage}>The price has changed to</p>
+            <div className={styles.priceHighlight}>
+              ₹
+              {newPrice.toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+            <p className={styles.modalMessage}>
+              Would you like to buy at this new price?
             </p>
-            <button 
-              onClick={async () => {
-                setShowPriceChangeModal(false);
-                await confirmBuy(newPrice);
-              }}
-              style={{
-                marginRight: '10px',
-                padding: '8px 16px',
-                backgroundColor: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              Yes
-            </button>
-            <button 
-              onClick={() => setShowPriceChangeModal(false)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#f44336',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              No
-            </button>
+            <div className={styles.modalButtons}>
+              <button
+                onClick={async () => {
+                  setShowPriceChangeModal(false);
+                  await confirmBuy(newPrice);
+                }}
+                className={`${styles.modalButton} ${styles.success}`}
+              >
+                Yes, Buy Now
+              </button>
+              <button
+                onClick={() => setShowPriceChangeModal(false)}
+                className={`${styles.modalButton} ${styles.secondary}`}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Success Modal */}
       {showSuccessModal && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-        >
-          <div 
-            style={{
-              backgroundColor: 'white',
-              padding: '20px',
-              borderRadius: '8px',
-              maxWidth: '400px',
-              textAlign: 'center'
-            }}
-          >
-            <h3 style={{ marginBottom: '10px', color: '#4CAF50' }}>Success!</h3>
-            <p style={{ marginBottom: '20px' }}>{modalMessage}</p>
-            <button 
-              onClick={closeModal}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              OK
-            </button>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalIcon}>✅</div>
+            <h3 className={`${styles.modalTitle} ${styles.success}`}>
+              Success!
+            </h3>
+            <p className={styles.modalMessage}>{modalMessage}</p>
+            <div className={styles.modalButtons}>
+              <button
+                onClick={closeModal}
+                className={`${styles.modalButton} ${styles.success}`}
+              >
+                Awesome!
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Error Modal */}
       {showErrorModal && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-        >
-          <div 
-            style={{
-              backgroundColor: 'white',
-              padding: '20px',
-              borderRadius: '8px',
-              maxWidth: '400px',
-              textAlign: 'center'
-            }}
-          >
-            <h3 style={{ marginBottom: '10px', color: '#f44336' }}>Error</h3>
-            <p style={{ marginBottom: '20px' }}>{modalMessage}</p>
-            <button 
-              onClick={closeModal}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#f44336',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              OK
-            </button>
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalIcon}>❌</div>
+            <h3 className={`${styles.modalTitle} ${styles.error}`}>Error</h3>
+            <p className={styles.modalMessage}>{modalMessage}</p>
+            <div className={styles.modalButtons}>
+              <button
+                onClick={closeModal}
+                className={`${styles.modalButton} ${styles.error}`}
+              >
+                Got it
+              </button>
+            </div>
           </div>
         </div>
       )}

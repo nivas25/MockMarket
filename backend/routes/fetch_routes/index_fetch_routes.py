@@ -1,13 +1,58 @@
 from flask import Blueprint, jsonify
 from db_pool import get_connection
 from controller.fetch.index_fetch.fetch_indices import update_index_prices
+from utils.market_hours import should_use_websocket, get_market_status
+from services.index_websocket import get_live_cache
 
 index_fetch_bp = Blueprint("index_fetch", __name__)
 
 
 @index_fetch_bp.route("/all", methods=["GET"])
 def get_all_indices():
-    """Get all indices for 'View All' page"""
+    """
+    Get all indices
+    - During market hours (9:13 AM - 3:30 PM): Returns live data from WebSocket cache
+    - Outside market hours: Returns closing prices from database
+    """
+    # Check market status
+    use_websocket = should_use_websocket()
+    
+    if use_websocket:
+        # Return live data from WebSocket cache
+        live_data = get_live_cache()
+        
+        if live_data:
+            # Group by tag
+            grouped_indices = {}
+            for index_name, data in live_data.items():
+                tag = data["tag"]
+                if tag not in grouped_indices:
+                    grouped_indices[tag] = []
+                
+                grouped_indices[tag].append({
+                    "name": data["name"],
+                    "value": f"{data['ltp']:,.2f}",
+                    "open": f"{data['open']:,.2f}",
+                    "high": f"{data['high']:,.2f}",
+                    "low": f"{data['low']:,.2f}",
+                    "prev_close": f"{data['prev_close']:,.2f}",
+                    "change": f"{data['change_value']:+.2f}",
+                    "change_percent": f"{data['change_percent']:+.2f}",
+                    "direction": "up" if data['change_value'] > 0 else "down" if data['change_value'] < 0 else "neutral",
+                    "last_updated": data["last_updated"]
+                })
+            
+            return jsonify({
+                "status": "success",
+                "source": "live_websocket",
+                "market_status": "open",
+                "data": grouped_indices
+            }), 200
+        else:
+            # WebSocket cache empty - fall back to DB
+            pass
+    
+    # Fall back to database (market closed or no live data)
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     
@@ -66,8 +111,13 @@ def get_all_indices():
                 "lastUpdated": row["last_updated"].isoformat() if row["last_updated"] else None
             })
         
+        market_status = get_market_status()
+        
         return jsonify({
             "status": "success",
+            "source": "database",
+            "market_status": "closed" if not use_websocket else "open",
+            "message": market_status["message"],
             "data": grouped_indices,
             "totalIndices": len(results)
         }), 200
@@ -82,17 +132,47 @@ def get_all_indices():
         conn.close()
 
 
-@index_fetch_bp.route("/refresh", methods=["POST", "GET"])
-def refresh_indices_now():
-    """Trigger a one-time refresh from the provider and return the update count.
-    Useful in development or when the fetcher isn't running.
-    """
+@index_fetch_bp.route("/market-status", methods=["GET"])
+def get_market_status_route():
+    """Get current market status and timing info"""
     try:
-        updated = update_index_prices()
+        status = get_market_status()
         return jsonify({
             "status": "success",
-            "updated": updated
+            "data": status
         }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+
+@index_fetch_bp.route("/refresh", methods=["POST", "GET"])
+def refresh_indices_now():
+    """
+    Manually trigger index price update
+    During market hours: saves live cache to DB
+    Outside market hours: fetches from Upstox API
+    """
+    try:
+        # During market hours, save live cache to DB
+        if should_use_websocket():
+            from services.index_websocket import save_closing_prices
+            save_closing_prices()
+            return jsonify({
+                "status": "success",
+                "message": "Saved live data to database",
+                "source": "websocket_cache"
+            }), 200
+        else:
+            # Outside market hours, fetch from Upstox and save
+            updated = update_index_prices()
+            return jsonify({
+                "status": "success",
+                "updated": updated,
+                "source": "upstox_api"
+            }), 200
     except Exception as e:
         return jsonify({
             "status": "error",

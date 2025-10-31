@@ -20,11 +20,28 @@ export async function fetchStockHistory(
   if (opts?.to) params.to = opts.to;
 
   const url = `/stocks/history/${encodeURIComponent(symbol.toUpperCase())}`;
-  const res = await http.get(url, { params });
-  const payload = res.data as {
-    status: string;
-    data: Candle[];
-  };
-  if (payload.status !== "success") return [];
-  return payload.data || [];
+  console.log(`📊 Fetching stock history: ${url}`, params);
+
+  try {
+    const res = await http.get(url, { params });
+    console.log(`✅ Stock history response for ${symbol}:`, res.data);
+
+    const payload = res.data as {
+      status: string;
+      data: Candle[];
+    };
+
+    if (payload.status !== "success") {
+      console.warn(`⚠️ Stock history API returned status: ${payload.status}`);
+      return [];
+    }
+
+    console.log(
+      `📈 Received ${payload.data?.length || 0} candles for ${symbol}`
+    );
+    return payload.data || [];
+  } catch (error) {
+    console.error(`❌ Error fetching stock history for ${symbol}:`, error);
+    return [];
+  }
 }

@@ -3,6 +3,10 @@ import StockHeader from "../components/StockHeader";
 import StocksTopBar from "../components/StocksTopBar";
 import StockChart from "../components/StockChart";
 import StockStorage from "../components/StockStorage"; // Adjust path if your components folder is different (e.g., ../components/StockStorage)
+
+import ModernStockChart from "../components/ModernStockChart";
+import StockStats from "../components/StockStats";
+import OrderPanel from "../components/OrderPanel";
 import { fetchStockDetail } from "@/services/api/stockDetailApi";
 
 type StockPageProps = {
@@ -94,8 +98,21 @@ export default async function StockPage({ params }: StockPageProps) {
             <div className={styles.chartToolbar}>
               <div className={styles.exchangePill}>{stockData.exchange}</div>
             </div>
-            <StockChart symbol={symbol} />
+            <ModernStockChart
+              symbol={symbol}
+              currentPrice={stockFormatted.currentPrice}
+            />
           </div>
+
+          {/* Right: Order Panel (Buy/Sell) */}
+          <div className={styles.orderSection}>
+            <OrderPanel currentPrice={stockFormatted.currentPrice} />
+          </div>
+        </div>
+
+        {/* Market Statistics Section */}
+        <div className={styles.statsSection}>
+          <StockStats stock={stockFormatted} />
         </div>
       </div>
     </div>

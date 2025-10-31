@@ -1,8 +1,6 @@
-# routes/stock_prices.py
-
 from flask import Blueprint, request, jsonify
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from services.http_client import upstox_get
 from controller.fetch.stock_prices_fetch.fetch_stocks_prices import fetch_all_stock_prices
 from db_pool import get_connection
@@ -11,17 +9,6 @@ stock_prices_bp = Blueprint('stock_prices_bp', __name__)
 
 @stock_prices_bp.route('/fetch-prices', methods=['GET'])
 def fetch_prices():
-    try:
-        fetch_all_stock_prices()
-        return jsonify({
-            "success": True,
-            "message": "Stock prices fetched and stored successfully"
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
     # Dev endpoint: trigger a one-time full fetch and return a simple status
     try:
         fetch_all_stock_prices()
@@ -518,18 +505,22 @@ def get_stock_history(symbol: str):
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT stock_id, isin, exchange FROM Stocks WHERE symbol = %s LIMIT 1", (symbol.upper(),))
         stock = cursor.fetchone()
+        print(f"🔎 Stock lookup for {symbol}: {stock}")
         if not stock:
             return jsonify({"status": "error", "message": f"symbol '{symbol}' not found"}), 404
 
         stock_id = stock['stock_id']
         isin = stock.get('isin')
         exchange = stock.get('exchange') or 'NSE'
+        print(f"✅ Stock found - ID: {stock_id}, ISIN: {isin}, Exchange: {exchange}")
 
         if not isin:
             return jsonify({"status": "error", "message": f"ISIN missing for '{symbol}'"}), 400
 
         # Always ensure we have daily cached range before serving
         # Query existing daily candles in range
+        print(f"🔍 Querying Stock_History: stock_id={stock_id}, from={from_date}, to={to_date}")
+        print(f"📝 SQL: SELECT timestamp, open_price, high_price, low_price, close_price, volume FROM Stock_History WHERE stock_id = {stock_id} AND timeframe = 'day' AND timestamp BETWEEN '{from_date}' AND '{to_date}' ORDER BY timestamp ASC")
         cursor.execute(
             """
             SELECT timestamp, open_price, high_price, low_price, close_price, volume
@@ -540,21 +531,29 @@ def get_stock_history(symbol: str):
             (stock_id, from_date, to_date)
         )
         existing = cursor.fetchall()
+        print(f"📊 Query returned {len(existing)} candles for {symbol}")
 
         have_enough = len(existing) >= 5  # heuristics: if we have some data, we can serve; will still try to backfill if stale
+        print(f"💾 have_enough = {have_enough} (need at least 5, got {len(existing)})")
 
         # Decide if we need to fetch from Upstox (when empty or last day missing)
         need_fetch = True
         if existing:
             last_ts = existing[-1]['timestamp']
-            # If we already have up to 'to_date' (or last business day), skip fetch
-            need_fetch = last_ts < to_date
+            # Fix: Convert to_date to datetime for comparison (end of day)
+            to_date_dt = datetime.combine(to_date, time(23, 59, 59, 999999))
+            need_fetch = last_ts < to_date_dt
+            print(f"📅 Last candle date: {last_ts}, to_date: {to_date}, need_fetch: {need_fetch}")
+        else:
+            print(f"❗ No existing candles found, need_fetch: {need_fetch}")
 
         if need_fetch:
             token = os.environ.get("UPSTOX_ACCESS_TOKEN")
+            print(f"🔑 UPSTOX_ACCESS_TOKEN: {'SET' if token else 'NOT SET'}")
             if not token:
-                # Can't fetch; if we have some cached data, proceed; else return empty gracefully
-                if not have_enough:
+                # Can't fetch; if we have some cached data, proceed; else return empty ONLY if truly no data
+                if not existing:
+                    print(f"⛔ Returning empty data: no token AND no cached data (have {len(existing)})")
                     return jsonify({
                         "status": "success",
                         "symbol": symbol.upper(),
@@ -562,6 +561,8 @@ def get_stock_history(symbol: str):
                         "count": 0,
                         "data": []
                     }), 200
+                else:
+                    print(f"✅ No token but have cached data ({len(existing)} candles), proceeding...")
             else:
                 # Fetch from Upstox Historical Candle API (daily)
                 instrument_key = f"{exchange}_EQ|{isin}"
@@ -704,6 +705,11 @@ def get_stock_history(symbol: str):
         }), 200
 
     except Exception as e:
+        # Log the error for debugging
+        import traceback
+        print(f"❌ ERROR in get_stock_history for {symbol}: {str(e)}")
+        print(traceback.format_exc())
+        
         # Graceful empty response on unexpected errors for better UX
         return jsonify({
             "status": "success",

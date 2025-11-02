@@ -1,6 +1,10 @@
 import styles from "./StockDetail.module.css";
 import StockHeader from "../components/StockHeader";
 import StocksTopBar from "../components/StocksTopBar";
+import StockChart from "../components/StockChart";
+
+import ModernStockChart from "../components/ModernStockChart";
+// --- 1. Import the new container ---
 import StockChartContainer from "../components/StockChartContainer";
 import StockStorage from "../components/StockStorage";
 import StockStats from "../components/StockStats";

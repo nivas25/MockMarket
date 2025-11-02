@@ -1,0 +1,76 @@
+.block-container {
+  height: 100vh;
+  width: 100%;
+  background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Poppins", sans-serif;
+  color: #fff;
+}
+
+.block-card {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 16px;
+  padding: 40px 60px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.25);
+  max-width: 400px;
+  width: 90%;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.block-icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 6px red);
+}
+
+.block-title {
+  font-size: 2rem;
+  color: #ff4d4d;
+  margin-bottom: 12px;
+}
+
+.block-message {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.highlight {
+  color: #ff4d4d;
+  font-weight: 600;
+}
+
+.block-subtext {
+  font-size: 0.9rem;
+  color: #aaa;
+  margin-bottom: 25px;
+}
+
+.block-btn {
+  background: #ff4d4d;
+  color: #fff;
+  text-decoration: none;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.block-btn:hover {
+  background: #e63939;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

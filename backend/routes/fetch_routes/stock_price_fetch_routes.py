@@ -1,8 +1,9 @@
-# routes/stock_prices.py
-
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta, date 
 import os
+from datetime import datetime, timedelta, time
+from services.http_client import upstox_get
+from controller.fetch.stock_prices_fetch.fetch_stocks_prices import fetch_all_stock_prices
 import traceback # For logging
 
 # --- Imports ---
@@ -17,17 +18,6 @@ cache = get_cache()
 
 @stock_prices_bp.route('/fetch-prices', methods=['GET'])
 def fetch_prices():
-    try:
-        fetch_all_stock_prices()
-        return jsonify({
-            "success": True,
-            "message": "Stock prices fetched and stored successfully"
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
     # Dev endpoint: trigger a one-time full fetch and return a simple status
     try:
         fetch_all_stock_prices()
@@ -689,6 +679,103 @@ def get_stock_history(symbol: str):
         existing = cursor.fetchall()
         print(f"📊 Query returned {len(existing)} candles for {symbol}")
 
+        have_enough = len(existing) >= 5  # heuristics: if we have some data, we can serve; will still try to backfill if stale
+        print(f"💾 have_enough = {have_enough} (need at least 5, got {len(existing)})")
+
+        # Decide if we need to fetch from Upstox (when empty or last day missing)
+        need_fetch = True
+        if existing:
+            last_ts = existing[-1]['timestamp']
+            # Fix: Convert to_date to datetime for comparison (end of day)
+            to_date_dt = datetime.combine(to_date, time(23, 59, 59, 999999))
+            need_fetch = last_ts < to_date_dt
+            print(f"📅 Last candle date: {last_ts}, to_date: {to_date}, need_fetch: {need_fetch}")
+        else:
+            print(f"❗ No existing candles found, need_fetch: {need_fetch}")
+
+        if need_fetch:
+            token = os.environ.get("UPSTOX_ACCESS_TOKEN")
+            print(f"🔑 UPSTOX_ACCESS_TOKEN: {'SET' if token else 'NOT SET'}")
+            if not token:
+                # Can't fetch; if we have some cached data, proceed; else return empty ONLY if truly no data
+                if not existing:
+                    print(f"⛔ Returning empty data: no token AND no cached data (have {len(existing)})")
+                    return jsonify({
+                        "status": "success",
+                        "symbol": symbol.upper(),
+                        "interval": interval,
+                        "count": 0,
+                        "data": []
+                    }), 200
+                else:
+                    print(f"✅ No token but have cached data ({len(existing)} candles), proceeding...")
+            else:
+                # Fetch from Upstox Historical Candle API (daily)
+                instrument_key = f"{exchange}_EQ|{isin}"
+                url = f"https://api.upstox.com/v2/historical-candle/{instrument_key}/day/{to_date:%Y-%m-%d}/{from_date:%Y-%m-%d}"
+                headers = {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Authorization": f"Bearer {token}",
+                }
+                resp = upstox_get(url, headers=headers)
+                resp.raise_for_status()
+                payload = resp.json() or {}
+                if payload.get("status") != "success":
+                    # Fall back gracefully
+                    if not have_enough:
+                        return jsonify({
+                            "status": "success",
+                            "symbol": symbol.upper(),
+                            "interval": interval,
+                            "count": 0,
+                            "data": []
+                        }), 200
+                else:
+                    candles = payload.get("data", {}).get("candles", []) or []
+                    # Upsert into Stock_History
+                    if candles:
+                        insert_rows = []
+                        for row in candles:
+                            # row = [ts, open, high, low, close, volume, oi]
+                            ts_iso = row[0]
+                            try:
+                                ts_date = datetime.fromisoformat(ts_iso.replace("Z", "+00:00")).date()
+                            except Exception:
+                                # Fallback: take date part
+                                ts_date = datetime.strptime(ts_iso[:10], "%Y-%m-%d").date()
+                            o, h, l, c = float(row[1] or 0), float(row[2] or 0), float(row[3] or 0), float(row[4] or 0)
+                            v = int(row[5] or 0)
+                            insert_rows.append((stock_id, 'day', ts_date, o, h, l, c, v))
+
+                        if insert_rows:
+                            # Ensure table has a unique key on (stock_id, timeframe, timestamp) for proper upsert
+                            cursor.executemany(
+                                """
+                                INSERT INTO Stock_History (stock_id, timeframe, timestamp, open_price, high_price, low_price, close_price, volume)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                                ON DUPLICATE KEY UPDATE
+                                  open_price=VALUES(open_price),
+                                  high_price=VALUES(high_price),
+                                  low_price=VALUES(low_price),
+                                  close_price=VALUES(close_price),
+                                  volume=VALUES(volume)
+                                """,
+                                insert_rows
+                            )
+                            conn.commit()
+
+                    # Refresh existing after insert
+                    cursor.execute(
+                        """
+                        SELECT timestamp, open_price, high_price, low_price, close_price, volume
+                        FROM Stock_History
+                        WHERE stock_id = %s AND timeframe = 'day' AND timestamp BETWEEN %s AND %s
+                        ORDER BY timestamp ASC
+                        """,
+                        (stock_id, from_date, to_date)
+                    )
+                    existing = cursor.fetchall()
         # --- ENTIRE 'need_fetch' BLOCK HAS BEEN REMOVED ---
 
         # Aggregate if needed

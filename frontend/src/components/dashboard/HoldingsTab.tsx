@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 import styles from "./DashboardWidgets.module.css";
@@ -307,7 +309,7 @@ export function HoldingsTab() {
                 key={r.name}
                 className={`${styles.hRow} ${styles.clickableRow}`}
                 role="row"
-                // onClick={() => setSelectedHolding(r)}
+                onClick={() => setSelectedHolding(r)}
               >
                 <div className={styles.hCell} role="cell">
                   <div className={styles.stockName}>{r.name}</div>

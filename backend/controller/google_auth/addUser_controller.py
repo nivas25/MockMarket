@@ -15,7 +15,7 @@ def add_user_to_db(full_name, email):
             
         cursor = conn.cursor(dictionary=True)
         
-        # Optimized: Try insert first, if duplicate then just fetch
+        # Try inserting user
         try:
             insert_query = "INSERT INTO `Users` (name, email_id, balance) VALUES (%s, %s, 100000.00)"
             cursor.execute(insert_query, (full_name, email))
@@ -23,16 +23,15 @@ def add_user_to_db(full_name, email):
             user_id = cursor.lastrowid
             print(f"✅ New user created with ID: {user_id}")
             
-            # Fetch the newly created user
-            select_query = "SELECT user_id, name, email_id, balance, created_at FROM `Users` WHERE user_id = %s"
+            select_query = "SELECT user_id, name, email_id, balance, created_at, access FROM `Users` WHERE user_id = %s"
             cursor.execute(select_query, (user_id,))
             user = cursor.fetchone()
             
         except Exception as insert_error:
-            # User already exists (duplicate email), just fetch
+            # Duplicate email -> fetch existing user
             if "Duplicate entry" in str(insert_error) or "duplicate" in str(insert_error).lower():
                 print("✅ User exists, fetching...")
-                select_query = "SELECT user_id, name, email_id, balance, created_at FROM `Users` WHERE email_id = %s"
+                select_query = "SELECT user_id, name, email_id, balance, created_at, access FROM `Users` WHERE email_id = %s"
                 cursor.execute(select_query, (email,))
                 user = cursor.fetchone()
             else:
@@ -40,14 +39,28 @@ def add_user_to_db(full_name, email):
         
         if not user:
             raise Exception("Failed to retrieve user data")
-            
+
+        # 🔹 Check access status (blocked/unblocked)
+        if user["access"] == "blocked":
+            print(f"🚫 User {email} is blocked")
+            return jsonify({
+                "message": "Access denied. Your account has been blocked.",
+                "status": "blocked"
+            }), 403
+
+        # 🔹 Determine role
+        role = "admin" if email in ["manumahadev44@gmail.com", "nivas3347r@gmail.com"] else "user"
+        print("present role is:", role)
+
+        # Generate JWT token
         token = create_access_token(
             identity={
                 "user_id": user["user_id"],
                 "name": user["name"],
                 "email": user["email_id"],
                 "balance": float(user["balance"]),
-                "joinedAt": str(user.get("created_at", ""))
+                "joinedAt": str(user.get("created_at", "")),
+                "role": role
             },
             expires_delta=timedelta(days=3)
         )
@@ -55,6 +68,8 @@ def add_user_to_db(full_name, email):
         return jsonify({
             "message": "Authentication successful",
             "token": token,
+            "role": role,
+            "status": "unblocked"
         }), 200
         
     except Exception as e:
@@ -68,6 +83,3 @@ def add_user_to_db(full_name, email):
             cursor.close()
         if conn:
             conn.close()
-    
-    
-    

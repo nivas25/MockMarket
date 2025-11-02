@@ -20,34 +20,37 @@
 }
 
 .statCard {
+  /* --- RE-ADDED GLASS STYLES --- */
   background: rgba(255, 255, 255, 0.42);
   backdrop-filter: blur(12px) saturate(170%);
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 12px;
-  padding: var(--space-md);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06),
     inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  /* ------------------------------ */
+  padding: var(--space-md);
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .statCard:hover {
   transform: translateY(-2px);
+  /* --- RE-ADDED GLASS HOVER --- */
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1),
     inset 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 
-/* Glass effects */
+/* Glass effects (RE-ADDED) */
 .statCard::before {
   content: none;
 }
-
 .statCard::after {
   content: none;
 }
 
 :global(.dark) .statCard {
+  /* --- RE-ADDED DARK GLASS --- */
   background: rgba(10, 10, 10, 0.45);
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
@@ -55,6 +58,7 @@
 }
 
 :global(.dark) .statCard:hover {
+  /* --- RE-ADDED DARK GLASS HOVER --- */
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4),
     inset 0 1px 2px rgba(255, 255, 255, 0.1);
 }
@@ -114,6 +118,7 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
+/* --- RE-ADDED CARD BACKGROUNDS --- */
 /* Card color variants (light) */
 .cardGreen {
   background: linear-gradient(
@@ -181,63 +186,54 @@
   border-color: rgba(16, 185, 129, 0.35);
   color: rgb(16, 185, 129);
 }
-
+/* ... (all other icon styles are correct) ... */
 .iconRed {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.35);
   color: rgb(239, 68, 68);
 }
-
 .iconBlue {
   background: rgba(59, 130, 246, 0.15);
   border-color: rgba(59, 130, 246, 0.35);
   color: rgb(59, 130, 246);
 }
-
 .iconGray {
   background: rgba(107, 114, 128, 0.15);
   border-color: rgba(107, 114, 128, 0.35);
   color: rgb(107, 114, 128);
 }
-
 .iconPurple {
   background: rgba(139, 92, 246, 0.15);
   border-color: rgba(139, 92, 246, 0.35);
   color: rgb(139, 92, 246);
 }
-
 .iconAmber {
   background: rgba(245, 158, 11, 0.15);
   border-color: rgba(245, 158, 11, 0.35);
   color: rgb(245, 158, 11);
 }
 
-/* Dark mode variants */
+/* --- Dark mode variants (RE-ADDED) --- */
 :global(.dark) .cardGreen {
   background: rgba(16, 185, 129, 0.12);
   border-color: rgba(16, 185, 129, 0.45);
 }
-
 :global(.dark) .cardRed {
   background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.45);
 }
-
 :global(.dark) .cardBlue {
   background: rgba(59, 130, 246, 0.12);
   border-color: rgba(59, 130, 246, 0.45);
 }
-
 :global(.dark) .cardGray {
   background: rgba(107, 114, 128, 0.12);
   border-color: rgba(107, 114, 128, 0.45);
 }
-
 :global(.dark) .cardPurple {
   background: rgba(139, 92, 246, 0.12);
   border-color: rgba(139, 92, 246, 0.45);
 }
-
 :global(.dark) .cardAmber {
   background: rgba(245, 158, 11, 0.12);
   border-color: rgba(245, 158, 11, 0.45);
@@ -249,11 +245,9 @@
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: var(--space-sm);
   }
-
   .statCard {
     padding: var(--space-sm);
   }
-
   .statValue {
     font-size: 16px;
   }

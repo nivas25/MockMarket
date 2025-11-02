@@ -1,9 +1,16 @@
 from flask import Blueprint, request, jsonify
+from datetime import datetime, timedelta, date 
 import os
 from datetime import datetime, timedelta, time
 from services.http_client import upstox_get
 from controller.fetch.stock_prices_fetch.fetch_stocks_prices import fetch_all_stock_prices
+import traceback # For logging
+
+# --- Imports ---
 from db_pool import get_connection
+from controller.fetch.stock_prices_fetch.fetch_stocks_prices import fetch_all_stock_prices
+from services.http_client import upstox_get
+# -----------------
 
 stock_prices_bp = Blueprint('stock_prices_bp', __name__)
 
@@ -215,7 +222,6 @@ def get_stock_detail(symbol):
         }), 200
         
     except Exception as e:
-        import traceback
         print(f"ERROR in get_stock_detail for '{symbol}':")
         print(traceback.format_exc())
         return jsonify({
@@ -332,7 +338,6 @@ def search_stocks():
         }), 200
         
     except Exception as e:
-        import traceback
         print(f"ERROR in search_stocks:")
         print(traceback.format_exc())
         return jsonify({
@@ -444,18 +449,8 @@ def most_active():
 
 @stock_prices_bp.route('/history/<string:symbol>', methods=['GET'])
 def get_stock_history(symbol: str):
-    """Return OHLCV candles for a symbol.
-
-    Query params:
-      - interval: one of [day, week, month] (default: day)
-      - from: YYYY-MM-DD (optional)
-      - to: YYYY-MM-DD (optional, default: today)
-      - limit: integer number of candles (optional; if set, overrides from)
-
-    Strategy:
-      - Prefer minimal storage: persist only daily candles into Stock_History
-      - For week/month, aggregate from daily on the fly to avoid duplicate storage
-      - On cache miss, fetch from Upstox and upsert into Stock_History
+    """
+    Return OHLCV candles for a symbol from the local database ONLY.
     """
     conn = None
     cursor = None
@@ -510,17 +505,9 @@ def get_stock_history(symbol: str):
             return jsonify({"status": "error", "message": f"symbol '{symbol}' not found"}), 404
 
         stock_id = stock['stock_id']
-        isin = stock.get('isin')
-        exchange = stock.get('exchange') or 'NSE'
-        print(f"✅ Stock found - ID: {stock_id}, ISIN: {isin}, Exchange: {exchange}")
 
-        if not isin:
-            return jsonify({"status": "error", "message": f"ISIN missing for '{symbol}'"}), 400
-
-        # Always ensure we have daily cached range before serving
         # Query existing daily candles in range
         print(f"🔍 Querying Stock_History: stock_id={stock_id}, from={from_date}, to={to_date}")
-        print(f"📝 SQL: SELECT timestamp, open_price, high_price, low_price, close_price, volume FROM Stock_History WHERE stock_id = {stock_id} AND timeframe = 'day' AND timestamp BETWEEN '{from_date}' AND '{to_date}' ORDER BY timestamp ASC")
         cursor.execute(
             """
             SELECT timestamp, open_price, high_price, low_price, close_price, volume
@@ -630,6 +617,7 @@ def get_stock_history(symbol: str):
                         (stock_id, from_date, to_date)
                     )
                     existing = cursor.fetchall()
+        # --- ENTIRE 'need_fetch' BLOCK HAS BEEN REMOVED ---
 
         # Aggregate if needed
         def rows_to_series(rows):
@@ -645,6 +633,18 @@ def get_stock_history(symbol: str):
                 for r in rows
             ]
 
+        if not existing:
+             # If 'existing' is empty, return empty
+            print(f"⛔ No data found in DB for {symbol} in this range.")
+            return jsonify({
+                "status": "success",
+                "symbol": symbol.upper(),
+                "interval": interval,
+                "count": 0,
+                "data": [],
+            }), 200
+
+        # --- This code will now be reached immediately ---
         if interval == 'day':
             data = rows_to_series(existing)
         else:
@@ -653,10 +653,9 @@ def get_stock_history(symbol: str):
             for r in existing:
                 d: datetime = r['timestamp']
                 if interval == 'week':
-                    # ISO year-week key
                     key = f"{d.isocalendar().year}-W{d.isocalendar().week:02d}"
-                    key_date = d - timedelta(days=d.weekday())  # Monday of that week
-                else:  # month or year -> aggregate by month
+                    key_date = d - timedelta(days=d.weekday())
+                else: 
                     key = f"{d.year}-{d.month:02d}"
                     key_date = d.replace(day=1)
 
@@ -677,22 +676,18 @@ def get_stock_history(symbol: str):
                 else:
                     b['high'] = max(b['high'], h)
                     b['low'] = min(b['low'], l)
-                    # open is first
                     if d < b['_first_ts']:
                         b['open'] = o
                         b['_first_ts'] = d
-                    # close is last
                     if d > b['_last_ts']:
                         b['close'] = c
                         b['_last_ts'] = d
                     b['volume'] += v
 
-            # Sort by time
             data = [
                 {k: v for k, v in b.items() if not k.startswith('_')}
                 for _, b in sorted(buckets.items(), key=lambda kv: kv[1]['_first_ts'])
             ]
-            # For year interval, cap to last 12 monthly buckets if no explicit limit logic on caller
             if interval == 'year' and data:
                 data = data[-12:]
 
@@ -705,9 +700,8 @@ def get_stock_history(symbol: str):
         }), 200
 
     except Exception as e:
-        # Log the error for debugging
-        import traceback
-        print(f"❌ ERROR in get_stock_history for {symbol}: {str(e)}")
+        # This is the CATCH-ALL for unexpected errors (e.g., DB connection)
+        print(f"❌ CRITICAL ERROR in get_stock_history for {symbol}: {str(e)}")
         print(traceback.format_exc())
         
         # Graceful empty response on unexpected errors for better UX

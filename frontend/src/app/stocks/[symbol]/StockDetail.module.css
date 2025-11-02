@@ -329,21 +329,21 @@
 
 /* Market Statistics Section */
 .statsSection {
-  background: transparent;
+  /* background: transparent;
   backdrop-filter: blur(12px) saturate(170%);
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 16px;
   padding: var(--space-lg);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08),
-    inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    inset 0 1px 2px rgba(255, 255, 255, 0.5); */
   margin-top: var(--space-lg);
 }
 
 :global(.dark) .statsSection {
-  background: transparent;
+  /* background: transparent;
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
-    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+    inset 0 1px 2px rgba(255, 255, 255, 0.1); */
 }
 
 /* Responsive */
@@ -400,4 +400,52 @@
   .placeholderContent span {
     font-size: 13px;
   }
+}
+
+/* --- ADD THIS CSS TO THE BOTTOM OF YOUR FILE --- */
+
+/* Chart Toggle Styles */
+.chartToggleContainer {
+  display: flex;
+  padding: 4px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+:global(.dark) .chartToggleContainer {
+  background: var(--color-bg-dark);
+  border-color: var(--color-border);
+}
+
+.chartToggleButton {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chartToggleButton.active {
+  background: var(--color-bg-widget);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+:global(.dark) .chartToggleButton {
+  color: #94a3b8; /* Brighter inactive text for dark mode */
+}
+
+:global(.dark) .chartToggleButton:hover {
+  color: var(--color-text-dark); /* Add hover for inactive button */
+}
+
+:global(.dark) .chartToggleButton.active {
+  background: var(--color-bg-widget);
+  color: var(--color-text-dark);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); /* Darker shadow */
 }

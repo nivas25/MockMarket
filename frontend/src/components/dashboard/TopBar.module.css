@@ -393,7 +393,7 @@
   /* --- Positioning --- */
   position: fixed;
   top: 14px; /* Aligns with the top of the main capsule */
-  left: var(--space-lg); /* Not too far, just 24px from edge */
+  left: 12px; /* Close to the edge for better alignment with TopBar */
   z-index: 101; /* Stay on top of the topBarWrapper */
 
   /* --- Shape (Round Button) --- */

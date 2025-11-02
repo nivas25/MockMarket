@@ -129,10 +129,11 @@ def top_gainers():
         
         # Cache for 10 seconds during market hours (data changes frequently but not every request)
         cache_key = f"gainers:{exchange}:{limit}:{use_intraday}"
-        movers = cache.get_or_compute(
+        movers = cache.get_or_compute_stale(
             cache_key,
             lambda: _top_movers_query(order="DESC", limit=limit, exchange=exchange, use_intraday=use_intraday),
-            ttl_seconds=10
+            ttl_seconds=10,
+            stale_ttl_seconds=120
         )
         
         return jsonify({
@@ -157,10 +158,11 @@ def top_losers():
         
         # Cache for 10 seconds
         cache_key = f"losers:{exchange}:{limit}:{use_intraday}"
-        movers = cache.get_or_compute(
+        movers = cache.get_or_compute_stale(
             cache_key,
             lambda: _top_movers_query(order="ASC", limit=limit, exchange=exchange, use_intraday=use_intraday),
-            ttl_seconds=10
+            ttl_seconds=10,
+            stale_ttl_seconds=120
         )
         
         return jsonify({
@@ -283,72 +285,73 @@ def search_stocks():
         
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        
-        # Optimize search with indexed prefix matching
+
+        # Step 1: find matching stocks quickly using indexed fields only
         search_upper = query.upper()
-        
-        # For short queries (1-2 chars), only search by symbol prefix (fastest)
-        # For longer queries, search both symbol and company name
         if len(search_upper) <= 2:
-            sql = """
-                SELECT 
-                    s.stock_id,
-                    s.symbol,
-                    s.company_name,
-                    s.exchange,
-                    sp.ltp,
-                    sp.prev_close,
-                    ((sp.ltp - sp.prev_close) / NULLIF(sp.prev_close, 0)) * 100 AS change_percent
+            sql1 = """
+                SELECT s.stock_id, s.symbol, s.company_name, s.exchange
                 FROM Stocks s
-                LEFT JOIN (
-                    SELECT stock_id, MAX(as_of) AS max_as_of
-                    FROM Stock_Prices
-                    GROUP BY stock_id
-                ) latest ON latest.stock_id = s.stock_id
-                LEFT JOIN Stock_Prices sp ON sp.stock_id = s.stock_id AND sp.as_of = latest.max_as_of
                 WHERE s.symbol LIKE %s
                 ORDER BY s.symbol
                 LIMIT %s
             """
-            cursor.execute(sql, (f"{search_upper}%", limit))
+            cursor.execute(sql1, (f"{search_upper}%", limit))
         else:
-            # Longer queries - fast prefix search on both fields (index-friendly)
-            # Prioritize exact symbol match, then symbol prefix, then company name prefix
-            sql = """
+            sql1 = """
                 SELECT 
-                    s.stock_id,
-                    s.symbol,
-                    s.company_name,
-                    s.exchange,
-                    sp.ltp,
-                    sp.prev_close,
-                    ((sp.ltp - sp.prev_close) / NULLIF(sp.prev_close, 0)) * 100 AS change_percent,
+                    s.stock_id, s.symbol, s.company_name, s.exchange,
                     CASE 
                         WHEN s.symbol = %s THEN 1
                         WHEN s.symbol LIKE %s THEN 2
                         ELSE 3
                     END AS match_priority
                 FROM Stocks s
-                LEFT JOIN (
-                    SELECT stock_id, MAX(as_of) AS max_as_of
-                    FROM Stock_Prices
-                    GROUP BY stock_id
-                ) latest ON latest.stock_id = s.stock_id
-                LEFT JOIN Stock_Prices sp ON sp.stock_id = s.stock_id AND sp.as_of = latest.max_as_of
                 WHERE s.symbol LIKE %s OR s.company_name LIKE %s
                 ORDER BY match_priority, s.symbol
                 LIMIT %s
             """
             exact = search_upper
             prefix = f"{search_upper}%"
-            cursor.execute(sql, (exact, prefix, prefix, prefix, limit))
-        
-        stocks = cursor.fetchall()
+            cursor.execute(sql1, (exact, prefix, prefix, prefix, limit))
+
+        stock_rows = cursor.fetchall()
+        if not stock_rows:
+            return jsonify({
+                "status": "success",
+                "data": [],
+                "count": 0
+            }), 200
+
+        # Step 2: fetch latest prices only for matched stock_ids
+        stock_ids = [row["stock_id"] for row in stock_rows]
+        # Build placeholders for IN clause
+        placeholders = ",".join(["%s"] * len(stock_ids))
+        sql2 = f"""
+            SELECT sp.stock_id, sp.ltp, sp.prev_close
+            FROM Stock_Prices sp
+            INNER JOIN (
+                SELECT stock_id, MAX(as_of) AS max_as_of
+                FROM Stock_Prices
+                WHERE stock_id IN ({placeholders})
+                GROUP BY stock_id
+            ) latest
+              ON latest.stock_id = sp.stock_id AND latest.max_as_of = sp.as_of
+        """
+        cursor.execute(sql2, tuple(stock_ids))
+        price_rows = cursor.fetchall()
+        price_map = {r["stock_id"]: r for r in price_rows}
         
         results = []
-        for stock in stocks:
-            ltp = float(stock['ltp']) if stock.get('ltp') is not None else None
-            change_pct = float(stock['change_percent']) if stock.get('change_percent') is not None else None
+        for stock in stock_rows:
+            price = price_map.get(stock['stock_id'])
+            ltp = float(price['ltp']) if price and price.get('ltp') is not None else None
+            change_pct = None
+            if price and price.get('ltp') is not None and price.get('prev_close') not in (None, 0):
+                try:
+                    change_pct = ((float(price['ltp']) - float(price['prev_close'])) / float(price['prev_close'])) * 100.0
+                except Exception:
+                    change_pct = None
             
             results.append({
                 "symbol": stock['symbol'],
@@ -471,8 +474,8 @@ def most_active():
             finally:
                 cursor.close()
                 conn.close()
-        
-        result = cache.get_or_compute(cache_key, fetch_most_active, ttl_seconds=10)
+
+        result = cache.get_or_compute_stale(cache_key, fetch_most_active, ttl_seconds=10, stale_ttl_seconds=120)
         return jsonify(result), 200
     except Exception as e:
         return jsonify({
@@ -498,18 +501,20 @@ def movers_all():
         def fetch_all_movers():
             # Fetch gainers
             gainers_key = f"gainers:{exchange}:{limit}:{use_intraday}"
-            gainers = cache.get_or_compute(
+            gainers = cache.get_or_compute_stale(
                 gainers_key,
                 lambda: _top_movers_query(order="DESC", limit=limit, exchange=exchange, use_intraday=use_intraday),
-                ttl_seconds=10
+                ttl_seconds=10,
+                stale_ttl_seconds=120
             )
             
             # Fetch losers
             losers_key = f"losers:{exchange}:{limit}:{use_intraday}"
-            losers = cache.get_or_compute(
+            losers = cache.get_or_compute_stale(
                 losers_key,
                 lambda: _top_movers_query(order="ASC", limit=limit, exchange=exchange, use_intraday=use_intraday),
-                ttl_seconds=10
+                ttl_seconds=10,
+                stale_ttl_seconds=120
             )
             
             # Fetch most active
@@ -590,16 +595,16 @@ def movers_all():
                     cursor.close()
                     conn.close()
             
-            most_active = cache.get_or_compute(active_key, fetch_most_active_internal, ttl_seconds=10)
+            most_active = cache.get_or_compute_stale(active_key, fetch_most_active_internal, ttl_seconds=10, stale_ttl_seconds=120)
             
             return {
                 "gainers": gainers,
                 "losers": losers,
                 "mostActive": most_active["data"]
             }
-        
-        result = cache.get_or_compute(cache_key, fetch_all_movers, ttl_seconds=10)
-        
+
+        result = cache.get_or_compute_stale(cache_key, fetch_all_movers, ttl_seconds=10, stale_ttl_seconds=120)
+
         return jsonify({
             "status": "success",
             "data": result

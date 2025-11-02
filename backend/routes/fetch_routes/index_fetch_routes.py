@@ -139,7 +139,7 @@ def get_all_indices():
             conn.close()
     
     try:
-        result = cache.get_or_compute(cache_key, fetch_indices_from_db, ttl_seconds=cache_ttl)
+        result = cache.get_or_compute_stale(cache_key, fetch_indices_from_db, ttl_seconds=cache_ttl, stale_ttl_seconds=120)
         
         if result.get("status") == "error":
             return jsonify(result), 404 if "No index data" in result.get("message", "") else 500

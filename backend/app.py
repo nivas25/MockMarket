@@ -149,6 +149,13 @@ if __name__ == '__main__':
         from utils.pretty_log import status_err
         status_err(f"Failed to start stock service scheduler: {e}")
     
+    # Start hot cache refresher to warm movers/indices/news caches
+    try:
+        from services.hot_cache_scheduler import start_hot_cache_scheduler
+        start_hot_cache_scheduler()
+    except Exception as e:
+        print(f"[HOT CACHE] Not started: {e}")
+    
     # Run with SocketIO server to enable WebSocket transport
     # Note: debug=False with eventlet to avoid WSGI server conflicts
     socketio.run(

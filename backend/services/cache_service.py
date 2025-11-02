@@ -9,16 +9,28 @@ import time
 
 
 class CacheEntry:
-    """Thread-safe cache entry with expiration"""
-    def __init__(self, value: Any, ttl_seconds: int):
+    """Thread-safe cache entry with expiration and optional stale window"""
+    def __init__(self, value: Any, ttl_seconds: int, stale_ttl_seconds: int | None = None):
         self.value = value
-        self.expires_at = datetime.now() + timedelta(seconds=ttl_seconds)
+        now = datetime.now()
+        self.expires_at = now + timedelta(seconds=ttl_seconds)
+        # During stale window, we can return stale value while refreshing in background
+        self.stale_expires_at = (
+            (now + timedelta(seconds=ttl_seconds + (stale_ttl_seconds or 0)))
+            if stale_ttl_seconds is not None else None
+        )
         self.lock = threading.RLock()
-    
+
     def is_expired(self) -> bool:
         with self.lock:
             return datetime.now() > self.expires_at
-    
+
+    def is_stale_allowed(self) -> bool:
+        with self.lock:
+            if self.stale_expires_at is None:
+                return False
+            return datetime.now() <= self.stale_expires_at
+
     def get(self) -> Optional[Any]:
         with self.lock:
             if self.is_expired():
@@ -48,10 +60,10 @@ class SimpleCache:
                 del self._cache[key]
             return value
     
-    def set(self, key: str, value: Any, ttl_seconds: int = 60):
-        """Cache a value with TTL (default 60s)"""
+    def set(self, key: str, value: Any, ttl_seconds: int = 60, stale_ttl_seconds: int | None = None):
+        """Cache a value with TTL and optional stale window (default TTL=60s)"""
         with self._lock:
-            self._cache[key] = CacheEntry(value, ttl_seconds)
+            self._cache[key] = CacheEntry(value, ttl_seconds, stale_ttl_seconds)
     
     def delete(self, key: str):
         """Remove a key from cache"""
@@ -92,6 +104,49 @@ class SimpleCache:
             result = compute_fn()
             self.set(key, result, ttl_seconds)
             return result
+
+    def get_or_compute_stale(
+        self,
+        key: str,
+        compute_fn: Callable[[], Any],
+        ttl_seconds: int = 60,
+        stale_ttl_seconds: int = 120,
+    ) -> Any:
+        """
+        Serve stale-while-revalidate:
+        - If fresh: return cached
+        - If expired but within stale window: return stale immediately and refresh in background
+        - If no cache or stale window passed: compute synchronously
+        """
+        with self._lock:
+            entry = self._cache.get(key)
+            if entry is not None:
+                val = entry.get()
+                if val is not None:
+                    print(f"[CACHE HIT] {key}")
+                    return val
+                # expired but possibly within stale window
+                if entry.is_stale_allowed() and entry.value is not None:
+                    print(f"[CACHE STALE] {key} - serving stale and refreshing...")
+                    stale_val = entry.value
+
+                    # Background refresh
+                    def _refresh():
+                        try:
+                            result = compute_fn()
+                            self.set(key, result, ttl_seconds, stale_ttl_seconds)
+                        except Exception as e:
+                            # Keep stale if refresh fails
+                            print(f"[CACHE REFRESH ERROR] {key}: {e}")
+
+                    threading.Thread(target=_refresh, daemon=True).start()
+                    return stale_val
+
+        # No entry or stale window passed; compute synchronously
+        print(f"[CACHE MISS] {key} - computing...")
+        result = compute_fn()
+        self.set(key, result, ttl_seconds, stale_ttl_seconds)
+        return result
 
 
 # Global cache instance

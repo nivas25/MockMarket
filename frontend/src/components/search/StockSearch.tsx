@@ -46,7 +46,7 @@ export default function StockSearch({
     return () => mq.removeEventListener?.("change", update);
   }, []);
 
-  // Instant search with minimal debounce
+  // Instant search with minimal debounce; supports 1+ characters
   useEffect(() => {
     // Show loading immediately for better UX
     if (query.trim()) {
@@ -54,8 +54,10 @@ export default function StockSearch({
     }
 
     const controller = new AbortController();
+    const delay = query.trim().length <= 1 ? 200 : 120;
     const timer = setTimeout(async () => {
-      if (!query.trim()) {
+      const q = query.trim();
+      if (!q) {
         setResults([]);
         setIsOpen(false);
         setSelectedIndex(-1);
@@ -65,7 +67,8 @@ export default function StockSearch({
 
       try {
         // Call real API
-        const stockResults = await searchStocks(query, 10, controller.signal);
+        const limit = q.length <= 1 ? 5 : 10; // lighter query for 1-char search
+        const stockResults = await searchStocks(q, limit, controller.signal);
         setResults(stockResults);
         setIsOpen(stockResults.length > 0);
         setSelectedIndex(-1);
@@ -87,7 +90,7 @@ export default function StockSearch({
       } finally {
         setIsLoading(false);
       }
-    }, 150); // Reduced from 300ms to 150ms for faster response
+    }, delay); // Adaptive debounce for 1-char vs 2+ chars
 
     return () => {
       controller.abort();
@@ -182,6 +185,9 @@ export default function StockSearch({
         e.preventDefault();
         if (selectedIndex >= 0 && results[selectedIndex]) {
           handleSelect(results[selectedIndex]);
+        } else if (results.length > 0) {
+          // Fallback: open the first result when nothing is selected
+          handleSelect(results[0]);
         }
         break;
       case "Escape":

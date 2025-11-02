@@ -1,5 +1,6 @@
 // API client for searching stocks
 import http from "../../lib/http";
+import axios from "axios";
 
 export interface StockSearchResult {
   symbol: string;
@@ -23,7 +24,8 @@ interface ApiResponse<T> {
  */
 export async function searchStocks(
   query: string,
-  limit: number = 10
+  limit: number = 10,
+  signal?: AbortSignal
 ): Promise<StockSearchResult[]> {
   try {
     if (!query.trim()) {
@@ -39,6 +41,7 @@ export async function searchStocks(
           q: query.trim(),
           limit: Math.min(limit, 50),
         },
+        signal,
       }
     );
 
@@ -50,6 +53,13 @@ export async function searchStocks(
     console.warn("[stockSearchApi] No results or error:", result.message);
     return [];
   } catch (error: unknown) {
+    // Ignore cancellations from AbortController to avoid noisy logs
+    if (
+      axios.isAxiosError(error) &&
+      (error.code === "ERR_CANCELED" || error.name === "CanceledError")
+    ) {
+      return [];
+    }
     const err = error as {
       message?: string;
       response?: { data?: unknown; status?: number };

@@ -3,8 +3,9 @@ import time
 start_time = time.time()
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, g, request
 from flask_cors import CORS
+from flask_compress import Compress
 from services.websocket_manager import init_socketio, socketio
 
 # Lazy imports - only import when needed
@@ -28,7 +29,7 @@ from routes.health_routes import health_bp
 from routes.metrics_routes import metrics_bp
 from routes.fetch_holdings.holdings_routes import holdings_bp
 from flask_jwt_extended import JWTManager
-from flask_socketio import SocketIO
+from routes.debug_routes import debug_bp
 
 
 
@@ -37,7 +38,6 @@ from flask_socketio import SocketIO
 load_dotenv()
 
 app = Flask(__name__)
-socketio = SocketIO(app)
 
 # ✅ Set JWT secret key properly
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
@@ -46,6 +46,29 @@ jwt = JWTManager(app)
 
 # Enable CORS for auth routes
 CORS(app)
+
+# Enable gzip compression to reduce payload sizes and speed up responses
+Compress(app)
+
+# Lightweight request timing to spot slow endpoints in logs
+from flask import g, request as _request
+
+@app.before_request
+def _perf_timing_start():
+    g._t0 = time.perf_counter()
+
+@app.after_request
+def _perf_timing_end(response):
+    try:
+        t0 = getattr(g, '_t0', None)
+        if t0 is not None:
+            dt_ms = (time.perf_counter() - t0) * 1000.0
+            # Log only if slow (>300ms) to avoid noisy logs
+            if dt_ms > 300:
+                print(f"[PERF] {int(dt_ms)}ms { _request.method } {_request.path} -> {response.status_code}")
+    except Exception:
+        pass
+    return response
 
 
 @app.route('/')
@@ -63,13 +86,23 @@ app.register_blueprint(balance_bp, url_prefix='/fetch')
 app.register_blueprint(holdings_bp, url_prefix='/holdings')
 app.register_blueprint(health_bp)
 app.register_blueprint(metrics_bp)
+app.register_blueprint(debug_bp, url_prefix='/debug')
 
-# Initialize SocketIO with the Flask app
+# Initialize the shared SocketIO instance with the Flask app
 init_socketio(app)
 
 print(f"✅ Flask app initialized in {time.time() - start_time:.2f}s")
 
 if __name__ == '__main__':
+    # Initialize database connection pool BEFORE starting server
+    # This prevents the 106s delay on first request
+    try:
+        from db_pool import initialize_pool
+        initialize_pool()
+    except Exception as e:
+        print(f"❌ Failed to initialize DB pool: {e}")
+        print("⚠️  Server will continue but first request will be slow")
+    
     # Optionally start the in-process index fetcher so logs appear here
     enable_sched = (os.getenv("ENABLE_INDEX_SCHEDULER", "false").lower() in ("1", "true", "yes", "on"))
     interval = int(os.getenv("INDEX_FETCH_INTERVAL", "120"))
@@ -116,10 +149,37 @@ if __name__ == '__main__':
         from utils.pretty_log import status_err
         status_err(f"Failed to start stock service scheduler: {e}")
     
-    # Run with default Flask development server (no SocketIO/Eventlet)
-    app.run(
+    # Run with SocketIO server to enable WebSocket transport
+    # Note: debug=False with eventlet to avoid WSGI server conflicts
+    socketio.run(
+        app,
         host='0.0.0.0',
         port=5000,
-        debug=True,
-        use_reloader=False
+        debug=False,
+        use_reloader=False,
+        log_output=True
     )
+
+# Lightweight performance logging (prints requests > threshold ms)
+@app.before_request
+def _perf_start():
+    try:
+        g._t0 = time.perf_counter()
+    except Exception:
+        pass
+
+
+@app.after_request
+def _perf_end(resp):
+    try:
+        t0 = getattr(g, "_t0", None)
+        if t0 is not None:
+            dt_ms = (time.perf_counter() - t0) * 1000.0
+            # Server-Timing header helps in browser DevTools
+            resp.headers["Server-Timing"] = f"app;dur={dt_ms:.1f}"
+            threshold = float(os.getenv("PERF_LOG_THRESHOLD_MS", "300"))
+            if dt_ms > threshold:
+                print(f"[PERF] {dt_ms:.0f}ms {request.method} {request.path} -> {resp.status_code}")
+    except Exception:
+        pass
+    return resp

@@ -75,12 +75,9 @@ export default function ModernStockChart({ symbol, currentPrice }: Props) {
     const chart = createChart(chartContainerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        // --- THIS IS THE FIX ---
-        attributionLogo: false,
-        // -----------------------
       },
       width: chartContainerRef.current.clientWidth,
-      autoHeight: true,
+      height: chartContainerRef.current.clientHeight || 300,
       watermark: {
         visible: false, // This removes the main watermark
       },
@@ -113,6 +110,7 @@ export default function ModernStockChart({ symbol, currentPrice }: Props) {
       if (chartContainerRef.current) {
         chart.applyOptions({
           width: chartContainerRef.current.clientWidth,
+          height: chartContainerRef.current.clientHeight || 300,
         });
       }
     };
@@ -123,7 +121,7 @@ export default function ModernStockChart({ symbol, currentPrice }: Props) {
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, []); // Runs only once
+  }, []); // Runs only once // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update the price line when price changes
   useEffect(() => {

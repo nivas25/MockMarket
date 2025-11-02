@@ -3,8 +3,10 @@ from db_pool import get_connection
 from controller.fetch.index_fetch.fetch_indices import update_index_prices
 from utils.market_hours import should_use_websocket, get_market_status
 from services.index_websocket import get_live_cache
+from services.cache_service import get_cache
 
 index_fetch_bp = Blueprint("index_fetch", __name__)
+cache = get_cache()
 
 
 @index_fetch_bp.route("/all", methods=["GET"])
@@ -53,83 +55,101 @@ def get_all_indices():
             pass
     
     # Fall back to database (market closed or no live data)
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+    # Cache for 5 seconds during market hours, 60 seconds outside market hours
+    cache_ttl = 5 if use_websocket else 60
+    cache_key = f"indices_all:{use_websocket}"
+    
+    def fetch_indices_from_db():
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        try:
+                # Deduplicate by taking the most recent row per index_name
+                sql = """
+                    SELECT ip.index_name, ip.ltp, ip.open_price, ip.high_price, ip.low_price,
+                           ip.prev_close, ip.change_value, ip.change_percent, ip.tag, ip.last_updated
+                    FROM Index_Prices ip
+                    INNER JOIN (
+                        SELECT index_name, MAX(last_updated) AS max_updated
+                        FROM Index_Prices
+                        GROUP BY index_name
+                    ) latest
+                    ON ip.index_name = latest.index_name AND ip.last_updated = latest.max_updated
+                    ORDER BY 
+                        CASE ip.tag
+                            WHEN 'Benchmark' THEN 1
+                            WHEN 'Banking' THEN 2
+                            WHEN 'Volatility' THEN 3
+                            WHEN 'Sectoral' THEN 4
+                            WHEN 'Broader Market' THEN 5
+                            ELSE 6
+                        END,
+                        ip.index_name
+                """
+
+                cursor.execute(sql)
+                results = cursor.fetchall()
+                
+                if not results:
+                    return {
+                        "status": "error",
+                        "message": "No index data available. Please ensure the fetcher is running."
+                    }
+                
+                # Format response grouped by tag
+                grouped_indices = {}
+                
+                for row in results:
+                    tag = row["tag"]
+                    if tag not in grouped_indices:
+                        grouped_indices[tag] = []
+                    
+                    grouped_indices[tag].append({
+                        "name": row["index_name"],
+                        "value": f"{float(row['ltp']):,.2f}",
+                        "open": f"{float(row['open_price']):,.2f}" if row['open_price'] else None,
+                        "high": f"{float(row['high_price']):,.2f}" if row['high_price'] else None,
+                        "low": f"{float(row['low_price']):,.2f}" if row['low_price'] else None,
+                        "prevClose": f"{float(row['prev_close']):,.2f}" if row['prev_close'] else None,
+                        "change": f"{float(row['change_percent']):+.2f}%",
+                        "changeValue": f"{float(row['change_value']):+,.2f}" if row['change_value'] else None,
+                        "direction": "up" if float(row["change_percent"]) >= 0 else "down",
+                        "tag": tag,
+                        "lastUpdated": row["last_updated"].isoformat() if row["last_updated"] else None
+                    })
+                
+                market_status = get_market_status()
+                
+                return {
+                    "status": "success",
+                    "source": "database",
+                    "market_status": "closed" if not use_websocket else "open",
+                    "message": market_status["message"],
+                    "data": grouped_indices,
+                    "totalIndices": len(results)
+                }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+        finally:
+            cursor.close()
+            conn.close()
     
     try:
-        # Deduplicate by taking the most recent row per index_name
-        sql = """
-            SELECT ip.index_name, ip.ltp, ip.open_price, ip.high_price, ip.low_price,
-                   ip.prev_close, ip.change_value, ip.change_percent, ip.tag, ip.last_updated
-            FROM Index_Prices ip
-            INNER JOIN (
-                SELECT index_name, MAX(last_updated) AS max_updated
-                FROM Index_Prices
-                GROUP BY index_name
-            ) latest
-            ON ip.index_name = latest.index_name AND ip.last_updated = latest.max_updated
-            ORDER BY 
-                CASE ip.tag
-                    WHEN 'Benchmark' THEN 1
-                    WHEN 'Banking' THEN 2
-                    WHEN 'Volatility' THEN 3
-                    WHEN 'Sectoral' THEN 4
-                    WHEN 'Broader Market' THEN 5
-                    ELSE 6
-                END,
-                ip.index_name
-        """
-
-        cursor.execute(sql)
-        results = cursor.fetchall()
+        result = cache.get_or_compute(cache_key, fetch_indices_from_db, ttl_seconds=cache_ttl)
         
-        if not results:
-            return jsonify({
-                "status": "error",
-                "message": "No index data available. Please ensure the fetcher is running."
-            }), 404
+        if result.get("status") == "error":
+            return jsonify(result), 404 if "No index data" in result.get("message", "") else 500
         
-        # Format response grouped by tag
-        grouped_indices = {}
-        
-        for row in results:
-            tag = row["tag"]
-            if tag not in grouped_indices:
-                grouped_indices[tag] = []
-            
-            grouped_indices[tag].append({
-                "name": row["index_name"],
-                "value": f"{float(row['ltp']):,.2f}",
-                "open": f"{float(row['open_price']):,.2f}" if row['open_price'] else None,
-                "high": f"{float(row['high_price']):,.2f}" if row['high_price'] else None,
-                "low": f"{float(row['low_price']):,.2f}" if row['low_price'] else None,
-                "prevClose": f"{float(row['prev_close']):,.2f}" if row['prev_close'] else None,
-                "change": f"{float(row['change_percent']):+.2f}%",
-                "changeValue": f"{float(row['change_value']):+,.2f}" if row['change_value'] else None,
-                "direction": "up" if float(row["change_percent"]) >= 0 else "down",
-                "tag": tag,
-                "lastUpdated": row["last_updated"].isoformat() if row["last_updated"] else None
-            })
-        
-        market_status = get_market_status()
-        
-        return jsonify({
-            "status": "success",
-            "source": "database",
-            "market_status": "closed" if not use_websocket else "open",
-            "message": market_status["message"],
-            "data": grouped_indices,
-            "totalIndices": len(results)
-        }), 200
-        
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({
             "status": "error",
             "message": str(e)
         }), 500
-    finally:
-        cursor.close()
-        conn.close()
 
 
 @index_fetch_bp.route("/market-status", methods=["GET"])

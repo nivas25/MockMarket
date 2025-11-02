@@ -62,8 +62,9 @@ _INDEX_KEYS_RESOLVED = False
 
 def _download_bod_instruments():
     """Download the BOD instruments JSON (gz) from Upstox assets."""
+    import certifi
     url = "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz"
-    resp = requests.get(url)
+    resp = requests.get(url, timeout=15, verify=certifi.where())
     resp.raise_for_status()
     with gzip.GzipFile(fileobj=io.BytesIO(resp.content)) as gz_file:
         instruments = json.loads(gz_file.read().decode("utf-8"))

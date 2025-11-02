@@ -26,6 +26,20 @@ python app.py
 
 Server runs at http://localhost:5000
 
+## Performance checklist
+
+- Gzip compression enabled via Flask-Compress
+- DB pool initialized eagerly at startup to avoid first-request lag
+- High-frequency endpoints cached in-memory (gainers/losers/active 10s, sentiment 30s, indices 5s/60s)
+- Aggregated movers endpoint `/stocks/movers-all` reduces 3 API calls to 1
+- Slow request logging with Server-Timing header and `[PERF]` lines (threshold configurable via `PERF_LOG_THRESHOLD_MS`)
+
+Environment knobs:
+
+- `DB_POOL_SIZE=15` to increase MySQL connection pool
+- `PERF_LOG_THRESHOLD_MS=300` to tune slow-log threshold
+- `DEBUG_SOCKET=false` to disable verbose Socket.IO logs
+
 ## Database Performance
 
 For optimal query performance on stock movers endpoints, run the included DB indexes:

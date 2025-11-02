@@ -2,20 +2,25 @@ from typing import Any, Dict, List
 
 from flask import Flask
 from flask_socketio import SocketIO
+from flask import request
+import os
 
 
 # Single SocketIO instance to be initialized in app.py
-socketio: SocketIO = SocketIO(cors_allowed_origins="*", async_mode="threading")
+socketio: SocketIO = SocketIO(cors_allowed_origins="*", async_mode="gevent")
 
 
 def init_socketio(app: Flask) -> None:
     """Bind the global SocketIO instance to the Flask app."""
+    # Toggle verbose socket logging via env (default: off for performance)
+    debug_socket = os.getenv("DEBUG_SOCKET", "false").lower() in ("1", "true", "yes", "on")
+
     socketio.init_app(
-        app, 
+        app,
         cors_allowed_origins="*",
-        async_mode="threading",
-        logger=True,
-        engineio_logger=False  # Set to True for more verbose debugging
+        async_mode="gevent",
+        logger=debug_socket,
+        engineio_logger=debug_socket,
     )
 
 
@@ -39,5 +44,24 @@ def broadcast_prices(updates: List[Dict[str, Any]]) -> None:
     except Exception:
         # Emitting is best-effort; avoid breaking the fetcher
         pass
+
+
+# Basic connect/disconnect logs for debugging connection lifecycle
+@socketio.on("connect")
+def _on_connect():
+    try:
+        sid = getattr(request, 'sid', None)
+        print(f"[SocketIO] Client connected: {sid}")
+    except Exception:
+        print("[SocketIO] Client connected")
+
+
+@socketio.on("disconnect")
+def _on_disconnect():
+    try:
+        sid = getattr(request, 'sid', None)
+        print(f"[SocketIO] Client disconnected: {sid}")
+    except Exception:
+        print("[SocketIO] Client disconnected")
 
 

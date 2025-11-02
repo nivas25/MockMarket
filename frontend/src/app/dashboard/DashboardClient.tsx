@@ -1,23 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { useTheme } from "@/components/contexts/ThemeProvider";
 import styles from "./Dashboard.module.css";
-import type {
-  DashboardPageProps,
-  DashboardTab,
-  Order,
-  StockMover,
-} from "./types";
-import {
-  TopBar,
-  IndicesStrip,
-  MainNavTabs,
-  ExploreTab,
-  HoldingsTab,
-  OrdersTab,
-  WatchlistTab,
-} from "../../components/dashboard";
+import type { DashboardPageProps, DashboardTab } from "./types";
+import { TopBar, MainNavTabs } from "../../components/dashboard";
+import dynamic from "next/dynamic";
+
+// Lazy-load heavy components (client-only, named exports)
+const IndicesStrip = dynamic(
+  () =>
+    import("../../components/dashboard/IndicesStrip").then(
+      (m) => m.IndicesStrip
+    ),
+  { ssr: false, loading: () => null }
+) as unknown as ComponentType<Record<string, unknown>>;
+const ExploreTab = dynamic(
+  () =>
+    import("../../components/dashboard/ExploreTab").then((m) => m.ExploreTab),
+  { ssr: false, loading: () => null }
+) as unknown as ComponentType<Record<string, unknown>>;
+const HoldingsTab = dynamic(
+  () =>
+    import("../../components/dashboard/HoldingsTab").then((m) => m.HoldingsTab),
+  { ssr: false, loading: () => null }
+) as unknown as ComponentType<Record<string, unknown>>;
+const OrdersTab = dynamic(
+  () => import("../../components/dashboard/OrdersTab").then((m) => m.OrdersTab),
+  { ssr: false, loading: () => null }
+) as unknown as ComponentType<Record<string, unknown>>;
+const WatchlistTab = dynamic(
+  () =>
+    import("../../components/dashboard/WatchlistTab").then(
+      (m) => m.WatchlistTab
+    ),
+  { ssr: false, loading: () => null }
+) as unknown as ComponentType<Record<string, unknown>>;
 import Footer from "../../components/landing/Footer";
 import { useMovers } from "../../hooks/useMovers";
 import { useNews } from "../../hooks/useNews";
@@ -78,6 +96,7 @@ export default function DashboardClient({
       />
 
       <main className={styles.mainContent}>
+        {/* IndicesStrip updates frequently; load after first paint */}
         <IndicesStrip />
 
         <MainNavTabs activeTab={activeTab} onTabChange={setActiveTab} />

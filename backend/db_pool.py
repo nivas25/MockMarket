@@ -19,6 +19,8 @@ if _db_uri:
         "database": (url.path or "").lstrip("/"),
         "ssl_ca": os.path.join(os.path.dirname(__file__), "ca.pem"),
         "use_pure": True,
+        "connection_timeout": 10,  # 10s timeout for initial connection
+        "autocommit": True,  # Enable autocommit for better performance
     }
 else:
     # Fallback to discrete env vars
@@ -30,28 +32,59 @@ else:
         "database": os.getenv("DB_NAME"),
         "ssl_ca": os.path.join(os.path.dirname(__file__), "ca.pem"),
         "use_pure": True,
+        "connection_timeout": 10,  # 10s timeout for initial connection
+        "autocommit": True,  # Enable autocommit for better performance
     }
 
-# Lazy initialization - pool created on first use
+# Connection pool - will be initialized eagerly at startup
 connection_pool = None
 
-def _ensure_pool():
-    """Create connection pool if not exists"""
+def initialize_pool():
+    """
+    Initialize connection pool eagerly at startup.
+    Call this from app.py before starting the server.
+    """
     global connection_pool
     if connection_pool is None:
         try:
-            # Cap pool to avoid exhausting MySQL max_connections
             pool_size = int(os.getenv("DB_POOL_SIZE", "5"))
+            print(f"🔌 Initializing database pool with {pool_size} connections...")
+            
+            import time
+            start = time.perf_counter()
+            
             connection_pool = pooling.MySQLConnectionPool(
                 pool_name="mockmarket_pool",
                 pool_size=pool_size,
                 pool_reset_session=True,
                 **dbconfig
             )
-            print(f"✅ Connection pool created successfully with {pool_size} connections!")
+            
+            elapsed = time.perf_counter() - start
+            print(f"✅ Connection pool ready in {elapsed:.2f}s ({pool_size} connections)")
+            
+            # Warm up by getting and returning a connection
+            try:
+                conn = connection_pool.get_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.close()
+                conn.close()
+                print("✅ Pool warmup successful - connections validated")
+            except Exception as e:
+                print(f"⚠️  Pool warmup warning: {e}")
+                
         except Exception as e:
             print("❌ Error creating pool:", e)
             raise
+    return connection_pool
+
+def _ensure_pool():
+    """Ensure pool exists (fallback for legacy code)"""
+    global connection_pool
+    if connection_pool is None:
+        print("⚠️  Pool not initialized at startup, creating now...")
+        initialize_pool()
 
 def get_connection():
     """Get a connection from the pool"""

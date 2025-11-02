@@ -53,6 +53,7 @@ export default function StockSearch({
       setIsLoading(true);
     }
 
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       if (!query.trim()) {
         setResults([]);
@@ -64,11 +65,22 @@ export default function StockSearch({
 
       try {
         // Call real API
-        const stockResults = await searchStocks(query, 10);
+        const stockResults = await searchStocks(query, 10, controller.signal);
         setResults(stockResults);
         setIsOpen(stockResults.length > 0);
         setSelectedIndex(-1);
-      } catch (error) {
+      } catch (error: unknown) {
+        // Ignore cancellation errors triggered by AbortController
+        if (typeof error === "object" && error !== null) {
+          const e = error as { code?: string; name?: string; message?: string };
+          if (
+            e.code === "ERR_CANCELED" ||
+            e.name === "CanceledError" ||
+            e.message === "canceled"
+          ) {
+            return;
+          }
+        }
         console.error("Search error:", error);
         setResults([]);
         setIsOpen(false);
@@ -77,7 +89,10 @@ export default function StockSearch({
       }
     }, 150); // Reduced from 300ms to 150ms for faster response
 
-    return () => clearTimeout(timer);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
   }, [query]);
 
   // Calculate dropdown position

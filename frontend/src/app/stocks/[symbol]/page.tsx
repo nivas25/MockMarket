@@ -1,12 +1,12 @@
 import styles from "./StockDetail.module.css";
 import StockHeader from "../components/StockHeader";
 import StocksTopBar from "../components/StocksTopBar";
-// --- 1. Import the new container ---
 import StockChartContainer from "../components/StockChartContainer";
 import StockStorage from "../components/StockStorage";
 import StockStats from "../components/StockStats";
 import OrderPanel from "../components/OrderPanel";
 import { fetchStockDetail } from "@/services/api/stockDetailApi";
+import Link from "next/link"; // <-- 1. IMPORT LINK
 
 type StockPageProps = {
   params: Promise<{ symbol: string }>;
@@ -66,7 +66,6 @@ export default async function StockPage({ params }: StockPageProps) {
   }
 
   // Map backend data to component format
-  // This now includes all fields for the upgraded StockStats
   const stockFormatted = {
     symbol: stockData.symbol,
     companyName: stockData.companyName,
@@ -85,6 +84,25 @@ export default async function StockPage({ params }: StockPageProps) {
       {/* Fixed glass TopBar */}
       <StocksTopBar />
       <div className={styles.container}>
+        {/* --- 2. ADD THE BACK LINK HERE --- */}
+        <Link href="/dashboard" className={styles.backLink}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M19 12H5"></path>
+            <path d="M12 19l-7-7 7-7"></path>
+          </svg>
+          Back to Dashboard
+        </Link>
+        {/* ------------------------------- */}
+
         {/* Stock Header with price and basic info */}
         <StockHeader stock={stockFormatted} />
 
@@ -93,7 +111,7 @@ export default async function StockPage({ params }: StockPageProps) {
 
         {/* Main content grid */}
         <div className={styles.contentGrid}>
-          {/* --- 2. Use the new StockChartContainer --- */}
+          {/* Use the new StockChartContainer */}
           <StockChartContainer
             symbol={symbol}
             currentPrice={stockFormatted.currentPrice}

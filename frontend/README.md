@@ -35,6 +35,22 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Performance
+
+- Uses a single aggregated endpoint `/stocks/movers-all` to fetch gainers, losers, and most-active in one round-trip.
+- SWR handles polling and caching (`src/hooks/useMovers.ts`, `useNews`, `useSentiment`).
+- Heavy dashboard components are lazy-loaded with Next.js dynamic imports to speed up first paint.
+- Static assets and build chunks are cached aggressively via `next.config.ts` headers.
+- `src/app/layout.tsx` preconnects to the backend API host to reduce initial handshake latency.
+
+Production build:
+
+```powershell
+npm run build; npm start
+```
+
+Then test in DevTools Network tab with “Disable cache” unchecked to observe caching behavior.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

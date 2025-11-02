@@ -21,6 +21,38 @@ interface ApiResponse<T> {
   message?: string;
 }
 
+type MoversAllResponse = {
+  gainers: StockMoverData[];
+  losers: StockMoverData[];
+  mostActive: StockMoverData[];
+};
+
+/**
+ * Fetch all movers in one request
+ */
+export async function fetchMoversAll(
+  limit: number = 10,
+  exchange: string = "NSE",
+  intraday: boolean = false
+): Promise<MoversAllResponse> {
+  try {
+    const { data: result } = await http.get<ApiResponse<MoversAllResponse>>(
+      "/stocks/movers-all",
+      { params: { limit, exchange, intraday } }
+    );
+
+    if (result.status === "success" && result.data) {
+      return result.data;
+    }
+
+    console.error("Movers-all API error:", result.message);
+    return { gainers: [], losers: [], mostActive: [] };
+  } catch (error) {
+    console.error("Error fetching movers-all:", error);
+    return { gainers: [], losers: [], mostActive: [] };
+  }
+}
+
 /**
  * Fetch top gaining stocks from backend
  * @param limit - Number of gainers to fetch (default: 10)

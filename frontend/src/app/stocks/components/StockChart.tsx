@@ -40,7 +40,6 @@ const fetcher = async (key: string) => {
 };
 
 function formatXAxisLabel(val: string) {
-  // val is YYYY-MM-DD
   return val.slice(5); // MM-DD
 }
 
@@ -66,6 +65,16 @@ export default function StockChart({ symbol }: { symbol: string }) {
     close: d.close,
   }));
 
+  // --- THIS IS THE FIX ---
+  // It checks if the last price is higher than the first price
+  const isTrendUp =
+    chartData.length > 0 &&
+    chartData[chartData.length - 1].close >= chartData[0].close;
+
+  // Use Gold for up, Red for down
+  const trendColor = isTrendUp ? "#d4af37" : "#ef4444";
+  // -----------------------
+
   // Define theme-aware colors
   const isDark = theme === "dark";
   const axisColor = isDark ? "#94a3b8" : "#666";
@@ -78,7 +87,6 @@ export default function StockChart({ symbol }: { symbol: string }) {
   };
 
   return (
-    // --- 1. REMOVED fixed height from this div ---
     <div style={{ width: "100%" }}>
       {/* Buttons (already styled correctly from module) */}
       <div className={styles.intervalButtons}>
@@ -104,8 +112,6 @@ export default function StockChart({ symbol }: { symbol: string }) {
         </div>
       )}
 
-      {/* --- 2. ADDED this wrapper div --- */}
-      {/* This div uses the .chart class from your CSS for responsive height */}
       {!isLoading && chartData.length > 0 && (
         <div className={styles.chart}>
           <ResponsiveContainer width="100%" height="100%">
@@ -114,10 +120,12 @@ export default function StockChart({ symbol }: { symbol: string }) {
               margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             >
               <defs>
-                <linearGradient id="colorClose" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#22c55e" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                {/* --- USES THE DYNAMIC trendColor --- */}
+                <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={trendColor} stopOpacity={0.35} />
+                  <stop offset="95%" stopColor={trendColor} stopOpacity={0} />
                 </linearGradient>
+                {/* ---------------------------------- */}
               </defs>
               <CartesianGrid strokeDasharray="3 3" opacity={gridOpacity} />
               <XAxis
@@ -139,14 +147,16 @@ export default function StockChart({ symbol }: { symbol: string }) {
                 contentStyle={tooltipStyle}
                 itemStyle={{ color: isDark ? "#f0f0f0" : "#333" }}
               />
+              {/* --- USES THE DYNAMIC trendColor --- */}
               <Area
                 type="monotone"
                 dataKey="close"
-                stroke="#22c55e"
+                stroke={trendColor}
                 fillOpacity={1}
-                fill="url(#colorClose)"
+                fill="url(#colorTrend)"
                 strokeWidth={2}
               />
+              {/* ---------------------------------- */}
             </AreaChart>
           </ResponsiveContainer>
         </div>

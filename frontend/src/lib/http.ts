@@ -28,6 +28,17 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 http.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Silently ignore cancellation errors triggered by AbortController
+    // Axios v1 uses CanceledError with code ERR_CANCELED
+    if (
+      axios.isCancel?.(error) ||
+      error?.code === "ERR_CANCELED" ||
+      error?.name === "CanceledError" ||
+      error?.message === "canceled"
+    ) {
+      return Promise.reject(error);
+    }
+
     if (error.response) {
       console.error(
         "HTTP error",

@@ -34,3 +34,7 @@ rich==13.7.0
 Flask-SocketIO==5.4.1
 python-socketio==5.11.4
 simple-websocket==1.0.0
+gevent==24.2.1
+gevent-websocket==0.10.1
+certifi==2024.8.30
+Flask-Compress==1.17

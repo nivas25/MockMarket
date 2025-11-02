@@ -10,9 +10,11 @@ import traceback # For logging
 from db_pool import get_connection
 from controller.fetch.stock_prices_fetch.fetch_stocks_prices import fetch_all_stock_prices
 from services.http_client import upstox_get
+from services.cache_service import get_cache
 # -----------------
 
 stock_prices_bp = Blueprint('stock_prices_bp', __name__)
+cache = get_cache()
 
 @stock_prices_bp.route('/fetch-prices', methods=['GET'])
 def fetch_prices():
@@ -115,7 +117,14 @@ def top_gainers():
         # Use intraday mode by default (matches Groww/Zerodha)
         use_intraday = request.args.get('intraday', 'true').lower() == 'true'
         
-        movers = _top_movers_query(order="DESC", limit=limit, exchange=exchange, use_intraday=use_intraday)
+        # Cache for 10 seconds during market hours (data changes frequently but not every request)
+        cache_key = f"gainers:{exchange}:{limit}:{use_intraday}"
+        movers = cache.get_or_compute(
+            cache_key,
+            lambda: _top_movers_query(order="DESC", limit=limit, exchange=exchange, use_intraday=use_intraday),
+            ttl_seconds=10
+        )
+        
         return jsonify({
             "status": "success",
             "data": movers,
@@ -136,7 +145,14 @@ def top_losers():
         # Use intraday mode by default (matches Groww/Zerodha)
         use_intraday = request.args.get('intraday', 'true').lower() == 'true'
         
-        movers = _top_movers_query(order="ASC", limit=limit, exchange=exchange, use_intraday=use_intraday)
+        # Cache for 10 seconds
+        cache_key = f"losers:{exchange}:{limit}:{use_intraday}"
+        movers = cache.get_or_compute(
+            cache_key,
+            lambda: _top_movers_query(order="ASC", limit=limit, exchange=exchange, use_intraday=use_intraday),
+            ttl_seconds=10
+        )
+        
         return jsonify({
             "status": "success",
             "data": movers,
@@ -286,7 +302,8 @@ def search_stocks():
             """
             cursor.execute(sql, (f"{search_upper}%", limit))
         else:
-            # Longer queries - search both fields but prioritize symbol matches
+            # Longer queries - fast prefix search on both fields (index-friendly)
+            # Prioritize exact symbol match, then symbol prefix, then company name prefix
             sql = """
                 SELECT 
                     s.stock_id,
@@ -297,7 +314,7 @@ def search_stocks():
                     sp.prev_close,
                     ((sp.ltp - sp.prev_close) / NULLIF(sp.prev_close, 0)) * 100 AS change_percent,
                     CASE 
-                        WHEN s.symbol LIKE %s THEN 1
+                        WHEN s.symbol = %s THEN 1
                         WHEN s.symbol LIKE %s THEN 2
                         ELSE 3
                     END AS match_priority
@@ -312,9 +329,9 @@ def search_stocks():
                 ORDER BY match_priority, s.symbol
                 LIMIT %s
             """
-            exact_match = f"{search_upper}%"
-            contains_match = f"%{search_upper}%"
-            cursor.execute(sql, (search_upper, exact_match, exact_match, contains_match, limit))
+            exact = search_upper
+            prefix = f"{search_upper}%"
+            cursor.execute(sql, (exact, prefix, prefix, prefix, limit))
         
         stocks = cursor.fetchall()
         
@@ -362,84 +379,221 @@ def most_active():
         limit = int(request.args.get('limit', 10))
         exchange = request.args.get('exchange', 'NSE')
         
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        try:
-            where_exchange = ""
-            params = []
-            if exchange:
-                where_exchange = "AND s.exchange = %s"
-                params.append(exchange)
+        # Cache for 10 seconds
+        cache_key = f"active:{exchange}:{limit}"
+        
+        def fetch_most_active():
+            conn = get_connection()
+            cursor = conn.cursor(dictionary=True)
+            try:
+                where_exchange = ""
+                params = []
+                if exchange:
+                    where_exchange = "AND s.exchange = %s"
+                    params.append(exchange)
+                
+                sql = f"""
+                    SELECT 
+                        s.stock_id,
+                        s.symbol,
+                        s.company_name,
+                        sp.ltp,
+                        sp.prev_close,
+                        sp.day_open,
+                        sp.day_high,
+                        sp.day_low,
+                        (sp.ltp - sp.prev_close) AS change_value,
+                        CASE WHEN sp.prev_close IS NOT NULL AND sp.prev_close <> 0 
+                             THEN ((sp.ltp - sp.prev_close) / sp.prev_close) * 100
+                             ELSE NULL END AS change_percent,
+                        CASE WHEN sp.prev_close IS NOT NULL AND sp.prev_close <> 0 
+                             THEN ((sp.day_high - sp.day_low) / sp.prev_close) * 100
+                             ELSE NULL END AS volatility_score,
+                        sp.as_of
+                    FROM Stock_Prices sp
+                    INNER JOIN (
+                        SELECT stock_id, MAX(as_of) AS max_as_of
+                        FROM Stock_Prices
+                        GROUP BY stock_id
+                    ) latest
+                      ON latest.stock_id = sp.stock_id AND latest.max_as_of = sp.as_of
+                    INNER JOIN Stocks s ON s.stock_id = sp.stock_id
+                    WHERE sp.day_high IS NOT NULL 
+                      AND sp.day_low IS NOT NULL 
+                      AND sp.day_high > sp.day_low
+                    {where_exchange}
+                    ORDER BY volatility_score DESC, sp.ltp DESC
+                    LIMIT %s
+                """
+                params.append(limit)
+                cursor.execute(sql, params)
+                rows = cursor.fetchall()
+
+                # Map to frontend-friendly structure
+                active_stocks = []
+                for r in rows:
+                    ltp = float(r["ltp"]) if r.get("ltp") is not None else None
+                    pct = float(r["change_percent"]) if r.get("change_percent") is not None else None
+                    volatility = float(r["volatility_score"]) if r.get("volatility_score") is not None else None
+                    
+                    # Use volatility percentage as a pseudo-volume indicator
+                    # Format it as if it were volume for display consistency
+                    volume_display = int(volatility * 100000) if volatility else 0
+                    
+                    active_stocks.append({
+                        "name": r["company_name"],
+                        "symbol": r["symbol"],
+                        "price": f"{ltp:,.2f}" if ltp is not None else None,
+                        "change": (f"{pct:+.2f}%" if pct is not None else None),
+                        "volume": volume_display,  # Pseudo-volume based on volatility
+                        # optional numeric fields
+                        "priceNum": ltp,
+                        "changePercentNum": pct,
+                        "changeValueNum": float(r["change_value"]) if r.get("change_value") is not None else None,
+                        "asOf": r["as_of"].isoformat() if r.get("as_of") else None,
+                    })
+
+                return {
+                    "status": "success",
+                    "data": active_stocks,
+                    "count": len(active_stocks)
+                }
+            finally:
+                cursor.close()
+                conn.close()
+        
+        result = cache.get_or_compute(cache_key, fetch_most_active, ttl_seconds=10)
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+
+@stock_prices_bp.route('/movers-all', methods=['GET'])
+def movers_all():
+    """
+    Aggregated endpoint that returns gainers, losers, and most active in a single response.
+    Reduces 3 sequential RTTs to 1, significantly improving dashboard load time.
+    """
+    try:
+        limit = int(request.args.get('limit', 10))
+        exchange = request.args.get('exchange', 'NSE')
+        use_intraday = request.args.get('intraday', 'true').lower() == 'true'
+        
+        # Cache the aggregated result for 10 seconds
+        cache_key = f"movers_all:{exchange}:{limit}:{use_intraday}"
+        
+        def fetch_all_movers():
+            # Fetch gainers
+            gainers_key = f"gainers:{exchange}:{limit}:{use_intraday}"
+            gainers = cache.get_or_compute(
+                gainers_key,
+                lambda: _top_movers_query(order="DESC", limit=limit, exchange=exchange, use_intraday=use_intraday),
+                ttl_seconds=10
+            )
             
-            sql = f"""
-                SELECT 
-                    s.stock_id,
-                    s.symbol,
-                    s.company_name,
-                    sp.ltp,
-                    sp.prev_close,
-                    sp.day_open,
-                    sp.day_high,
-                    sp.day_low,
-                    (sp.ltp - sp.prev_close) AS change_value,
-                    CASE WHEN sp.prev_close IS NOT NULL AND sp.prev_close <> 0 
-                         THEN ((sp.ltp - sp.prev_close) / sp.prev_close) * 100
-                         ELSE NULL END AS change_percent,
-                    CASE WHEN sp.prev_close IS NOT NULL AND sp.prev_close <> 0 
-                         THEN ((sp.day_high - sp.day_low) / sp.prev_close) * 100
-                         ELSE NULL END AS volatility_score,
-                    sp.as_of
-                FROM Stock_Prices sp
-                INNER JOIN (
-                    SELECT stock_id, MAX(as_of) AS max_as_of
-                    FROM Stock_Prices
-                    GROUP BY stock_id
-                ) latest
-                  ON latest.stock_id = sp.stock_id AND latest.max_as_of = sp.as_of
-                INNER JOIN Stocks s ON s.stock_id = sp.stock_id
-                WHERE sp.day_high IS NOT NULL 
-                  AND sp.day_low IS NOT NULL 
-                  AND sp.day_high > sp.day_low
-                {where_exchange}
-                ORDER BY volatility_score DESC, sp.ltp DESC
-                LIMIT %s
-            """
-            params.append(limit)
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
+            # Fetch losers
+            losers_key = f"losers:{exchange}:{limit}:{use_intraday}"
+            losers = cache.get_or_compute(
+                losers_key,
+                lambda: _top_movers_query(order="ASC", limit=limit, exchange=exchange, use_intraday=use_intraday),
+                ttl_seconds=10
+            )
+            
+            # Fetch most active
+            active_key = f"active:{exchange}:{limit}"
+            
+            def fetch_most_active_internal():
+                conn = get_connection()
+                cursor = conn.cursor(dictionary=True)
+                try:
+                    where_exchange = ""
+                    params = []
+                    if exchange:
+                        where_exchange = "AND s.exchange = %s"
+                        params.append(exchange)
+                    
+                    sql = f"""
+                        SELECT 
+                            s.stock_id,
+                            s.symbol,
+                            s.company_name,
+                            sp.ltp,
+                            sp.prev_close,
+                            sp.day_open,
+                            sp.day_high,
+                            sp.day_low,
+                            (sp.ltp - sp.prev_close) AS change_value,
+                            CASE WHEN sp.prev_close IS NOT NULL AND sp.prev_close <> 0 
+                                 THEN ((sp.ltp - sp.prev_close) / sp.prev_close) * 100
+                                 ELSE NULL END AS change_percent,
+                            CASE WHEN sp.prev_close IS NOT NULL AND sp.prev_close <> 0 
+                                 THEN ((sp.day_high - sp.day_low) / sp.prev_close) * 100
+                                 ELSE NULL END AS volatility_score,
+                            sp.as_of
+                        FROM Stock_Prices sp
+                        INNER JOIN (
+                            SELECT stock_id, MAX(as_of) AS max_as_of
+                            FROM Stock_Prices
+                            GROUP BY stock_id
+                        ) latest
+                          ON latest.stock_id = sp.stock_id AND latest.max_as_of = sp.as_of
+                        INNER JOIN Stocks s ON s.stock_id = sp.stock_id
+                        WHERE sp.day_high IS NOT NULL 
+                          AND sp.day_low IS NOT NULL 
+                          AND sp.day_high > sp.day_low
+                        {where_exchange}
+                        ORDER BY volatility_score DESC, sp.ltp DESC
+                        LIMIT %s
+                    """
+                    params.append(limit)
+                    cursor.execute(sql, params)
+                    rows = cursor.fetchall()
 
-            # Map to frontend-friendly structure
-            active_stocks = []
-            for r in rows:
-                ltp = float(r["ltp"]) if r.get("ltp") is not None else None
-                pct = float(r["change_percent"]) if r.get("change_percent") is not None else None
-                volatility = float(r["volatility_score"]) if r.get("volatility_score") is not None else None
-                
-                # Use volatility percentage as a pseudo-volume indicator
-                # Format it as if it were volume for display consistency
-                volume_display = int(volatility * 100000) if volatility else 0
-                
-                active_stocks.append({
-                    "name": r["company_name"],
-                    "symbol": r["symbol"],
-                    "price": f"{ltp:,.2f}" if ltp is not None else None,
-                    "change": (f"{pct:+.2f}%" if pct is not None else None),
-                    "volume": volume_display,  # Pseudo-volume based on volatility
-                    # optional numeric fields
-                    "priceNum": ltp,
-                    "changePercentNum": pct,
-                    "changeValueNum": float(r["change_value"]) if r.get("change_value") is not None else None,
-                    "asOf": r["as_of"].isoformat() if r.get("as_of") else None,
-                })
+                    active_stocks = []
+                    for r in rows:
+                        ltp = float(r["ltp"]) if r.get("ltp") is not None else None
+                        pct = float(r["change_percent"]) if r.get("change_percent") is not None else None
+                        volatility = float(r["volatility_score"]) if r.get("volatility_score") is not None else None
+                        volume_display = int(volatility * 100000) if volatility else 0
+                        
+                        active_stocks.append({
+                            "name": r["company_name"],
+                            "symbol": r["symbol"],
+                            "price": f"{ltp:,.2f}" if ltp is not None else None,
+                            "change": (f"{pct:+.2f}%" if pct is not None else None),
+                            "volume": volume_display,
+                            "priceNum": ltp,
+                            "changePercentNum": pct,
+                            "changeValueNum": float(r["change_value"]) if r.get("change_value") is not None else None,
+                            "asOf": r["as_of"].isoformat() if r.get("as_of") else None,
+                        })
 
-            return jsonify({
-                "status": "success",
-                "data": active_stocks,
-                "count": len(active_stocks)
-            }), 200
-        finally:
-            cursor.close()
-            conn.close()
+                    return {
+                        "status": "success",
+                        "data": active_stocks,
+                        "count": len(active_stocks)
+                    }
+                finally:
+                    cursor.close()
+                    conn.close()
+            
+            most_active = cache.get_or_compute(active_key, fetch_most_active_internal, ttl_seconds=10)
+            
+            return {
+                "gainers": gainers,
+                "losers": losers,
+                "mostActive": most_active["data"]
+            }
+        
+        result = cache.get_or_compute(cache_key, fetch_all_movers, ttl_seconds=10)
+        
+        return jsonify({
+            "status": "success",
+            "data": result
+        }), 200
     except Exception as e:
         return jsonify({
             "status": "error",

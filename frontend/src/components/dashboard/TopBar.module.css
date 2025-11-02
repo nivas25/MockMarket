@@ -386,3 +386,69 @@
     max-width: 300px;
   }
 }
+
+/* --- ADD THIS TO THE BOTTOM OF YOUR TopBar.module.css FILE --- */
+
+.stickyBackButton {
+  /* --- Positioning --- */
+  position: fixed;
+  top: 14px; /* Aligns with the top of the main capsule */
+  left: var(--space-lg); /* Not too far, just 24px from edge */
+  z-index: 101; /* Stay on top of the topBarWrapper */
+
+  /* --- Shape (Round Button) --- */
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* --- Glass Styles (Copied from .capsule) --- */
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(12px) saturate(170%);
+  backdrop-filter: blur(12px) saturate(170%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+
+  /* --- Icon Styles (Copied from .iconButton) --- */
+  color: var(--gold-primary);
+  cursor: pointer;
+  transition: all var(--transition-smooth);
+  outline: none;
+}
+
+.stickyBackButton:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 55, 0.1),
+    rgba(229, 193, 108, 0.2)
+  );
+  color: var(--color-text);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--gold-primary-faded);
+}
+
+:global(body.dark) .stickyBackButton {
+  background: rgba(10, 10, 10, 0.45);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+:global(body.dark) .stickyBackButton:hover {
+  background: var(--gold-primary-faded);
+  color: var(--color-text);
+}
+
+.stickyBackButton:focus-visible {
+  color: var(--color-text);
+  box-shadow: 0 0 0 3px var(--gold-primary-faded),
+    0 0 12px var(--gold-primary-faded);
+}
+
+/* Hide on mobile where there's no space */
+@media (max-width: 480px) {
+  .stickyBackButton {
+    display: none;
+  }
+}

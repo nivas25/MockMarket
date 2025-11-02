@@ -1,11 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import {
-  fetchTopGainers,
-  fetchTopLosers,
-  fetchMostActive,
-} from "../services/api/stockMoversApi";
+import { fetchMoversAll } from "../services/api/stockMoversApi";
 import type { StockMover, ActiveStock } from "../app/dashboard/types";
 
 type MoversData = {
@@ -18,13 +14,13 @@ async function loadMovers(
   limit: number,
   exchange: string
 ): Promise<MoversData> {
-  const [gainers, losers, active] = await Promise.all([
-    fetchTopGainers(limit, exchange, false),
-    fetchTopLosers(limit, exchange, false),
-    fetchMostActive(limit, exchange),
-  ]);
+  const { gainers, losers, mostActive } = await fetchMoversAll(
+    limit,
+    exchange,
+    false
+  );
 
-  const activeStocks: ActiveStock[] = active.map((stock) => ({
+  const activeStocks: ActiveStock[] = mostActive.map((stock) => ({
     name: stock.name,
     symbol: stock.symbol,
     price: stock.price,

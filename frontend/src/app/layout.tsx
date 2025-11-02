@@ -1,5 +1,5 @@
 import "./globals.css";
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 import { ThemeProvider } from "../components/contexts/ThemeProvider";
 import { GoogleOAuthProvider } from "@react-oauth/google"; // 1. Import
 import SWRProvider from "../components/providers/SWRProvider";
@@ -48,11 +48,26 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
   return (
     <html lang="en">
+      <head>
+        {/* Preconnect to backend API to reduce handshake latency */}
+        <link
+          rel="preconnect"
+          href={
+            process.env.NEXT_PUBLIC_API_URL ||
+            process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
+            "http://localhost:5000"
+          }
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>
         {/* 2. Wrap the app. It's okay to put it inside ThemeProvider. */}
         <ThemeProvider>
           <GoogleOAuthProvider clientId={googleClientId}>
-            <RouteProgress />
+            {/* useSearchParams hook inside RouteProgress needs a Suspense boundary */}
+            <Suspense fallback={null}>
+              <RouteProgress />
+            </Suspense>
             <SWRProvider>{children}</SWRProvider>
           </GoogleOAuthProvider>
         </ThemeProvider>

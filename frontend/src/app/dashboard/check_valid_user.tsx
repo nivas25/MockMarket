@@ -5,6 +5,8 @@ import axios from "axios";
 import DashboardClient from "./DashboardClient";
 import type { DashboardPageProps } from "./types";
 import { url } from "../../config"
+import { jwtDecode } from "jwt-decode";
+
 export const metadata = {
     title: "Dashboard | MockMarket",
     description: "Track indices, holdings, orders, and your watchlist.",
@@ -17,11 +19,20 @@ export default function CheckvalidUser(props: DashboardPageProps = {}) {
         const verifyUser = async () => {
             try {
                 const token = localStorage.getItem("authToken");
+
+
+
                 if (!token) {
                     console.warn("No token found. Redirecting to login...");
                     window.location.href = "/unauthorized_access";
                     return;
                 }
+                const decode = jwtDecode(token)
+                if (decode?.role === "admin" || decode?.sub?.role === "admin") {
+                    window.location.href = '/admin'
+                    return
+                }
+
 
                 const res = await axios.get(`${url}/user/verify`, {
                     headers: {

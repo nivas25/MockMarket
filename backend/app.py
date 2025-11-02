@@ -27,6 +27,8 @@ from routes.fetch_balance.fetch_balance_routes import balance_bp
 from routes.health_routes import health_bp
 from routes.metrics_routes import metrics_bp
 from routes.fetch_holdings.holdings_routes import holdings_bp
+from routes.fetch_users.fetch_users_routes import fetch_users_bp
+from routes.acess_routes.block_unblock_routes import manage_user_access_bp
 from flask_jwt_extended import JWTManager
 from flask_socketio import SocketIO
 
@@ -61,6 +63,8 @@ app.register_blueprint(sentiment_bp, url_prefix='/sentiment')
 app.register_blueprint(trade_bp, url_prefix='/order')
 app.register_blueprint(balance_bp, url_prefix='/fetch')
 app.register_blueprint(holdings_bp, url_prefix='/holdings')
+app.register_blueprint(fetch_users_bp,url_prefix='/admin')
+app.register_blueprint(manage_user_access_bp,url_prefix='/user')
 app.register_blueprint(health_bp)
 app.register_blueprint(metrics_bp)
 

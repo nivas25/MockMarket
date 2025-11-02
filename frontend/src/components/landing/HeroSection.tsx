@@ -43,12 +43,18 @@ export default function HeroSection() {
         } else {
           console.warn("❌ Invalid user token");
           localStorage.removeItem("authToken");
+          setVerifying(false);
         }
       } catch (err) {
         console.error("User verification failed:", err);
+        if (axios.isAxiosError(err) && err.response?.status === 403) {
+          console.log("🚫 Account blocked — redirecting to /block");
+          window.location.href = "/block";
+          return;
+        }
         localStorage.removeItem("authToken");
+        setVerifying(false);
       }
-      setVerifying(false);
     };
 
     verifyUser();
@@ -73,15 +79,30 @@ export default function HeroSection() {
         );
 
         const jwtToken = response.data?.token;
+        const role = response.data?.role; // 👈 backend sends this field
 
         if (jwtToken) {
           localStorage.setItem("authToken", jwtToken);
-          window.location.href = "/dashboard";
+          localStorage.setItem("userRole", role); // 👈 store role in localStorage
+
+          // ✅ redirect based on role
+          if (role === "admin") {
+            window.location.href = "/admin";
+          } else {
+            window.location.href = "/dashboard";
+          }
         } else {
           alert("Login failed: No token received.");
         }
+
       } catch (error: unknown) {
         console.error("Login error:", error);
+        if (axios.isAxiosError(error) && error.response?.status === 403) {
+          sessionStorage.setItem("accessToken" ,'added');
+          console.log("🚫 Account blocked — redirecting to /block");
+          window.location.href = "/block";
+          return;
+        }
         alert("Login failed. Please try again.");
       } finally {
         setIsLoading(false);

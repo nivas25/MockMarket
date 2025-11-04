@@ -38,6 +38,11 @@ export function useRealtimeIndices() {
     const onIndicesUpdate = (payload: IndicesUpdatePayload) => {
       if (!isMounted.current) return;
 
+      console.log(
+        `[useRealtimeIndices] Received ${payload.data?.length || 0} indices`,
+        payload
+      );
+
       try {
         // Transform backend data to frontend IndexData format
         const transformed: IndexData[] = payload.data.map((item) => ({

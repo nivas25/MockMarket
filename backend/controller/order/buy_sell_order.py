@@ -3,11 +3,13 @@
 import os
 import requests
 import time
+import logging
 from typing import Optional, Dict, Tuple
 from db_pool import get_connection
 from datetime import datetime
 from threading import Lock  # For thread-safe caching
 
+logger = logging.getLogger(__name__)
 UPSTOX_TOKEN = os.getenv("UPSTOX_ACCESS_TOKEN")
 UPSTOX_URL = "https://api.upstox.com/v2/market-quote/quotes"
 
@@ -49,32 +51,57 @@ def get_stock_info(stock_name: str) -> Optional[Dict[str, any]]:
     print(f"[⏱️] get_stock_info took {elapsed:.2f}s")
     return stock
 
-def get_live_price(isin: str) -> Optional[float]:
-    """Fetch real-time stock price from Upstox API, with caching."""
+def get_live_price(isin: str, stock_id: int = None) -> Optional[float]:
+    """
+    Get real-time stock price
+    Priority:
+    1. WebSocket live price cache (same price shown on frontend)
+    2. In-memory API cache (30s TTL)
+    3. Fresh Upstox API call (fallback)
+    """
     start_time = time.time()
+    
+    # Try WebSocket price cache first (most accurate, same as frontend)
+    if stock_id:
+        try:
+            from services.live_price_cache import get_cached_price_by_stock_id, get_cache_age_seconds
+            ws_price = get_cached_price_by_stock_id(stock_id)
+            if ws_price is not None:
+                age = get_cache_age_seconds(stock_id)
+                if age is not None and age < 15:  # Use if less than 15 seconds old
+                    elapsed = time.time() - start_time
+                    print(f"[🔴 WEBSOCKET] Price from live cache: ₹{ws_price} (age: {age:.1f}s)")
+                    print(f"[⏱️] get_live_price took {elapsed:.2f}s")
+                    return ws_price
+                else:
+                    print(f"[⚠️] WebSocket price too old ({age:.1f}s), falling back to API")
+        except Exception as e:
+            print(f"[⚠️] WebSocket cache lookup failed: {e}")
+    
+    # Try old in-memory cache (API calls)
     cached_price = _get_cached_price(isin)
     if cached_price is not None:
         elapsed = time.time() - start_time
-        print(f"[📦] Cache hit for ISIN: {isin}, price: ₹{cached_price}")
+        print(f"[📦] API cache hit for ISIN: {isin}, price: ₹{cached_price}")
         print(f"[⏱️] get_live_price took {elapsed:.2f}s")
         return cached_price
 
+    # Fallback to Upstox API
     headers = {"Authorization": f"Bearer {UPSTOX_TOKEN}"}
     params = {"instrument_key": f"NSE_EQ|{isin}"}
 
     try:
-        print(f"[🌐] Fetching live price for ISIN: {isin}")
-        response = requests.get(UPSTOX_URL, headers=headers, params=params, timeout=5)  # Reduced timeout
+        print(f"[🌐] Fetching live price from Upstox API for ISIN: {isin}")
+        response = requests.get(UPSTOX_URL, headers=headers, params=params, timeout=5)
         elapsed_api = time.time() - start_time
         print(f"[📡] Upstox API status code: {response.status_code} (took {elapsed_api:.2f}s)")
 
         data = response.json()
-        print(f"[📊] Upstox API response: {data}")
 
         if "data" in data and data["data"]:
             first_key = list(data["data"].keys())[0]
             price = data["data"][first_key]["last_price"]
-            print(f"[💰] Extracted live price: ₹{price}")
+            print(f"[💰] Extracted live price from API: ₹{price}")
             _set_cached_price(isin, float(price))  # Cache the result
             elapsed = time.time() - start_time
             print(f"[⏱️] get_live_price took {elapsed:.2f}s")
@@ -115,8 +142,8 @@ def execute_trade(stock_name: str, intended_price: float, user_id: int, quantity
     stock_id, isin = stock["stock_id"], stock["isin"]
     print(f"[🧾] Stock ID: {stock_id}, ISIN: {isin}")
 
-    # Step 2: Get live price
-    live_price = get_live_price(isin)
+    # Step 2: Get live price (prioritize WebSocket cache for consistency with frontend)
+    live_price = get_live_price(isin, stock_id=stock_id)
     if live_price is None:
         elapsed_total = time.time() - start_total
         print("[❌] Could not fetch live price from Upstox.")

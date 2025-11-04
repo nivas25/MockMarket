@@ -131,6 +131,10 @@
   align-items: start;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 8px;
+}
+.userInfo {
+  flex: 1;
 }
 .name {
   font-weight: 700;
@@ -213,4 +217,36 @@
 }
 :global(body.dark) .logoutBtn {
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Admin Badge Button - Small icon button */
+.adminBadgeButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: linear-gradient(135deg, #e5c16c, #d4af37);
+  color: #0b0b0b;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
+  flex-shrink: 0;
+}
+
+.adminBadgeButton:hover {
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.35);
+  transform: translateY(-1px) scale(1.05);
+}
+
+.adminBadgeButton:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.adminBadgeIcon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.5;
 }

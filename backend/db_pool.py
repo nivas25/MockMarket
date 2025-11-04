@@ -44,11 +44,14 @@ def initialize_pool():
     Initialize connection pool eagerly at startup.
     Call this from app.py before starting the server.
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     global connection_pool
     if connection_pool is None:
         try:
-            pool_size = int(os.getenv("DB_POOL_SIZE", "5"))
-            print(f"🔌 Initializing database pool with {pool_size} connections...")
+            pool_size = int(os.getenv("DB_POOL_SIZE", "15"))
+            logger.info(f"Initializing database pool with {pool_size} connections...")
             
             import time
             start = time.perf_counter()
@@ -61,7 +64,7 @@ def initialize_pool():
             )
             
             elapsed = time.perf_counter() - start
-            print(f"✅ Connection pool ready in {elapsed:.2f}s ({pool_size} connections)")
+            logger.info(f"Connection pool ready in {elapsed:.2f}s ({pool_size} connections)")
             
             # Warm up by getting and returning a connection
             try:
@@ -70,12 +73,12 @@ def initialize_pool():
                 cursor.execute("SELECT 1")
                 cursor.close()
                 conn.close()
-                print("✅ Pool warmup successful - connections validated")
+                logger.info("Pool warmup successful - connections validated")
             except Exception as e:
-                print(f"⚠️  Pool warmup warning: {e}")
+                logger.warning(f"Pool warmup warning: {e}")
                 
         except Exception as e:
-            print("❌ Error creating pool:", e)
+            logger.error(f"Error creating pool: {e}")
             raise
     return connection_pool
 

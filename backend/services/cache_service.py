@@ -6,6 +6,12 @@ from typing import Any, Optional, Dict, Callable
 from datetime import datetime, timedelta
 import threading
 import time
+import logging
+import os
+
+logger = logging.getLogger(__name__)
+# Only show cache operations in DEBUG mode
+DEBUG_CACHE = os.getenv("DEBUG_CACHE", "false").lower() == "true"
 
 
 class CacheEntry:
@@ -88,7 +94,8 @@ class SimpleCache:
         # Try cache first
         cached = self.get(key)
         if cached is not None:
-            print(f"[CACHE HIT] {key}")
+            if DEBUG_CACHE:
+                logger.debug(f"Cache hit: {key}")
             return cached
         
         # Compute with lock to prevent multiple concurrent computations
@@ -96,11 +103,13 @@ class SimpleCache:
             # Double-check after acquiring lock
             cached = self.get(key)
             if cached is not None:
-                print(f"[CACHE HIT] {key} (after lock)")
+                if DEBUG_CACHE:
+                    logger.debug(f"Cache hit (after lock): {key}")
                 return cached
             
             # Compute and cache
-            print(f"[CACHE MISS] {key} - computing...")
+            if DEBUG_CACHE:
+                logger.debug(f"Cache miss - computing: {key}")
             result = compute_fn()
             self.set(key, result, ttl_seconds)
             return result
@@ -123,11 +132,13 @@ class SimpleCache:
             if entry is not None:
                 val = entry.get()
                 if val is not None:
-                    print(f"[CACHE HIT] {key}")
+                    if DEBUG_CACHE:
+                        logger.debug(f"Cache hit: {key}")
                     return val
                 # expired but possibly within stale window
                 if entry.is_stale_allowed() and entry.value is not None:
-                    print(f"[CACHE STALE] {key} - serving stale and refreshing...")
+                    if DEBUG_CACHE:
+                        logger.debug(f"Cache stale - serving stale and refreshing: {key}")
                     stale_val = entry.value
 
                     # Background refresh
@@ -137,13 +148,14 @@ class SimpleCache:
                             self.set(key, result, ttl_seconds, stale_ttl_seconds)
                         except Exception as e:
                             # Keep stale if refresh fails
-                            print(f"[CACHE REFRESH ERROR] {key}: {e}")
+                            logger.error(f"Cache refresh error for {key}: {e}")
 
                     threading.Thread(target=_refresh, daemon=True).start()
                     return stale_val
 
         # No entry or stale window passed; compute synchronously
-        print(f"[CACHE MISS] {key} - computing...")
+        if DEBUG_CACHE:
+            logger.debug(f"Cache miss - computing: {key}")
         result = compute_fn()
         self.set(key, result, ttl_seconds, stale_ttl_seconds)
         return result

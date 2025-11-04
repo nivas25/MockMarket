@@ -4,64 +4,57 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import DashboardClient from "./DashboardClient";
 import type { DashboardPageProps } from "./types";
-import { url } from "../../config"
-import { jwtDecode } from "jwt-decode";
+import { url } from "../../config";
+import LoadingScreen from "../../components/common/LoadingScreen";
 
 export const metadata = {
-    title: "Dashboard | MockMarket",
-    description: "Track indices, holdings, orders, and your watchlist.",
+  title: "Dashboard | MockMarket",
+  description: "Track indices, holdings, orders, and your watchlist.",
 };
 
 export default function CheckvalidUser(props: DashboardPageProps = {}) {
-    const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
 
-    useEffect(() => {
-        const verifyUser = async () => {
-            try {
-                const token = localStorage.getItem("authToken");
+  useEffect(() => {
+    const verifyUser = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
 
+        if (!token) {
+          console.warn("No token found. Redirecting to login...");
+          window.location.href = "/unauthorized_access";
+          return;
+        }
+        // Removed admin redirect - admins can use dashboard normally
 
+        const res = await axios.get(`${url}/user/verify`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-                if (!token) {
-                    console.warn("No token found. Redirecting to login...");
-                    window.location.href = "/unauthorized_access";
-                    return;
-                }
-                const decode = jwtDecode(token)
-                if (decode?.role === "admin" || decode?.sub?.role === "admin") {
-                    window.location.href = '/admin'
-                    return
-                }
+        if (res.data.valid) {
+          setIsVerified(true);
+        } else {
+          throw new Error("Invalid user");
+        }
+      } catch (err) {
+        console.error("User verification failed:", err);
+        setIsVerified(false);
+        window.location.href = "/";
+      }
+    };
 
+    verifyUser();
+  }, []);
 
-                const res = await axios.get(`${url}/user/verify`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+  if (isVerified === null) {
+    return <LoadingScreen message="Checking authentication" />;
+  }
 
-                if (res.data.valid) {
-                    setIsVerified(true);
-                } else {
-                    throw new Error("Invalid user");
-                }
-            } catch (err) {
-                console.error("User verification failed:", err);
-                setIsVerified(false);
-                window.location.href = "/";
-            }
-        };
+  if (!isVerified) {
+    return <LoadingScreen message="Unauthorized access" />;
+  }
 
-        verifyUser();
-    }, []);
-
-    if (isVerified === null) {
-        return <div>Checking authentication...</div>;
-    }
-
-    if (!isVerified) {
-        return <div>Unauthorized</div>;
-    }
-
-    return <DashboardClient {...props} />;
+  return <DashboardClient {...props} />;
 }

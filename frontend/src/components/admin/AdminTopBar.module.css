@@ -1,8 +1,8 @@
-/* TopBar component — Dynamic Island glass capsule */
+/* AdminTopBar - Reusing TopBar styles with modifications */
 
 .topBarWrapper {
   width: 100%;
-  background: transparent; /* let the capsule float */
+  background: transparent;
   position: fixed;
   top: 0;
   left: 0;
@@ -11,23 +11,20 @@
   transition: all var(--transition-fast);
 }
 
-/* removed colored wash behind capsule for performance and cleaner look */
-
 .topBar {
   padding: var(--space-md);
   display: flex;
   align-items: center;
-  justify-content: center; /* center the capsule */
+  justify-content: center;
   gap: var(--space-sm);
   max-width: var(--layout-max-width);
   margin-left: auto;
   margin-right: auto;
   position: relative;
-  z-index: 1; /* above color wash */
+  z-index: 1;
   transition: height var(--transition-fast);
 }
 
-/* Slightly tighten capsule on scroll */
 .scrolled .capsule {
   padding-top: 8px;
   padding-bottom: 8px;
@@ -38,7 +35,6 @@
     0 1px 0 rgba(255, 255, 255, 0.7) inset;
 }
 
-/* Capsule container */
 .capsule {
   width: min(980px, calc(100% - 24px));
   display: grid;
@@ -70,7 +66,6 @@
     0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 
-/* specular highlight */
 .capsule::before {
   content: "";
   position: absolute;
@@ -87,11 +82,6 @@
   );
   pointer-events: none;
   z-index: 1;
-}
-
-/* ambient aura removed */
-.capsule::after {
-  content: none;
 }
 
 .brandCluster {
@@ -136,11 +126,6 @@
   filter: drop-shadow(0 4px 12px rgba(212, 175, 55, 0.5));
 }
 
-.logoIcon {
-  width: 24px;
-  height: 24px;
-  color: var(--gold-primary);
-}
 .brandText {
   letter-spacing: 0.2px;
 }
@@ -190,64 +175,41 @@
   box-shadow: 0 0 6px rgba(220, 38, 38, 0.6);
 }
 
-.searchCluster {
+/* Admin Title - replaces search cluster */
+.adminTitleCluster {
   flex: 1;
   max-width: 500px;
-}
-
-.actionsCluster {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  margin-left: auto;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(229, 193, 108, 0.15),
+    rgba(212, 175, 55, 0.15)
+  );
+  border: 1px solid rgba(212, 175, 55, 0.25);
 }
 
-.actionLabel {
-  display: none;
+/* Ensure the admin icon has a consistent, small size */
+.adminIcon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
-@media (min-width: 768px) {
-  .actionLabel {
-    display: inline;
-  }
+:global(body.dark) .adminTitleCluster {
+  background: linear-gradient(
+    135deg,
+    rgba(229, 193, 108, 0.08),
+    rgba(212, 175, 55, 0.08)
+  );
+  border-color: rgba(212, 175, 55, 0.15);
 }
 
-.actionBtn {
-  height: 38px;
-  padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid var(--color-border);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  background: transparent;
-  color: var(--color-text);
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: all var(--transition-fast);
-}
-
-.actionBtn:hover {
-  transform: translateY(-1px);
-}
-
-.ghost {
-  background: rgba(255, 255, 255, 0.4);
-}
-:global(body.dark) .ghost {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.primary {
-  background: linear-gradient(135deg, #e5c16c, #d4af37);
-  color: #0b0b0b;
-  border-color: transparent;
-  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.28);
-}
-.primary:hover {
-  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.36);
-}
+/* removed accent picker styles */
 
 .iconButton {
   width: 38px;
@@ -258,7 +220,7 @@
   justify-content: center;
   cursor: pointer;
   border: none;
-  color: var(--gold-primary);
+  color: var(--gold-primary, #d4af37);
   background: transparent;
   transition: all var(--transition-smooth);
   outline: none;
@@ -272,7 +234,7 @@
   );
   color: var(--color-text);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--gold-primary-faded);
+  box-shadow: 0 4px 12px var(--gold-primary-faded, rgba(212, 175, 55, 0.25));
 }
 
 :global(body.dark) .iconButton:hover {
@@ -282,143 +244,44 @@
 
 .iconButton:focus-visible {
   color: var(--color-text);
-  box-shadow: 0 0 0 3px var(--gold-primary-faded),
-    0 0 12px var(--gold-primary-faded);
+  box-shadow: 0 0 0 3px var(--gold-primary-faded, rgba(212, 175, 55, 0.25)),
+    0 0 12px var(--gold-primary-faded, rgba(212, 175, 55, 0.25));
 }
+
 .buttonIcon {
   width: 20px;
   height: 20px;
 }
+
 .themeToggle {
   width: 38px;
   height: 38px;
 }
 
-.notifBtn {
-  position: relative;
-}
-
-.notifDot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 8px;
-  height: 8px;
-  background: #ef4444;
-  border-radius: 50%;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
-}
-
-/* Responsive tweaks */
-@media (min-width: 768px) {
-  .topBar {
-    padding-left: var(--space-xl);
-    padding-right: var(--space-xl);
-    gap: var(--space-md);
-    height: 64px;
-  }
-  .logoArea {
-    font-size: 1.25rem;
-  }
-  .logoIcon {
-    width: 28px;
-    height: 28px;
-  }
-}
-
-@media (max-width: 480px) {
-  .capsule {
-    width: calc(100% - 12px);
-    gap: var(--space-xs);
-    padding: 8px var(--space-sm);
-  }
-  /* Make search bar take reasonable width - better for all phone sizes */
-  .searchCluster {
-    flex: 1;
-    min-width: 0; /* Allow flex shrinking */
-    max-width: none; /* Remove constraint */
-  }
-  .logoIcon {
-    width: 22px;
-    height: 22px;
-  }
-  .brandText {
-    display: none;
-  }
-  .simBadge {
-    display: none;
-  }
-  .marketBadge {
-    display: none;
-  }
-  .cmdInput {
-    min-width: 100px;
-    height: 36px;
-    font-size: 0.86rem;
-    padding: 0 var(--space-lg) 0 var(--space-sm);
-  }
-  .iconButton,
-  .actionBtn {
-    width: 32px;
-    height: 32px;
-  }
-  .actionBtn {
-    padding: 0 8px;
-  }
-  .actionsCluster {
-    gap: 6px;
-    flex-shrink: 0; /* Prevent actions from shrinking */
-  }
-}
-
-/* Larger phones (iPhone 12/13/14 Pro Max, etc.) - optimize search bar width */
-@media (min-width: 390px) and (max-width: 768px) {
-  .searchCluster {
-    flex: 1;
-    max-width: 400px; /* Give more space on larger phones */
-  }
-}
-
-/* Medium phones (iPhone 12/13/14 regular) */
-@media (min-width: 375px) and (max-width: 389px) {
-  .searchCluster {
-    flex: 1;
-    max-width: 300px;
-  }
-}
-
-/* --- ADD THIS TO THE BOTTOM OF YOUR TopBar.module.css FILE --- */
-
-.stickyBackButton {
-  /* --- Positioning --- */
+/* Back Button - Fixed position like TopBar back button */
+.backButton {
   position: fixed;
-  top: 6px; /* Sit closer to the top bar capsule */
-  left: 8px; /* Tuck in slightly */
-  z-index: 101; /* Stay on top of the topBarWrapper */
-
-  /* --- Shape (Round Button) --- */
+  top: 6px; /* sit closer to the top bar */
+  left: 8px; /* tuck in slightly towards the capsule */
+  z-index: 101;
   width: 38px;
   height: 38px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  /* --- Glass Styles (Copied from .capsule) --- */
   background: rgba(255, 255, 255, 0.42);
   border: 1px solid rgba(255, 255, 255, 0.35);
   -webkit-backdrop-filter: blur(12px) saturate(170%);
   backdrop-filter: blur(12px) saturate(170%);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-
-  /* --- Icon Styles (Copied from .iconButton) --- */
   color: var(--gold-primary, #d4af37);
   cursor: pointer;
   transition: all var(--transition-smooth);
   outline: none;
 }
 
-.stickyBackButton:hover {
+.backButton:hover {
   background: linear-gradient(
     135deg,
     rgba(212, 175, 55, 0.1),
@@ -429,26 +292,100 @@
   box-shadow: 0 4px 12px var(--gold-primary-faded, rgba(212, 175, 55, 0.25));
 }
 
-:global(body.dark) .stickyBackButton {
+:global(body.dark) .backButton {
   background: rgba(10, 10, 10, 0.45);
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
 }
 
-:global(body.dark) .stickyBackButton:hover {
+:global(body.dark) .backButton:hover {
   background: var(--gold-primary-faded);
   color: var(--color-text);
 }
 
-.stickyBackButton:focus-visible {
+.backButton:focus-visible {
   color: var(--color-text);
   box-shadow: 0 0 0 3px var(--gold-primary-faded, rgba(212, 175, 55, 0.25)),
     0 0 12px var(--gold-primary-faded, rgba(212, 175, 55, 0.25));
 }
 
-/* Hide on mobile where there's no space */
+.backIcon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Actions cluster layout to avoid stretching */
+.actionsCluster {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+  .topBar {
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
+    gap: var(--space-md);
+    height: 64px;
+  }
+  .logoArea {
+    font-size: 1.25rem;
+  }
+}
+
 @media (max-width: 480px) {
-  .stickyBackButton {
+  .capsule {
+    width: calc(100% - 12px);
+    gap: var(--space-xs);
+    padding: 8px var(--space-sm);
+  }
+  .adminTitleCluster {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    padding: 6px 12px;
+  }
+  .adminTitle {
+    font-size: 0.9rem;
+  }
+  .adminIcon {
+    width: 16px;
+    height: 16px;
+  }
+  .brandText {
     display: none;
+  }
+  .simBadge {
+    display: none;
+  }
+  .marketBadge {
+    display: none;
+  }
+  .iconButton {
+    width: 32px;
+    height: 32px;
+  }
+  .actionsCluster {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .backButton {
+    display: none;
+  }
+}
+
+@media (min-width: 390px) and (max-width: 768px) {
+  .adminTitleCluster {
+    flex: 1;
+    max-width: 400px;
+  }
+}
+
+@media (min-width: 375px) and (max-width: 389px) {
+  .adminTitleCluster {
+    flex: 1;
+    max-width: 300px;
   }
 }

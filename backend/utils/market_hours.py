@@ -4,21 +4,24 @@ NSE Trading Hours: 9:15 AM - 3:30 PM IST (Monday-Friday)
 """
 from datetime import datetime, time
 import pytz
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Indian timezone
 IST = pytz.timezone('Asia/Kolkata')
 
-# NSE market hours
-MARKET_OPEN_TIME = time(9, 15)  # 9:15 AM
-MARKET_CLOSE_TIME = time(15, 30)  # 3:30 PM
+# Production market hours
+MARKET_OPEN_TIME = time(9, 15)
+MARKET_CLOSE_TIME = time(15, 30)
 
 # WebSocket should start a bit before market opens
-WEBSOCKET_START_TIME = time(9, 13)  # 9:13 AM (start 2 mins early)
-WEBSOCKET_END_TIME = time(15, 30)  # 3:30 PM (end at market close)
+WEBSOCKET_START_TIME = time(9, 13)
+WEBSOCKET_END_TIME = time(15, 30)
 
 # EOD update window (save closing prices) - 5 minutes window
-EOD_UPDATE_START = time(15, 31)  # 3:31 PM (1 min after close)
-EOD_UPDATE_END = time(15, 36)  # 3:36 PM (5 minutes to fill database)
+EOD_UPDATE_START = time(15, 31)
+EOD_UPDATE_END = time(15, 36)
 
 
 def get_current_ist_time():
@@ -45,6 +48,7 @@ def should_use_websocket():
     """
     Check if we should use WebSocket for live data
     Start at 9:13 AM, stop at 3:30 PM
+    Only on weekdays (Monday-Friday)
     """
     now = get_current_ist_time()
     
@@ -60,6 +64,7 @@ def is_eod_update_window():
     """
     Check if we're in the EOD (End of Day) update window
     3:31 PM - 3:36 PM: 5-minute window to save closing prices to database
+    Only on weekdays (Monday-Friday)
     """
     now = get_current_ist_time()
     
@@ -136,23 +141,24 @@ def time_until_market_open():
 
 
 if __name__ == "__main__":
-    # Test the utility
-    print("=" * 60)
-    print("MARKET HOURS UTILITY TEST")
-    print("=" * 60)
+    # Test the utility - only runs when executed directly
+    logging.basicConfig(level=logging.INFO)
+    logger.info("=" * 60)
+    logger.info("MARKET HOURS UTILITY TEST")
+    logger.info("=" * 60)
     
     status = get_market_status()
-    print(f"\n📅 Current Time (IST): {status['current_time_ist']}")
-    print(f"📊 Market Status: {status['message']}")
-    print(f"\n✅ Is Weekday: {status['is_weekday']}")
-    print(f"✅ Is Market Open: {status['is_market_open']}")
-    print(f"✅ Should Use WebSocket: {status['should_use_websocket']}")
-    print(f"✅ Is EOD Window: {status['is_eod_window']}")
+    logger.info(f"\n📅 Current Time (IST): {status['current_time_ist']}")
+    logger.info(f"📊 Market Status: {status['message']}")
+    logger.info(f"\n✅ Is Weekday: {status['is_weekday']}")
+    logger.info(f"✅ Is Market Open: {status['is_market_open']}")
+    logger.info(f"✅ Should Use WebSocket: {status['should_use_websocket']}")
+    logger.info(f"✅ Is EOD Window: {status['is_eod_window']}")
     
     if not status['is_market_open']:
         seconds = time_until_market_open()
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
-        print(f"\n⏰ Time until market opens: {hours}h {minutes}m")
+        logger.info(f"\n⏰ Time until market opens: {hours}h {minutes}m")
     
-    print("\n" + "=" * 60)
+    logger.info("\n" + "=" * 60)

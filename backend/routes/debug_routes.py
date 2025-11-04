@@ -10,6 +10,27 @@ import random
 debug_bp = Blueprint('debug_bp', __name__)
 
 
+@debug_bp.route('/price-cache-stats', methods=['GET'])
+def price_cache_stats():
+    """
+    Get statistics about the live price cache
+    Shows how many prices are cached and sample data
+    """
+    try:
+        from services.live_price_cache import get_cache_stats
+        stats = get_cache_stats()
+        return jsonify({
+            "status": "success",
+            "cache_stats": stats,
+            "message": "Live price cache statistics"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+
 @debug_bp.route('/test-socket', methods=['GET'])
 def test_socket():
     """

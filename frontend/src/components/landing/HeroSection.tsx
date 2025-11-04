@@ -85,20 +85,15 @@ export default function HeroSection() {
           localStorage.setItem("authToken", jwtToken);
           localStorage.setItem("userRole", role); // 👈 store role in localStorage
 
-          // ✅ redirect based on role
-          if (role === "admin") {
-            window.location.href = "/admin";
-          } else {
-            window.location.href = "/dashboard";
-          }
+          // ✅ All users (including admins) go to dashboard
+          window.location.href = "/dashboard";
         } else {
           alert("Login failed: No token received.");
         }
-
       } catch (error: unknown) {
         console.error("Login error:", error);
         if (axios.isAxiosError(error) && error.response?.status === 403) {
-          sessionStorage.setItem("accessToken" ,'added');
+          sessionStorage.setItem("accessToken", "added");
           console.log("🚫 Account blocked — redirecting to /block");
           window.location.href = "/block";
           return;

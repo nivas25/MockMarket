@@ -1,28 +1,33 @@
 "use client";
-import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
-import Display_Admin from "./display"
+import Display_Admin from "./display";
+import LoadingScreen from "../../components/common/LoadingScreen";
+
+type DecodedToken = {
+  role?: string;
+  sub?: { role?: string } | string;
+};
 
 export default function AdminPage() {
-    const [isAdmin, setIsAdmin] = useState(false);
+  if (typeof window === "undefined") return null;
 
-    useEffect(() => {
-        const token = localStorage.getItem("authToken");
-        if (!token) {
-            window.location.href = "/unauthorized_access";
-            return;
-        }
-        const decode = jwtDecode(token);
-        if (decode?.role === "admin" || decode?.sub?.role === "admin") {
-            setIsAdmin(true);
-        } else {
-            window.location.href = "/unauthorized_access";
-        }
-    }, []);
-
-    if (!isAdmin) return <p>Verifying admin access...</p>;
-
-    return (
-        <Display_Admin />
-    );
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      window.location.href = "/unauthorized_access";
+      return <LoadingScreen message="Verifying admin access" />;
+    }
+    const decoded = jwtDecode<DecodedToken>(token);
+    const role =
+      decoded?.role ||
+      (typeof decoded?.sub === "object" ? decoded?.sub?.role : undefined);
+    if (role === "admin") {
+      return <Display_Admin />;
+    }
+    window.location.href = "/unauthorized_access";
+    return <LoadingScreen message="Verifying admin access" />;
+  } catch {
+    window.location.href = "/unauthorized_access";
+    return <LoadingScreen message="Verifying admin access" />;
+  }
 }

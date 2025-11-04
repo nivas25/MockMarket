@@ -125,8 +125,10 @@ class _HotCacheRefresher:
 _refresher = _HotCacheRefresher(interval_seconds=10)
 
 def start_hot_cache_scheduler():
+    import logging
+    logger = logging.getLogger(__name__)
     try:
         _refresher.start()
-        print("🔥 Hot cache refresher started (every 10s)")
+        logger.info("Hot cache refresher started (every 10s)")
     except Exception as e:
-        print(f"[HOT CACHE] failed to start: {e}")
+        logger.error(f"Hot cache failed to start: {e}")

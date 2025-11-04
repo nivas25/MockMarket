@@ -16,19 +16,6 @@ from db_pool import get_connection
 
 load_dotenv()
 
-# Index configuration (same as fetch_indices.py)
-INDEX_MAPPING = {
-    "NIFTY 50": {"instrument_key": "NSE_INDEX|Nifty 50", "tag": "Benchmark"},  # Hardcoded
-    "BANKNIFTY": {"instrument_key": None, "tag": "Banking"},
-    "SENSEX": {"instrument_key": None, "tag": "Benchmark"},
-    "FINNIFTY": {"instrument_key": None, "tag": "Sectoral"},
-    "BANKEX": {"instrument_key": None, "tag": "Banking"},
-    "SENSEX50": {"instrument_key": None, "tag": "Broader Market"},
-    "NIFTY MIDCAP 50": {"instrument_key": None, "tag": "Broader Market"},
-    "NIFTY NEXT 50": {"instrument_key": None, "tag": "Broader Market"},
-    "INDIA VIX": {"instrument_key": None, "tag": "Volatility"}
-}
-
 # Global cache for live prices (in-memory during market hours)
 _live_cache = {}
 _cache_lock = threading.Lock()
@@ -36,15 +23,35 @@ _ws_thread = None
 _stop_event = threading.Event()
 
 
+def get_index_mapping():
+    """Get the INDEX_MAPPING from fetch_indices.py (shared reference)"""
+    from controller.fetch.index_fetch.fetch_indices import INDEX_MAPPING
+    return INDEX_MAPPING
+
+
 def resolve_instrument_keys():
     """Resolve instrument keys for indices from Upstox API"""
     try:
-        from controller.fetch.index_fetch.fetch_indices import _resolve_index_instrument_keys
+        from controller.fetch.index_fetch.fetch_indices import _resolve_index_instrument_keys, INDEX_MAPPING as RESOLVED_MAPPING
         _resolve_index_instrument_keys()
-        status_ok("Instrument keys resolved for indices")
+        
+        # Debug: Show what got resolved
+        resolved_count = sum(1 for info in RESOLVED_MAPPING.values() if info.get("instrument_key"))
+        status_ok(f"Instrument keys resolved for indices ({resolved_count}/{len(RESOLVED_MAPPING)} resolved)")
+        
+        # Show what was resolved
+        for idx_name, idx_info in RESOLVED_MAPPING.items():
+            key = idx_info.get("instrument_key")
+            if key:
+                print(f"  ✓ {idx_name}: {key}")
+            else:
+                print(f"  ✗ {idx_name}: NOT RESOLVED")
+        
         return True
     except Exception as e:
         status_err(f"Failed to resolve instrument keys: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -67,30 +74,42 @@ def fetch_live_quotes_polling():
             
             if quotes_data:
                 # Update cache and broadcast
+                INDEX_MAPPING = get_index_mapping()
+                
                 with _cache_lock:
+                    _live_cache.clear()  # Clear before updating to avoid stale data
+                    
                     for index_name, index_info in INDEX_MAPPING.items():
                         instrument_key = index_info["instrument_key"]
                         if not instrument_key:
                             continue
                         
-                        # Try to find quote
+                        # Try to find quote - check both formats (| and :)
                         quote = quotes_data.get(instrument_key)
+                        
                         if not quote:
-                            # Try alternate formats
+                            # Try alternate format with colon
                             alt_key = instrument_key.replace("|", ":")
+                            quote = quotes_data.get(alt_key)
+                        
+                        if not quote:
+                            # Try pipe format if original was colon
+                            alt_key = instrument_key.replace(":", "|")
                             quote = quotes_data.get(alt_key)
                         
                         if quote:
                             # Extract data
                             ohlc = quote.get("ohlc", {}) or {}
                             ltp = quote.get("last_price") or quote.get("lastPrice")
-                            prev_close = ohlc.get("close")
+                            net_change = quote.get("net_change")
                             
-                            if ltp and prev_close:
+                            # Calculate prev_close from: prev_close = ltp - net_change
+                            if ltp is not None and net_change is not None:
                                 try:
                                     ltp = float(ltp)
-                                    prev_close = float(prev_close)
-                                    change_value = ltp - prev_close
+                                    net_change = float(net_change)
+                                    prev_close = ltp - net_change
+                                    change_value = net_change  # Use Upstox's calculated change
                                     change_percent = (change_value / prev_close) * 100 if prev_close != 0 else 0
                                     
                                     # Update cache
@@ -107,7 +126,15 @@ def fetch_live_quotes_polling():
                                         "last_updated": datetime.now().isoformat()
                                     }
                                 except Exception as e:
-                                    console.log(f"Error processing {index_name}: {e}")
+                                    console.log(f"[ERROR] Error processing {index_name}: {e}")
+                                    import traceback
+                                    traceback.print_exc()
+                
+                # Log summary of what was cached
+                cached_names = list(_live_cache.keys())
+                if len(cached_names) < len(INDEX_MAPPING):
+                    missing = [name for name in INDEX_MAPPING.keys() if name not in cached_names]
+                    console.log(f"[WARN] Only {len(cached_names)}/{len(INDEX_MAPPING)} indices cached. Missing: {missing}")
                 
                 # Broadcast to all connected clients
                 if _live_cache:
@@ -140,6 +167,7 @@ def save_closing_prices():
             status_warn("No live data to save")
             return
         
+        INDEX_MAPPING = get_index_mapping()
         conn = get_connection()
         cursor = conn.cursor()
         

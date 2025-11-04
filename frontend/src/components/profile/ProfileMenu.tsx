@@ -8,7 +8,7 @@ import { ProfileIcon } from "../dashboard/Icons";
 import GlassConfirm from "./GlassConfirm";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
-import { url } from "../../config"
+import { url } from "../../config";
 
 type ProfileMenuProps = {
   user?: {
@@ -21,48 +21,60 @@ type ProfileMenuProps = {
   onLogout?: () => void;
 };
 
-const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) => {
+const ProfileMenu: React.FC<ProfileMenuProps> = ({
+  user,
+  onReset,
+  onLogout,
+}) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(
+    null
+  );
   const [balance, setBalance] = useState<number | null>(null);
 
   // --- Store user info (from props or decoded JWT) ---
   const [userData, setUserData] = useState(user);
   const [userId, setUserId] = useState<string | number | null>(null); // Track user_id separately
+  const [userRole, setUserRole] = useState<string | null>(null); // Track user role
 
   const fetchUserBalance = async (user_id: string | number) => {
     try {
       if (!user_id) {
         alert("User ID not found for fetching balance.");
         localStorage.removeItem("authToken");
-        window.location.href = '/';
+        window.location.href = "/";
         return;
       }
       console.log("Fetching balance for user_id:", user_id); // Debug log
-      const response = await axios.post(`${url}/fetch/user_balance`, { user_id }); // Send as JSON body
+      const response = await axios.post(`${url}/fetch/user_balance`, {
+        user_id,
+      }); // Send as JSON body
       console.log("Balance API response:", response.data); // Debug log
       if (response.data.status === "success") {
         setBalance(response.data.balance); // Update state
       } else {
         console.warn("Unexpected API status:", response.data.status);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching user balance:", err);
-      if (err.response?.status === 401 || err.response?.status === 403) {
+      if (
+        axios.isAxiosError(err) &&
+        (err.response?.status === 401 || err.response?.status === 403)
+      ) {
         alert("Session expired. Please log in again.");
         localStorage.removeItem("authToken");
-        window.location.href = '/';
+        window.location.href = "/";
       }
     } finally {
       console.log("Fetch user balance attempt finished.");
     }
   };
 
-  // First useEffect: Decode JWT and set userData + userId
+  // First useEffect: Decode JWT and set userData + userId + role
   useEffect(() => {
     let decodedUserId: string | number;
     try {
@@ -70,7 +82,16 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
       if (token) {
         console.log("Decoding JWT token to extract user data.");
         console.log("JWT token:", token);
-        const decoded: any = jwtDecode(token);
+        const decoded = jwtDecode<{
+          sub: {
+            user_id: string | number;
+            name?: string;
+            email?: string;
+            joinedAt?: string;
+            role?: string;
+          };
+          role?: string;
+        }>(token);
         decodedUserId = decoded.sub.user_id;
         setUserData({
           name: decoded.sub.name || "User",
@@ -78,6 +99,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
           joinedAt: decoded.sub.joinedAt || new Date().toISOString(),
         });
         setUserId(decodedUserId); // Set user_id after decoding
+        setUserRole(decoded.sub.role || decoded.role || null); // Extract role from JWT
       } else {
         console.log("No auth token found in storage.");
       }
@@ -90,7 +112,8 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
 
   // Second useEffect: Fetch balance once userId is available
   useEffect(() => {
-    if (userId !== null) { // Only fetch if userId is set (not initial null)
+    if (userId !== null) {
+      // Only fetch if userId is set (not initial null)
       fetchUserBalance(userId);
     }
   }, [userId]); // Depend on userId
@@ -111,7 +134,9 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
   // Use fetched balance or fallback
   const currentBalance = balance ?? userData?.balance ?? 0;
   const balanceLabel = useMemo(() => {
-    return `₹${currentBalance.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+    return `₹${currentBalance.toLocaleString("en-IN", {
+      maximumFractionDigits: 2,
+    })}`;
   }, [currentBalance]);
 
   const computePosition = () => {
@@ -185,10 +210,33 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
             }}
           >
             <div className={styles.headerRow}>
-              <div>
+              <div className={styles.userInfo}>
                 <div className={styles.name}>{name}</div>
                 <div className={styles.email}>{email}</div>
               </div>
+              {userRole === "admin" && (
+                <button
+                  className={styles.adminBadgeButton}
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    router.push("/admin");
+                  }}
+                  title="Go to Admin Panel"
+                >
+                  <svg
+                    className={styles.adminBadgeIcon}
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
+                    <path d="M9 12l2 2 4-4" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             <div className={styles.infoList}>
@@ -198,7 +246,8 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Current Balance</span>
-                <span className={styles.infoValue}>{balanceLabel}</span> {/* Use formatted label */}
+                <span className={styles.infoValue}>{balanceLabel}</span>{" "}
+                {/* Use formatted label */}
               </div>
             </div>
 
@@ -220,7 +269,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
                     try {
                       localStorage.removeItem("authToken");
                       sessionStorage.removeItem("authToken");
-                    } catch { }
+                    } catch {}
                     router.push("/");
                   }
                 }}
@@ -253,7 +302,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ user, onReset, onLogout }) =>
             try {
               localStorage.clear();
               sessionStorage.clear();
-            } catch { }
+            } catch {}
             window.location.reload();
           }
         }}

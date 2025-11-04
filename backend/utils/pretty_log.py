@@ -5,9 +5,11 @@ from rich.rule import Rule
 from rich.text import Text
 from rich import box
 import datetime as _dt
+import logging
 
 # Global console for the backend
 console = Console(highlight=False)
+logger = logging.getLogger(__name__)
 
 
 def banner(title: str, subtitle: str | None = None, style: str = "bold cyan"):
@@ -19,15 +21,22 @@ def banner(title: str, subtitle: str | None = None, style: str = "bold cyan"):
 
 
 def status_ok(msg: str):
-    console.print(f"[bold green]✓[/] {msg}")
+    """Log success message - removes emojis for clean logs"""
+    # Remove emojis from the message for logging
+    clean_msg = msg.replace("📅", "").replace("✓", "").strip()
+    logger.info(clean_msg)
 
 
 def status_warn(msg: str):
-    console.print(f"[bold yellow]![/] {msg}")
+    """Log warning message"""
+    clean_msg = msg.replace("⚠️", "").replace("!", "").strip()
+    logger.warning(clean_msg)
 
 
 def status_err(msg: str):
-    console.print(f"[bold red]✗[/] {msg}")
+    """Log error message"""
+    clean_msg = msg.replace("❌", "").replace("✗", "").strip()
+    logger.error(clean_msg)
 
 
 def rule(title: str | None = None):

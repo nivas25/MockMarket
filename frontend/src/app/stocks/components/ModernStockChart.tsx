@@ -63,6 +63,7 @@ export default function ModernStockChart({ symbol, currentPrice }: Props) {
     data: candles,
     isLoading,
     error,
+    mutate,
   } = useSWR<Candle[]>(`${symbol.toUpperCase()}|${backend}|${limit}`, fetcher, {
     revalidateOnFocus: false,
     refreshInterval: interval === "1D" ? 10000 : 0,
@@ -70,7 +71,7 @@ export default function ModernStockChart({ symbol, currentPrice }: Props) {
 
   // Initialize chart (runs once on mount)
   useEffect(() => {
-    if (!chartContainerRef.current || !currentPrice) return;
+    if (!chartContainerRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
       layout: {
@@ -92,15 +93,7 @@ export default function ModernStockChart({ symbol, currentPrice }: Props) {
       wickDownColor: "#ef4444",
     });
 
-    const isDark = theme === "dark";
-    priceLineRef.current = candlestickSeries.createPriceLine({
-      price: currentPrice,
-      color: isDark ? secondaryGold : primaryGold, // Use hardcoded color
-      lineWidth: 2,
-      lineStyle: LineStyle.Dashed,
-      axisLabelVisible: true,
-      title: "Current",
-    });
+    // Note: Price line is created later when we have a valid currentPrice
 
     chartRef.current = chart;
     candlestickSeriesRef.current = candlestickSeries;
@@ -121,15 +114,32 @@ export default function ModernStockChart({ symbol, currentPrice }: Props) {
       window.removeEventListener("resize", handleResize);
       chart.remove();
     };
-  }, []); // Runs only once // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // Runs only once
 
-  // Update the price line when price changes
+  // Update or create the price line when price changes
   useEffect(() => {
-    if (!priceLineRef.current || !currentPrice) return;
-    priceLineRef.current.applyOptions({
-      price: currentPrice,
-    });
-  }, [currentPrice]);
+    const hasValidPrice =
+      typeof currentPrice === "number" &&
+      !Number.isNaN(currentPrice) &&
+      currentPrice > 0;
+
+    if (!hasValidPrice) return;
+
+    // If price line exists, update it; otherwise, create it now
+    if (priceLineRef.current) {
+      priceLineRef.current.applyOptions({ price: currentPrice });
+    } else if (candlestickSeriesRef.current) {
+      const isDark = theme === "dark";
+      priceLineRef.current = candlestickSeriesRef.current.createPriceLine({
+        price: currentPrice,
+        color: isDark ? secondaryGold : primaryGold,
+        lineWidth: 2,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "Current",
+      });
+    }
+  }, [currentPrice, theme]);
 
   // Apply theme colors
   useEffect(() => {
@@ -197,10 +207,32 @@ export default function ModernStockChart({ symbol, currentPrice }: Props) {
       if (chartRef.current) {
         chartRef.current.timeScale().fitContent();
       }
+
+      // If we don't have a currentPrice price line, show last close as a helpful reference
+      const hasValidPrice =
+        typeof currentPrice === "number" &&
+        !Number.isNaN(currentPrice) &&
+        currentPrice > 0;
+      if (
+        !priceLineRef.current &&
+        !hasValidPrice &&
+        candlestickSeriesRef.current
+      ) {
+        const last = chartData[chartData.length - 1];
+        priceLineRef.current = candlestickSeriesRef.current.createPriceLine({
+          price: last.close,
+          // Use a stable default; theme effect will recolor it
+          color: primaryGold,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: "Last",
+        });
+      }
     } catch (error) {
       console.error("❌ Error setting chart data:", error);
     }
-  }, [candles]);
+  }, [candles, currentPrice]);
 
   return (
     <div className={styles.chartContainer}>
@@ -229,6 +261,13 @@ export default function ModernStockChart({ symbol, currentPrice }: Props) {
       {error && !isLoading && (
         <div className={styles.errorMessage}>
           <span>⚠️ Failed to load chart</span>
+          <button
+            className={styles.intervalBtn}
+            style={{ marginLeft: 12 }}
+            onClick={() => mutate()}
+          >
+            Retry
+          </button>
         </div>
       )}
       {!isLoading && candles && candles.length === 0 && (
@@ -241,14 +280,7 @@ export default function ModernStockChart({ symbol, currentPrice }: Props) {
       )}
 
       {/* Chart */}
-      <div
-        ref={chartContainerRef}
-        className={styles.chart}
-        style={{
-          visibility:
-            candles && candles.length > 0 && !isLoading ? "visible" : "hidden",
-        }}
-      />
+      <div ref={chartContainerRef} className={styles.chart} />
     </div>
   );
 }

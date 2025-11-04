@@ -184,11 +184,20 @@ def fetch_all_stock_prices(save_to_db=False):
                     ))
                     updates_for_ws.append({
                         "symbol": symbols[idx],
+                        "stock_id": stock_ids[idx],  # Add stock_id for cache
                         "ltp": price_data['ltp'],
                         "as_of": price_data['as_of'].isoformat(),
                     })
 
                 batch_inserted = len(insert_data)
+                
+                # Update live price cache (for order execution)
+                if updates_for_ws:
+                    try:
+                        from services.live_price_cache import update_price_cache_batch
+                        update_price_cache_batch(updates_for_ws)
+                    except Exception as cache_err:
+                        print(f"[WARN] Failed to update price cache: {cache_err}")
                 
                 # Save to database only if save_to_db=True (EOD window)
                 if save_to_db and insert_data:

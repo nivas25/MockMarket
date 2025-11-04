@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 start_time = time.time()
 
 from dotenv import load_dotenv
@@ -7,6 +8,11 @@ from flask import Flask, jsonify, g, request
 from flask_cors import CORS
 from flask_compress import Compress
 from services.websocket_manager import init_socketio, socketio
+from utils.logging_config import setup_logging
+
+# Initialize logging first
+setup_logging()
+logger = logging.getLogger(__name__)
 
 # Lazy imports - only import when needed
 def get_index_scheduler():
@@ -65,9 +71,9 @@ def _perf_timing_end(response):
         t0 = getattr(g, '_t0', None)
         if t0 is not None:
             dt_ms = (time.perf_counter() - t0) * 1000.0
-            # Log only if slow (>300ms) to avoid noisy logs
-            if dt_ms > 300:
-                print(f"[PERF] {int(dt_ms)}ms { _request.method } {_request.path} -> {response.status_code}")
+            # Log only if slow (>500ms) to avoid noisy logs
+            if dt_ms > 500:
+                logger.warning(f"Slow request: {int(dt_ms)}ms {_request.method} {_request.path} -> {response.status_code}")
     except Exception:
         pass
     return response
@@ -95,7 +101,7 @@ app.register_blueprint(debug_bp, url_prefix='/debug')
 # Initialize the shared SocketIO instance with the Flask app
 init_socketio(app)
 
-print(f"✅ Flask app initialized in {time.time() - start_time:.2f}s")
+logger.info(f"Flask app initialized in {time.time() - start_time:.2f}s")
 
 if __name__ == '__main__':
     # Initialize database connection pool BEFORE starting server
@@ -104,8 +110,8 @@ if __name__ == '__main__':
         from db_pool import initialize_pool
         initialize_pool()
     except Exception as e:
-        print(f"❌ Failed to initialize DB pool: {e}")
-        print("⚠️  Server will continue but first request will be slow")
+        logger.error(f"Failed to initialize DB pool: {e}")
+        logger.warning("Server will continue but first request will be slow")
     
     # Optionally start the in-process index fetcher so logs appear here
     enable_sched = (os.getenv("ENABLE_INDEX_SCHEDULER", "false").lower() in ("1", "true", "yes", "on"))
@@ -188,9 +194,9 @@ def _perf_end(resp):
             dt_ms = (time.perf_counter() - t0) * 1000.0
             # Server-Timing header helps in browser DevTools
             resp.headers["Server-Timing"] = f"app;dur={dt_ms:.1f}"
-            threshold = float(os.getenv("PERF_LOG_THRESHOLD_MS", "300"))
+            threshold = float(os.getenv("PERF_LOG_THRESHOLD_MS", "500"))
             if dt_ms > threshold:
-                print(f"[PERF] {dt_ms:.0f}ms {request.method} {request.path} -> {resp.status_code}")
+                logger.warning(f"Slow request: {dt_ms:.0f}ms {request.method} {request.path} -> {resp.status_code}")
     except Exception:
         pass
     return resp

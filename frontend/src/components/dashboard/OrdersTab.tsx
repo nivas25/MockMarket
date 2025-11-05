@@ -1,6 +1,9 @@
 import styles from "./OrdersTab.module.css";
 import type { Order } from "../../app/dashboard/types";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { jwtDecode } from "jwt-decode";
+import { url } from '../../config.js';
+import axios from 'axios';
 
 type OrdersTabProps = {
   orders: Order[];
@@ -8,29 +11,204 @@ type OrdersTabProps = {
 
 export function OrdersTab({ orders }: OrdersTabProps) {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<
-    "All" | "Pending" | "Completed" | "Cancelled"
-  >("All");
+  const [localOrders, setLocalOrders] = useState<Order[]>(orders || []);
+  const [loading, setLoading] = useState(true);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+
+
+
+  const fetchOrderDetails = async () => {
+    console.log("Fetching order details");
+    const token = localStorage.getItem("authToken");
+    console.log("Token exists:", !!token);
+
+    if (!token) {
+      console.log("No token, redirecting");
+      localStorage.removeItem("authToken");
+      window.location.href = "/";
+      return;
+    }
+
+    let user_id: number | undefined;
+
+    try {
+      const decode = jwtDecode(token) as any;
+      console.log("Decoded token:", decode);
+      user_id = decode?.sub?.user_id;
+      console.log("User ID:", user_id);
+
+      if (!user_id) {
+        console.log("No user_id, redirecting");
+        localStorage.removeItem("authToken");
+        window.location.href = "/";
+        return;
+      }
+    } catch (decodeError) {
+      console.error("JWT decode error:", decodeError);
+      localStorage.removeItem("authToken");
+      window.location.href = "/";
+      return;
+    }
+
+    // ✅ Only start loading & API request **after** user_id confirmed
+    setLoading(true);
+    try {
+      console.log("Making API request to:", `${url}/fetch/api/orders`);
+      console.log("Request body:", { user_id });
+
+      const response = await axios.post(`${url}/fetch/api/orders`, { user_id });
+      console.log("API Response:", response.data);
+
+      const mappedOrders: Order[] = (response.data.orders || []).map((o: any) => ({
+        name: o.stock_name,
+        type: o.trade_type,
+        qty: o.quantity,
+        status: o.order_type,
+        order_id: o.order_id,
+        price: 0,
+      }));
+
+      console.log("Mapped orders:", mappedOrders);
+      setLocalOrders(mappedOrders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log("useEffect triggered, calling fetchOrderDetails");
+
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      fetchOrderDetails();
+    }
+
+    // 👉 Refetch when user comes back to this tab/page
+    const handleFocus = () => {
+      console.log("Window focused — refetching orders");
+      fetchOrderDetails();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
+
+
+  console.log("Component rendered, localOrders:", localOrders);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (orders || []).filter((o) => {
-      const byStatus = status === "All" ? true : o.status === status;
+    const result = (localOrders || []).filter((o) => {
+      const byStatus = o.status === "pending";
       const byQuery = !q || o.name.toLowerCase().includes(q);
       return byStatus && byQuery;
     });
-  }, [orders, query, status]);
+    console.log("Filtered orders:", result);
+    return result;
+  }, [localOrders, query]);
 
-  const counts = useMemo(() => {
-    const c = {
-      All: orders.length,
-      Pending: 0,
-      Completed: 0,
-      Cancelled: 0,
-    } as Record<string, number>;
-    for (const o of orders) c[o.status]++;
-    return c;
-  }, [orders]);
+  const handleConfirm = async (order: Order) => {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+    setConfirming(order.order_id);
+    try {
+      let user_id: number | undefined;
+      try {
+        const decode = jwtDecode(token) as any;
+        user_id = decode?.sub?.user_id;
+      } catch (decodeError) {
+        console.error("JWT decode error:", decodeError);
+        return;
+      }
+      if (!user_id) return;
+
+      console.log("Confirming order:", order.order_id);
+      const requestBody = {
+        stock_name: order.name,
+        intended_price: order.price || 0,
+        quantity: order.qty,
+        trade_type: order.type,
+        user_id: user_id,
+        confirm_code: "proceedok"
+      };
+      console.log("Request body for re_submit:", requestBody);
+      const response = await axios.post(`${url}/re_submit/order`, requestBody);
+      console.log("Re-submit response:", response.data);
+
+      if (response.data.status === "error") {
+        setErrorMessage(response.data.message);
+        setShowErrorPopup(true);
+        setTimeout(() => {
+          setShowErrorPopup(false);
+          setErrorMessage("");
+        }, 3000);
+      } else {
+        setShowConfirmPopup(true);
+        setTimeout(() => setShowConfirmPopup(false), 3000);
+        fetchOrderDetails();
+      }
+    } catch (error: any) {
+      console.error('Confirm error:', error);
+      const errorMsg = error.response?.data?.message || 'An error occurred during confirmation.';
+      setErrorMessage(errorMsg);
+      setShowErrorPopup(true);
+      setTimeout(() => {
+        setShowErrorPopup(false);
+        setErrorMessage("");
+      }, 3000);
+    } finally {
+      setConfirming(null);
+    }
+  };
+
+  const handleRemove = async (order: Order) => {
+    console.log("removing");
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    setRemoving(order.order_id);
+    try {
+      console.log("Removing order:", order.order_id);
+      await axios.delete(`${url}/order/delete`, {
+        data: { order_id: order.order_id },
+        headers: { "Content-Type": "application/json" }
+      });
+
+      setShowSuccessPopup(true);
+      setTimeout(() => setShowSuccessPopup(false), 3000);
+
+      fetchOrderDetails();
+    } catch (error) {
+      console.error("Remove error:", error);
+    } finally {
+      setRemoving(null);
+    }
+  };
+
+
+  if (loading) {
+    console.log("Showing loading state");
+    return (
+      <section className={styles.ordersWrap}>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          Loading orders...
+        </div>
+      </section>
+    );
+  }
+
 
   return (
     <section className={styles.ordersWrap}>
@@ -65,57 +243,30 @@ export function OrdersTab({ orders }: OrdersTabProps) {
         </div>
       </header>
 
-      <div className={styles.filterRow}>
-        {(["All", "Pending", "Completed", "Cancelled"] as const).map((s) => (
-          <button
-            key={s}
-            className={`${styles.filterChip} ${
-              status === s ? styles.filterChipActive : ""
-            }`}
-            onClick={() => setStatus(s)}
-          >
-            <span className={styles.dot} data-kind={s.toLowerCase()} />
-            {s}
-            <span className={styles.count}>{counts[s]}</span>
-          </button>
-        ))}
-      </div>
-
       {/* Desktop table */}
       <div className={styles.tableContainer}>
         {filtered.length ? (
           <table className={styles.table}>
             <thead className={styles.thead}>
               <tr className={styles.tr}>
-                <th>Symbol</th>
-                <th>Side</th>
-                <th className={styles.tdRight}>Qty</th>
-                <th className={styles.tdRight}>Price</th>
-                <th className={styles.tdRight}>Value</th>
-                <th>Status</th>
+                <th>Stock Name</th>
+                <th>Trade Type</th>
+                <th className={styles.tdRight}>Quantity</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody className={styles.tbody}>
               {filtered.map((order, idx) => {
-                const value =
-                  Number(order.price?.toString().replace(/[^0-9.]/g, "")) *
-                    order.qty || 0;
-                const isBuy = order.type === "BUY";
-                const statusClass =
-                  order.status === "Completed"
-                    ? styles.statusCompleted
-                    : order.status === "Pending"
-                    ? styles.statusPending
-                    : styles.statusCancelled;
+                const isBuy = order.type === "Buy";
+                const isConfirmingThis = confirming === order.order_id;
+                const isRemovingThis = removing === order.order_id;
                 return (
                   <tr key={`${order.name}-t-${idx}`} className={styles.tr}>
                     <td>{order.name}</td>
                     <td>
                       <span
-                        className={`${styles.badge} ${
-                          isBuy ? styles.sideBuy : styles.sideSell
-                        }`}
+                        className={`${styles.badge} ${isBuy ? styles.sideBuy : styles.sideSell
+                          }`}
                       >
                         {order.type}
                       </span>
@@ -123,46 +274,23 @@ export function OrdersTab({ orders }: OrdersTabProps) {
                     <td className={`${styles.tdRight} ${styles.mono}`}>
                       {order.qty}
                     </td>
-                    <td className={`${styles.tdRight} ${styles.mono}`}>
-                      ₹{order.price}
-                    </td>
-                    <td className={`${styles.tdRight} ${styles.mono}`}>
-                      ₹{formatINR(value)}
-                    </td>
                     <td>
-                      <span className={`${styles.badge} ${statusClass}`}>
-                        {order.status}
+                      <span className={styles.tableActions}>
+                        <button
+                          className={`${styles.actionBtn} ${styles.primaryBtn}`}
+                          onClick={() => handleConfirm(order)}
+                          disabled={isConfirmingThis}
+                        >
+                          {isConfirmingThis ? "Please wait..." : "Confirm"}
+                        </button>
+                        <button
+                          className={`${styles.actionBtn} ${styles.dangerBtn}`}
+                          onClick={() => handleRemove(order)}
+                          disabled={isRemovingThis}
+                        >
+                          {isRemovingThis ? "Please wait..." : "Remove"}
+                        </button>
                       </span>
-                    </td>
-                    <td>
-                      {order.status === "Pending" ? (
-                        <span className={styles.tableActions}>
-                          <button
-                            className={`${styles.actionBtn} ${styles.ghostBtn}`}
-                          >
-                            Modify
-                          </button>
-                          <button
-                            className={`${styles.actionBtn} ${styles.dangerBtn}`}
-                          >
-                            Cancel
-                          </button>
-                        </span>
-                      ) : order.status === "Completed" ? (
-                        <span className={styles.tableActions}>
-                          <button
-                            className={`${styles.actionBtn} ${styles.primaryBtn}`}
-                          >
-                            Reorder
-                          </button>
-                        </span>
-                      ) : (
-                        <span className={styles.tableActions}>
-                          <button className={styles.actionBtn} disabled>
-                            —
-                          </button>
-                        </span>
-                      )}
                     </td>
                   </tr>
                 );
@@ -196,31 +324,23 @@ export function OrdersTab({ orders }: OrdersTabProps) {
       <div className={styles.listWrap}>
         {filtered.length ? (
           filtered.map((order, idx) => {
-            const value =
-              Number(order.price?.toString().replace(/[^0-9.]/g, "")) *
-                order.qty || 0;
-            const isBuy = order.type === "BUY";
-            const statusClass =
-              order.status === "Completed"
-                ? styles.statusCompleted
-                : order.status === "Pending"
-                ? styles.statusPending
-                : styles.statusCancelled;
+            const isBuy = order.type === "Buy";
+            const isConfirmingThis = confirming === order.order_id;
+            const isRemovingThis = removing === order.order_id;
             return (
               <article key={`${order.name}-${idx}`} className={styles.card}>
                 <div className={styles.cardHeader}>
                   <div className={styles.tickerBlock}>
                     <div
-                      className={`${styles.sidePill} ${
-                        isBuy ? styles.buy : styles.sell
-                      }`}
+                      className={`${styles.sidePill} ${isBuy ? styles.buy : styles.sell
+                        }`}
                     >
                       {order.type}
                     </div>
                     <div className={styles.tickerName}>{order.name}</div>
                   </div>
-                  <div className={`${styles.statusPill} ${statusClass}`}>
-                    {order.status}
+                  <div className={`${styles.statusPill} ${styles.statusPending}`}>
+                    Pending
                   </div>
                 </div>
                 <div className={styles.cardBody}>
@@ -228,53 +348,24 @@ export function OrdersTab({ orders }: OrdersTabProps) {
                     <div className={styles.metricLabel}>Quantity</div>
                     <div className={styles.metricValue}>{order.qty}</div>
                   </div>
-                  <div className={styles.metricCell}>
-                    <div className={styles.metricLabel}>Price</div>
-                    <div className={styles.metricValue}>₹{order.price}</div>
-                  </div>
-                  <div className={styles.metricCell}>
-                    <div className={styles.metricLabel}>Order value</div>
-                    <div className={styles.metricValue}>
-                      ₹{formatINR(value)}
-                    </div>
-                  </div>
                 </div>
-                {order.status === "Pending" && (
-                  <div className={styles.progressRow}>
-                    <div className={styles.progressTrack}>
-                      <div
-                        className={styles.progressBar}
-                        style={{ width: "35%" }}
-                      />
-                    </div>
-                    <div className={styles.progressText}>Pending • 35%</div>
-                  </div>
-                )}
                 <div className={styles.cardActions}>
-                  {order.status === "Pending" ? (
-                    <>
-                      <button
-                        className={`${styles.actionBtn} ${styles.ghostBtn}`}
-                      >
-                        Modify
-                      </button>
-                      <button
-                        className={`${styles.actionBtn} ${styles.dangerBtn}`}
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : order.status === "Completed" ? (
+                  <>
                     <button
                       className={`${styles.actionBtn} ${styles.primaryBtn}`}
+                      onClick={() => handleConfirm(order)}
+                      disabled={isConfirmingThis}
                     >
-                      Reorder
+                      {isConfirmingThis ? "Please wait..." : "Confirm"}
                     </button>
-                  ) : (
-                    <button className={`${styles.actionBtn}`} disabled>
-                      —
+                    <button
+                      className={`${styles.actionBtn} ${styles.dangerBtn}`}
+                      onClick={() => handleRemove(order)}
+                      disabled={isRemovingThis}
+                    >
+                      {isRemovingThis ? "Please wait..." : "Remove"}
                     </button>
-                  )}
+                  </>
                 </div>
               </article>
             );
@@ -301,6 +392,70 @@ export function OrdersTab({ orders }: OrdersTabProps) {
           </div>
         )}
       </div>
+
+      {/* ✅ Success Popup Menu */}
+      {showSuccessPopup && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: '4px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            zIndex: 1000,
+            fontSize: '14px',
+            fontWeight: '500',
+          }}
+        >
+          Order has been removed
+        </div>
+      )}
+      {showConfirmPopup && (
+        <div 
+          style={{
+            position: 'fixed',
+            marginTop:'40px',
+            top: '20px',
+            right: '20px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: '4px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            zIndex: 1000,
+            fontSize: '14px',
+            fontWeight: '500',
+          }}
+        >
+          Order has been confirmed
+        </div>
+      )}
+      {showErrorPopup && errorMessage && (
+        <div 
+          style={{
+            
+            position: 'fixed',
+            marginTop:'40px',
+            top: '20px',
+            right: '20px',
+            backgroundColor: '#f44336',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: '4px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            zIndex: 1000,
+            fontSize: '14px',
+            fontWeight: '500',
+            maxWidth: '300px',
+            wordWrap: 'break-word',
+          }}
+        >
+          {errorMessage}
+        </div>
+      )}
     </section>
   );
 }

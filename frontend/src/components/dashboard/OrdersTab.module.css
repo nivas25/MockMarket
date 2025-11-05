@@ -16,6 +16,7 @@
   border: 1px solid var(--mm-border);
   border-radius: 16px;
   padding: 14px;
+  width:150%;
 }
 
 .headerRow {
@@ -109,38 +110,39 @@
 
 .listWrap {
   display: grid;
-  gap: 10px;
+  gap: 16px; /* Increased from 10px for more space between cards */
 }
 
 .card {
   border: 1px solid var(--mm-border);
   background: linear-gradient(180deg, var(--mm-elev), transparent);
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 16px; /* Increased from 12px for softer, larger look */
+  padding: 20px; /* Increased from 12px for bigger overall card size */
+  min-height: 140px; /* NEW: Ensures consistent taller cards */
 }
 
 .cardHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px; /* Increased from 8px */
 }
 
 .tickerBlock {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px; /* Increased from 8px */
 }
 
 .sidePill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 24px;
-  min-width: 48px;
-  padding: 0 10px;
+  height: 28px; /* Increased from 24px */
+  min-width: 56px; /* Increased from 48px */
+  padding: 0 12px; /* Increased from 0 10px */
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px; /* Increased from 12px */
   font-weight: 800;
   border: 1px solid var(--mm-border);
 }
@@ -164,10 +166,10 @@
 .statusPill {
   display: inline-flex;
   align-items: center;
-  height: 26px;
-  padding: 0 12px;
+  height: 28px; /* Increased from 26px */
+  padding: 0 14px; /* Increased from 0 12px */
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px; /* Increased from 12px */
   font-weight: 800;
   border: 1px solid var(--mm-border);
 }
@@ -189,21 +191,21 @@
 }
 
 .cardBody {
-  margin-top: 10px;
+  margin-top: 16px; /* Increased from 10px */
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 16px; /* Increased from 10px */
 }
 
 .metricCell {
   border: 1px solid var(--mm-border);
   background: var(--mm-elev);
-  border-radius: 10px;
-  padding: 8px 10px;
+  border-radius: 12px; /* Increased from 10px */
+  padding: 12px 16px; /* Increased from 8px 10px */
 }
 
 .metricLabel {
-  font-size: 11px;
+  font-size: 12px; /* Increased from 11px */
   opacity: 0.7;
 }
 .metricValue {
@@ -213,13 +215,13 @@
 .progressRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px; /* Increased from 10px */
+  margin-top: 12px; /* Increased from 10px */
 }
 
 .progressTrack {
   flex: 1;
-  height: 8px;
+  height: 10px; /* Increased from 8px */
   border-radius: 999px;
   background: var(--mm-elev);
   border: 1px solid var(--mm-border);
@@ -237,20 +239,20 @@
 }
 
 .progressText {
-  font-size: 12px;
+  font-size: 13px; /* Increased from 12px */
   opacity: 0.8;
 }
 
 .cardActions {
   display: flex;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 12px; /* Increased from 8px */
+  margin-top: 16px; /* Increased from 10px */
 }
 
 .actionBtn {
-  height: 32px;
-  border-radius: 8px;
-  padding: 0 12px;
+  height: 36px; /* Increased from 32px */
+  border-radius: 10px; /* Increased from 8px */
+  padding: 0 16px; /* Increased from 0 12px */
   border: 1px solid var(--mm-border);
   background: var(--mm-elev);
   color: inherit;

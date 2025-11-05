@@ -37,6 +37,10 @@ from routes.fetch_holdings.holdings_routes import holdings_bp
 from routes.fetch_users.fetch_users_routes import fetch_users_bp
 from routes.acess_routes.block_unblock_routes import manage_user_access_bp
 from routes.watchlist_routes.watchlist_routes import watchlist_bp
+from routes.order_routes.get_order_routes import get_orders_bp
+from routes.order_routes.delete_order_routes import delete_order_bp
+from routes.order_routes.re_order_routes import re_submit_trade_bp
+from routes.watchlist_routes.get_watchlist_routes import get_watchlist_bp
 from flask_jwt_extended import JWTManager
 from routes.debug_routes import debug_bp
 
@@ -55,6 +59,7 @@ jwt = JWTManager(app)
 
 # Enable CORS for auth routes
 CORS(app)
+
 
 # Enable gzip compression to reduce payload sizes and speed up responses
 Compress(app)
@@ -96,6 +101,10 @@ app.register_blueprint(holdings_bp, url_prefix='/holdings')
 app.register_blueprint(fetch_users_bp,url_prefix='/admin')
 app.register_blueprint(manage_user_access_bp,url_prefix='/user')
 app.register_blueprint(watchlist_bp, url_prefix='/watchlist')
+app.register_blueprint(get_orders_bp, url_prefix='/fetch')
+app.register_blueprint(delete_order_bp, url_prefix='/order')
+app.register_blueprint(re_submit_trade_bp, url_prefix='/re_submit')
+app.register_blueprint(get_watchlist_bp, url_prefix="/fetch")
 app.register_blueprint(health_bp)
 app.register_blueprint(metrics_bp)
 app.register_blueprint(debug_bp, url_prefix='/debug')

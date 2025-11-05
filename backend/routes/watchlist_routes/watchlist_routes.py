@@ -8,37 +8,11 @@ from controller.watchlist.watchlist_controller import (
     check_stock_in_watchlist,
     remove_stock_from_watchlist
 )
-import jwt
 import os
 
 watchlist_bp = Blueprint('watchlist_bp', __name__)
 
 # JWT secret (should match your auth setup - use JWT_SECRET_KEY)
-JWT_SECRET = os.getenv('JWT_SECRET_KEY', 'your-secret-key')
-
-
-def get_user_id_from_token():
-    """Extract user_id from JWT token in Authorization header"""
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        print("[watchlist_routes] No Authorization header or invalid format")
-        return None
-    
-    token = auth_header.split(' ')[1]
-    try:
-        decoded = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-        user_id = decoded.get('sub', {}).get('user_id')
-        print(f"[watchlist_routes] ✅ Token decoded successfully, user_id: {user_id}")
-        return user_id
-    except jwt.ExpiredSignatureError:
-        print("[watchlist_routes] ❌ Token expired")
-        return None
-    except jwt.InvalidTokenError as e:
-        print(f"[watchlist_routes] ❌ Invalid token: {e}")
-        return None
-    except Exception as e:
-        print(f"[watchlist_routes] ❌ Error decoding token: {e}")
-        return None
 
 
 @watchlist_bp.route('/add-stock', methods=['POST'])

@@ -76,9 +76,8 @@ export function HoldingDetailModal({
             <div className={styles.priceRow}>
               <div className={styles.ltp}>₹{formatINR(holding.ltp)}</div>
               <div
-                className={`${styles.priceChange} ${
-                  holding.dayChange >= 0 ? styles.profit : styles.loss
-                }`}
+                className={`${styles.priceChange} ${holding.dayChange >= 0 ? styles.profit : styles.loss
+                  }`}
               >
                 {holding.dayChange >= 0 ? "+" : "-"}₹
                 {formatINR(Math.abs(holding.dayChange))} (
@@ -117,9 +116,8 @@ export function HoldingDetailModal({
                 <div className={styles.tickerRow}>
                   <div className={styles.ticker}>{holding.name}</div>
                   <div
-                    className={`${styles.trendPill} ${
-                      pos ? styles.up : styles.down
-                    }`}
+                    className={`${styles.trendPill} ${pos ? styles.up : styles.down
+                      }`}
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -245,9 +243,8 @@ export function HoldingDetailModal({
                       return (
                         <>
                           <div
-                            className={`${styles.chip} ${
-                              perShare >= 0 ? styles.chipUp : styles.chipDown
-                            }`}
+                            className={`${styles.chip} ${perShare >= 0 ? styles.chipUp : styles.chipDown
+                              }`}
                           >
                             <span
                               className={styles.chipIcon}
@@ -365,102 +362,6 @@ export function HoldingDetailModal({
           })()}
 
           {/* Trade form */}
-          <div className={styles.formCard}>
-            <div className={styles.actionToggle}>
-              <button
-                className={`${styles.toggleBtn} ${
-                  side === "BUY" ? styles.toggleActiveBuy : ""
-                }`}
-                onClick={() => setSide("BUY")}
-              >
-                Buy
-              </button>
-              <button
-                className={`${styles.toggleBtn} ${
-                  side === "SELL" ? styles.toggleActiveSell : ""
-                }`}
-                onClick={() => setSide("SELL")}
-              >
-                Sell
-              </button>
-            </div>
-
-            <div className={styles.orderTypeToggle}>
-              <button
-                className={`${styles.typeBtn} ${
-                  orderType === "MARKET" ? styles.typeBtnActive : ""
-                }`}
-                onClick={() => setOrderType("MARKET")}
-              >
-                Market
-              </button>
-              <button
-                className={`${styles.typeBtn} ${
-                  orderType === "LIMIT" ? styles.typeBtnActive : ""
-                }`}
-                onClick={() => setOrderType("LIMIT")}
-              >
-                Limit
-              </button>
-            </div>
-
-            <div className={styles.formGrid}>
-              <div className={styles.formRow}>
-                <label className={styles.label} htmlFor="qty">
-                  Quantity
-                </label>
-                <input
-                  id="qty"
-                  className={styles.input}
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={qty}
-                  onChange={(e) => {
-                    const v = Math.max(
-                      1,
-                      Math.floor(Number(e.target.value || 1))
-                    );
-                    setQty(Number.isFinite(v) ? v : 1);
-                  }}
-                />
-              </div>
-
-              <div className={styles.formRow}>
-                <label className={styles.label} htmlFor="price">
-                  {orderType === "MARKET" ? "Market price" : "Limit price"}
-                </label>
-                <input
-                  id="price"
-                  className={styles.input}
-                  type="number"
-                  step="0.05"
-                  disabled={orderType === "MARKET"}
-                  value={orderType === "MARKET" ? holding.ltp : limitPrice}
-                  onChange={(e) =>
-                    setLimitPrice(Number(e.target.value || holding.ltp))
-                  }
-                />
-              </div>
-            </div>
-
-            <div className={styles.summaryRow}>
-              <div>Estimated total</div>
-              <div className={styles.totalValue}>₹{formatINR(estTotal)}</div>
-            </div>
-
-            <button
-              className={`${styles.executeBtn} ${
-                side === "BUY" ? styles.executeBuy : styles.executeSell
-              }`}
-              onClick={() => {
-                // For now, just close the modal to simulate action
-                onClose();
-              }}
-            >
-              {side === "BUY" ? "Execute Buy" : "Execute Sell"}
-            </button>
-          </div>
         </div>
       </div>
     </div>

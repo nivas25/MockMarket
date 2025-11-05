@@ -2,6 +2,7 @@
 import http from "../../lib/http";
 
 export interface StockDetailData {
+  stock_id: number;
   symbol: string;
   companyName: string;
   exchange: string;

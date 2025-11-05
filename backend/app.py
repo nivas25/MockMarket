@@ -36,6 +36,7 @@ from routes.metrics_routes import metrics_bp
 from routes.fetch_holdings.holdings_routes import holdings_bp
 from routes.fetch_users.fetch_users_routes import fetch_users_bp
 from routes.acess_routes.block_unblock_routes import manage_user_access_bp
+from routes.watchlist_routes.watchlist_routes import watchlist_bp
 from flask_jwt_extended import JWTManager
 from routes.debug_routes import debug_bp
 
@@ -94,6 +95,7 @@ app.register_blueprint(balance_bp, url_prefix='/fetch')
 app.register_blueprint(holdings_bp, url_prefix='/holdings')
 app.register_blueprint(fetch_users_bp,url_prefix='/admin')
 app.register_blueprint(manage_user_access_bp,url_prefix='/user')
+app.register_blueprint(watchlist_bp, url_prefix='/watchlist')
 app.register_blueprint(health_bp)
 app.register_blueprint(metrics_bp)
 app.register_blueprint(debug_bp, url_prefix='/debug')

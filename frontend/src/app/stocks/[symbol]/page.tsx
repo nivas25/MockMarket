@@ -70,6 +70,7 @@ export default async function StockPage({ params }: StockPageProps) {
 
   // Map backend data to component format
   const stockFormatted = {
+    stock_id: stockData.stock_id,
     symbol: stockData.symbol,
     companyName: stockData.companyName,
     currentPrice: stockData.currentPrice || 0,

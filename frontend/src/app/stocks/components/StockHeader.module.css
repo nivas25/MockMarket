@@ -145,6 +145,19 @@
   background: rgba(24, 24, 24, 0.74);
 }
 
+/* Right section container - holds button and price block */
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+/* Watchlist button wrapper */
+.watchlistButtonWrapper {
+  display: flex;
+  align-items: center;
+}
+
 .priceBlock {
   position: relative;
   z-index: 1;

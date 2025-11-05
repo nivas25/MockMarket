@@ -183,7 +183,7 @@ def fetch_all_stock_prices(save_to_db=False):
                         price_data['as_of']
                     ))
                     updates_for_ws.append({
-                        "symbol": symbols[idx],
+                        "symbol": symbols[idx].upper(),  # Uppercase for consistency with DB symbols
                         "stock_id": stock_ids[idx],  # Add stock_id for cache
                         "ltp": price_data['ltp'],
                         "as_of": price_data['as_of'].isoformat(),

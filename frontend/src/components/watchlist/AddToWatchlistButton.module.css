@@ -1,0 +1,124 @@
+/* Watchlist Button Styles */
+.watchlistButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  white-space: nowrap;
+}
+
+.watchlistButton:disabled {
+  cursor: not-allowed;
+}
+
+/* Default state - Golden gradient (matching OrderPanel buy button) */
+.watchlistButton.default {
+  background: linear-gradient(135deg, #d4af37, #f1c40f);
+  color: #1a1a1a;
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.25);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+.watchlistButton.default:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+.watchlistButton.default:active {
+  transform: translateY(0);
+}
+
+/* Dark mode - Golden/Amber button */
+:global(.dark) .watchlistButton.default {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #1a1a1a;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+}
+
+:global(.dark) .watchlistButton.default:hover {
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+}
+
+/* Loading state */
+.watchlistButton.loading {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  color: #9ca3af;
+}
+
+:global(.dark) .watchlistButton.loading {
+  background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+  color: #9ca3af;
+}
+
+/* Added state - Golden theme (not green) */
+.watchlistButton.added {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  box-shadow: 0 4px 6px -1px rgba(251, 191, 36, 0.2),
+    0 2px 4px -1px rgba(251, 191, 36, 0.1);
+}
+
+:global(.dark) .watchlistButton.added {
+  background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+  color: #fde68a;
+  border: 1px solid #b45309;
+  box-shadow: 0 4px 6px -1px rgba(180, 83, 9, 0.3);
+}
+
+/* Star icon animations */
+.watchlistButton .star-icon {
+  width: 1rem;
+  height: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.watchlistButton.loading .star-icon {
+  animation: spin 1s linear infinite;
+}
+
+.watchlistButton.added .star-icon {
+  fill: currentColor;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Toast notification */
+.watchlist-toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(34, 197, 94, 0.3),
+    0 10px 10px -5px rgba(34, 197, 94, 0.2);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.watchlist-toast svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}

@@ -221,6 +221,7 @@ def get_stock_detail(symbol):
         change_val = float(stock['change_value']) if stock.get('change_value') is not None else None
         
         response = {
+            "stock_id": stock['stock_id'],  # Add stock_id for watchlist
             "symbol": stock['symbol'],
             "companyName": stock['company_name'],
             "exchange": stock['exchange'],

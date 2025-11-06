@@ -23,6 +23,7 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
   const [fetchedWatchlists, setFetchedWatchlists] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchWatchlists = async () => {
@@ -118,13 +119,38 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
     );
   };
 
-  const handleRemoveStock = async (stockName: string, watchlistId: number) => {
-    // Placeholder for remove API call - implement as needed
-    console.log(`Removing ${stockName} from watchlist ${watchlistId}`);
-    // Example: await axios.post(`${url}/watchlist/remove`, { stock_name: stockName, watchlist_id: watchlistId });
-    // Then refetch or update local state
-    alert(`${stockName} removed from watchlist!`); // Temp feedback
-  };
+ const handleRemoveStock = async (watchlistId: number) => {
+  setRemovingId(watchlistId);
+  try {
+    console.log(`Deleting watchlist with ID: ${watchlistId}`);
+
+    const response = await axios.delete(`${url}/delete/watchlist`, {
+      data: { watchlist_id: watchlistId } // ✅ correct placement
+    });
+
+    console.log("Delete response:", response.data);
+
+    if (response.data.status === "success") {
+      alert("Watchlist deleted successfully!");
+      // ✅ Instantly update UI
+      setFetchedWatchlists((prev) =>
+        prev.filter((wl) => wl.watchlist_id !== watchlistId)
+      );
+    } else {
+      alert(response.data.message || "Failed to delete the watchlist.");
+    }
+  } catch (err: any) {
+    console.error("Error deleting watchlist:", err);
+    alert(
+      err.response?.data?.message ||
+      "An error occurred while deleting the watchlist."
+    );
+  } finally {
+    setRemovingId(null);
+  }
+};
+
+
 
   if (loading) {
     return (
@@ -176,7 +202,7 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          
+
         </div>
       </header>
 
@@ -205,9 +231,10 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
                   <td className={styles.tdActions}>
                     <button
                       className={`${styles.actionBtn} ${styles.removeBtn}`}
-                      onClick={() => handleRemoveStock(stock.name, stock.watchlist_id)}
+                      onClick={() => handleRemoveStock(stock.watchlist_id)}
+                      disabled={removingId === stock.watchlist_id}
                     >
-                      Remove
+                      {removingId === stock.watchlist_id ? 'Please wait' : 'Remove'}
                     </button>
                   </td>
                 </tr>

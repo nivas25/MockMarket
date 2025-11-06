@@ -352,11 +352,26 @@
   border: none;
 }
 
-.removeBtn {
-  background-color: #d4af37;
-
-  background: transparent;
+:root {
+  --mm-gold: #d4af37;
 }
+
+.removeBtn {
+  background-color: var(--mm-gold) !important;
+  color: #000 !important;
+  border: 1.5px solid var(--mm-gold) !important;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s ease-in-out;
+}
+
+.removeBtn:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 6px rgba(212, 175, 55, 0.6);
+}
+
 
 .card {
   border: 1px solid var(--mm-border);

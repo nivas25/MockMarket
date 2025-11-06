@@ -141,7 +141,8 @@ export function OrdersTab({ orders }: OrdersTabProps) {
         quantity: order.qty,
         trade_type: order.type,
         user_id: user_id,
-        confirm_code: "proceedok"
+        confirm_code: "proceedok",
+        order_id: order.order_id   // ✅ ADD THIS LINE
       };
       console.log("Request body for re_submit:", requestBody);
       const response = await axios.post(`${url}/re_submit/order`, requestBody);
@@ -172,6 +173,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
       setConfirming(null);
     }
   };
+
 
   const handleRemove = async (order: Order) => {
     console.log("removing");
@@ -395,7 +397,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
 
       {/* ✅ Success Popup Menu */}
       {showSuccessPopup && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             top: '20px',
@@ -414,10 +416,10 @@ export function OrdersTab({ orders }: OrdersTabProps) {
         </div>
       )}
       {showConfirmPopup && (
-        <div 
+        <div
           style={{
             position: 'fixed',
-            marginTop:'40px',
+            marginTop: '40px',
             top: '20px',
             right: '20px',
             backgroundColor: '#4CAF50',
@@ -434,11 +436,11 @@ export function OrdersTab({ orders }: OrdersTabProps) {
         </div>
       )}
       {showErrorPopup && errorMessage && (
-        <div 
+        <div
           style={{
-            
+
             position: 'fixed',
-            marginTop:'40px',
+            marginTop: '40px',
             top: '20px',
             right: '20px',
             backgroundColor: '#f44336',

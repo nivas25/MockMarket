@@ -201,7 +201,7 @@ def get_live_price(isin: str, stock_id: int = None) -> Optional[float]:
         return None
 
 
-def re_submit(stock_name: str, intended_price: float, user_id: int, quantity: int, trade_type: str, confirm_code: Optional[str] = None) -> Dict[str, any]:
+def re_submit(stock_name: str, intended_price: float, user_id: int, quantity: int, trade_type: str, confirm_code: Optional[str] = None, order_id: int = None) -> Dict[str, any]:
     print("\n=== TRADE EXECUTION ===")
     logger.info(f"Start trade user={user_id}, stock={stock_name}, type={trade_type}, qty={quantity}")
 
@@ -252,7 +252,40 @@ def re_submit(stock_name: str, intended_price: float, user_id: int, quantity: in
             VALUES (%s, %s, %s, %s, %s)
         """, (user_id, stock_id, trade_type, quantity, live_price))
         connection.commit()
-        cursor.close()
+
+        # Remove from Order table if order_id provided
+        if order_id:
+            try:
+                del_cursor = connection.cursor(dictionary=True)
+                logger.info(f"[🧾] Trying to delete from `Order` table where order_id = {order_id}")
+
+                # Check if order exists before deleting
+                del_cursor.execute("SELECT order_id FROM `Order` WHERE order_id = %s", (order_id,))
+                result_before = del_cursor.fetchone()
+                logger.info(f"[🔍] Order found before delete: {result_before}")
+
+                del_cursor.execute("DELETE FROM `Order` WHERE order_id = %s", (order_id,))
+                connection.commit()
+
+                logger.info(f"[⚙️] Delete executed. Rows affected: {del_cursor.rowcount}")
+
+                # Verify deletion
+                del_cursor.execute("SELECT order_id FROM `Order` WHERE order_id = %s", (order_id,))
+                result_after = del_cursor.fetchone()
+                logger.info(f"[🔎] Order exists after delete? {result_after}")
+
+                del_cursor.close()
+
+                if result_before and not result_after:
+                    logger.info(f"[✅] Order {order_id} deleted successfully from `Order` table.")
+                elif not result_before:
+                    logger.warning(f"[⚠️] Order {order_id} not found in `Order` table before deletion.")
+                else:
+                    logger.error(f"[❌] Order {order_id} still exists after deletion attempt!")
+
+            except Exception as delete_e:
+                logger.error(f"[🔥] Delete block failed for order_id={order_id}: {delete_e}", exc_info=True)
+
 
         return {
             "status": "success",
@@ -267,4 +300,4 @@ def re_submit(stock_name: str, intended_price: float, user_id: int, quantity: in
 
     finally:
         connection.close()
-        print("[DB] Closed connection")
+        print("[DB] Closed connection")    

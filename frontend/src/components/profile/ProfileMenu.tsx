@@ -49,13 +49,13 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
         window.location.href = "/";
         return;
       }
-      console.log("Fetching balance for user_id:", user_id); // Debug log
+      console.log("Fetching balance for user_id:", user_id);
       const response = await axios.post(`${url}/fetch/user_balance`, {
         user_id,
-      }); // Send as JSON body
-      console.log("Balance API response:", response.data); // Debug log
+      });
+      console.log("Balance API response:", response.data);
       if (response.data.status === "success") {
-        setBalance(response.data.balance); // Update state
+        setBalance(response.data.balance);
       } else {
         console.warn("Unexpected API status:", response.data.status);
       }
@@ -74,14 +74,12 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
     }
   };
 
-  // First useEffect: Decode JWT and set userData + userId + role
+  // Decode JWT token on mount
   useEffect(() => {
     let decodedUserId: string | number;
     try {
       const token = localStorage.getItem("authToken");
       if (token) {
-        console.log("Decoding JWT token to extract user data.");
-        console.log("JWT token:", token);
         const decoded = jwtDecode<{
           sub: {
             user_id: string | number;
@@ -98,25 +96,23 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
           email: decoded.sub.email || "user@email.com",
           joinedAt: decoded.sub.joinedAt || new Date().toISOString(),
         });
-        setUserId(decodedUserId); // Set user_id after decoding
-        setUserRole(decoded.sub.role || decoded.role || null); // Extract role from JWT
+        setUserId(decodedUserId);
+        setUserRole(decoded.sub.role || decoded.role || null);
       } else {
         console.log("No auth token found in storage.");
       }
     } catch (error) {
       console.error("JWT decode failed:", error);
-      // Optionally clear invalid token
       localStorage.removeItem("authToken");
     }
-  }, [user]); // Re-run if props.user changes
+  }, [user]);
 
-  // Second useEffect: Fetch balance once userId is available
+  // Fetch balance when userId changes
   useEffect(() => {
     if (userId !== null) {
-      // Only fetch if userId is set (not initial null)
       fetchUserBalance(userId);
     }
-  }, [userId]); // Depend on userId
+  }, [userId]);
 
   const name = userData?.name ?? "User Name";
   const email = userData?.email ?? "user@email.com";
@@ -131,7 +127,6 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
     return isNaN(d.getTime()) ? src : d.toLocaleDateString();
   }, [userData?.joinedAt]);
 
-  // Use fetched balance or fallback
   const currentBalance = balance ?? userData?.balance ?? 0;
   const balanceLabel = useMemo(() => {
     return `₹${currentBalance.toLocaleString("en-IN", {
@@ -246,8 +241,7 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>Current Balance</span>
-                <span className={styles.infoValue}>{balanceLabel}</span>{" "}
-                {/* Use formatted label */}
+                <span className={styles.infoValue}>{balanceLabel}</span>
               </div>
             </div>
 
@@ -281,29 +275,65 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
           document.body
         )}
 
+      {/* ✅ Delete user confirmation popup */}
       <GlassConfirm
         open={confirmOpen}
         title="Reset simulation?"
         message={
           <>
-            This will clear your local simulation data and start fresh.
-            <br /> This action can’t be undone.
+            This will permanently delete your account and all data.
+            <br /> This action cannot be undone.
           </>
         }
-        confirmLabel="Reset"
+        confirmLabel="Yes, Delete My Account"
         cancelLabel="Cancel"
         onClose={() => setConfirmOpen(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
           setConfirmOpen(false);
           setOpen(false);
-          if (onReset) {
-            onReset();
-          } else {
-            try {
-              localStorage.clear();
-              sessionStorage.clear();
-            } catch {}
-            window.location.reload();
+
+          try {
+            const token = localStorage.getItem("authToken");
+            if (!token) {
+              alert("User not logged in.");
+              router.push("/");
+              return;
+            }
+
+            const decoded = jwtDecode<{ sub: { user_id: number } }>(token);
+            const user_id = decoded?.sub?.user_id;
+
+            if (!user_id) {
+              alert("Invalid token. Please login again.");
+              localStorage.removeItem("authToken");
+              router.push("/");
+              return;
+            }
+
+            // ✅ Send JSON exactly like { "user_id": 15 }
+            const response = await axios.delete(`${url}/user/delete`, {
+              data: { user_id },
+              headers: { "Content-Type": "application/json" },
+            });
+
+            console.log("Delete response:", response.data);
+
+            if (response.data.status === "success") {
+              alert("✅ Your account and data have been deleted successfully.");
+            } else {
+              alert(
+                `⚠️ ${response.data.message || "Failed to delete user."}`
+              );
+            }
+
+            // ✅ Clear local/session storage and redirect
+            localStorage.clear();
+            sessionStorage.clear();
+            router.push("/");
+
+          } catch (error) {
+            console.error("❌ Error during user deletion:", error);
+            alert("Error deleting your account. Please try again later.");
           }
         }}
       />

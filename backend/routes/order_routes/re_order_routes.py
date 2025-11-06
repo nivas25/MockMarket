@@ -1,6 +1,6 @@
 # routes/order_routes/re_order_routes.py
 from flask import Blueprint, request, jsonify
-from flask_cors import cross_origin  # NEW: Import for per-route CORS
+from flask_cors import cross_origin
 from controller.trade_controller import re_submit
 
 re_submit_trade_bp = Blueprint('trade', __name__)
@@ -18,8 +18,9 @@ def trade():
     trade_type = data.get('trade_type')
     confirm_code = data.get('confirm_code')
     user_id = data.get('user_id')
+    order_id = data.get('order_id')  # ✅ NEW: include order_id from frontend
 
-    # ✅ UPDATED: Check for None/empty str, allow 0 for nums
+    # ✅ Check missing fields
     missing_fields = []
     if stock_name is None or stock_name == '':
         missing_fields.append('stock_name')
@@ -34,11 +35,10 @@ def trade():
 
     if missing_fields:
         return jsonify({
-            'status': 'error', 
+            'status': 'error',
             'message': f'Missing required fields: {", ".join(missing_fields)}'
         }), 400
 
-    # ✅ Also update type conversions to handle 0 safely
     try:
         result = re_submit(
             stock_name=stock_name,
@@ -46,10 +46,10 @@ def trade():
             user_id=int(user_id),
             quantity=int(quantity),
             trade_type=trade_type,
-            confirm_code=confirm_code
+            confirm_code=confirm_code,
+            order_id=int(order_id) if order_id is not None else None  # ✅ Pass it down
         )
     except ValueError as e:
         return jsonify({'status': 'error', 'message': f'Invalid data types: {str(e)}'}), 400
 
-    # Rest of your code unchanged...
     return jsonify(result)

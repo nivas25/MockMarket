@@ -41,6 +41,8 @@ from routes.order_routes.get_order_routes import get_orders_bp
 from routes.order_routes.delete_order_routes import delete_order_bp
 from routes.order_routes.re_order_routes import re_submit_trade_bp
 from routes.watchlist_routes.get_watchlist_routes import get_watchlist_bp
+from routes.delete_user_routes.delete_user_routes import delete_user_bp
+from routes.watchlist_routes.delete_watchlist_routes import delete_watchlist_bp
 from flask_jwt_extended import JWTManager
 from routes.debug_routes import debug_bp
 
@@ -105,6 +107,8 @@ app.register_blueprint(get_orders_bp, url_prefix='/fetch')
 app.register_blueprint(delete_order_bp, url_prefix='/order')
 app.register_blueprint(re_submit_trade_bp, url_prefix='/re_submit')
 app.register_blueprint(get_watchlist_bp, url_prefix="/fetch")
+app.register_blueprint(delete_user_bp, url_prefix="/user")
+app.register_blueprint(delete_watchlist_bp, url_prefix="/delete")
 app.register_blueprint(health_bp)
 app.register_blueprint(metrics_bp)
 app.register_blueprint(debug_bp, url_prefix='/debug')

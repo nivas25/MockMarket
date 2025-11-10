@@ -139,6 +139,8 @@ def remove_stock_from_watchlist(user_id, stock_id):
     cursor = conn.cursor(dictionary=True)
     
     try:
+        status_warn(f"🗑️ remove_stock_from_watchlist called with user_id={user_id}, stock_id={stock_id}")
+        
         # Get user's watchlist
         cursor.execute(
             "SELECT watchlist_id FROM Watchlist WHERE user_id = %s LIMIT 1",
@@ -147,25 +149,50 @@ def remove_stock_from_watchlist(user_id, stock_id):
         watchlist = cursor.fetchone()
         
         if not watchlist:
+            status_err(f"❌ No watchlist found for user_id={user_id}")
             return jsonify({
                 "success": False,
                 "message": "Watchlist not found"
             }), 404
         
+        watchlist_id = watchlist['watchlist_id']
+        status_ok(f"📋 Found watchlist_id={watchlist_id} for user_id={user_id}")
+        
+        # Check how many stocks are in the watchlist before deletion
+        cursor.execute(
+            "SELECT COUNT(*) as count FROM Watchlist_Stocks WHERE watchlist_id = %s",
+            (watchlist_id,)
+        )
+        before_count = cursor.fetchone()['count']
+        status_ok(f"📊 Stocks in watchlist BEFORE deletion: {before_count}")
+        
         # Remove stock from watchlist
+        status_warn(f"🔍 Executing DELETE: watchlist_id={watchlist_id}, stock_id={stock_id}")
         cursor.execute(
             "DELETE FROM Watchlist_Stocks WHERE watchlist_id = %s AND stock_id = %s",
-            (watchlist['watchlist_id'], stock_id)
+            (watchlist_id, stock_id)
         )
         conn.commit()
         
-        if cursor.rowcount == 0:
+        deleted_rows = cursor.rowcount
+        status_ok(f"✅ Deleted {deleted_rows} row(s) from Watchlist_Stocks")
+        
+        # Check how many stocks remain
+        cursor.execute(
+            "SELECT COUNT(*) as count FROM Watchlist_Stocks WHERE watchlist_id = %s",
+            (watchlist_id,)
+        )
+        after_count = cursor.fetchone()['count']
+        status_ok(f"📊 Stocks in watchlist AFTER deletion: {after_count}")
+        
+        if deleted_rows == 0:
+            status_warn(f"⚠️ No stock was deleted - stock_id={stock_id} not found in watchlist_id={watchlist_id}")
             return jsonify({
                 "success": False,
                 "message": "Stock not in watchlist"
             }), 404
         
-        status_ok(f"Removed stock {stock_id} from watchlist for user {user_id}")
+        status_ok(f"✅ Successfully removed stock {stock_id} from watchlist for user {user_id}")
         
         return jsonify({
             "success": True,

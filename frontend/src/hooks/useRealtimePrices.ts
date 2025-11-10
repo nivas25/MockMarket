@@ -7,17 +7,27 @@ export type LivePrice = { symbol: string; ltp: number; as_of?: string };
 
 export function useRealtimePrices(symbols: string[]) {
   const [prices, setPrices] = useState<Record<string, LivePrice>>({});
+  // Stable key and fast membership set to avoid substring bugs with includes
   const symbolsKey = useMemo(
-    () => symbols.map((s) => s.toUpperCase()).sort().join(","),
+    () =>
+      symbols
+        .map((s) => s.toUpperCase())
+        .sort()
+        .join(","),
     [symbols]
   );
+  const allowedSet = useMemo(() => {
+    return new Set(symbolsKey ? symbolsKey.split(",") : []);
+  }, [symbolsKey]);
   const isMounted = useRef(false);
 
   useEffect(() => {
     isMounted.current = true;
     const socket = getSocket();
 
-    const onBatch = (updates: Array<{ symbol?: string; ltp?: number; as_of?: string }>) => {
+    const onBatch = (
+      updates: Array<{ symbol?: string; ltp?: number; as_of?: string }>
+    ) => {
       if (!isMounted.current) return;
       if (!updates || !Array.isArray(updates)) return;
       setPrices((prev) => {
@@ -25,7 +35,7 @@ export function useRealtimePrices(symbols: string[]) {
         for (const u of updates) {
           const sym = (u.symbol || "").toUpperCase();
           if (!sym) continue;
-          if (symbolsKey && !symbolsKey.includes(sym)) continue;
+          if (allowedSet.size > 0 && !allowedSet.has(sym)) continue;
           if (typeof u.ltp !== "number") continue;
           next[sym] = { symbol: sym, ltp: u.ltp, as_of: u.as_of };
         }
@@ -38,9 +48,7 @@ export function useRealtimePrices(symbols: string[]) {
       isMounted.current = false;
       socket.off("prices_batch", onBatch);
     };
-  }, [symbolsKey]);
+  }, [symbolsKey, allowedSet]);
 
   return prices;
 }
-
-

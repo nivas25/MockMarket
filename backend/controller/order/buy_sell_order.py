@@ -278,16 +278,8 @@ def execute_trade(stock_name: str, intended_price: float, user_id: int, quantity
         # Market open
         print(f"[💰] Intended Price: ₹{intended_price}, Live Price: ₹{live_price}")
         logger.info(f"Price validation: intended={intended_price}, live={live_price}")
-        price_diff = abs(live_price - intended_price)
-
-        if confirm_code != "proceedok" and price_diff > 0.5:
-            price_change_msg = f"Price changed from ₹{intended_price} → ₹{live_price}. Confirm to proceed."
-            logger.warning(price_change_msg)
-            return {
-                "status": "price_changed",
-                "message": price_change_msg,
-                "current_price": live_price
-            }
+        # Removed price change confirmation step: always execute at current live_price.
+        # (Previously required client confirmation if |diff| > 0.5.)
 
         cursor = connection.cursor()
         insert_query = """

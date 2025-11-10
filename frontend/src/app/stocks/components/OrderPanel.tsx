@@ -1,30 +1,44 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import styles from "./OrderPanel.module.css";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { jwtDecode } from "jwt-decode";
 import { url } from "@/config";
 
+import { useRealtimePrices } from "@/hooks/useRealtimePrices";
+
 type OrderPanelProps = {
-  currentPrice: number;
+  currentPrice: number; // initial snapshot price from server render
+  symbol: string; // stock symbol for live subscription
 };
 
-export default function OrderPanel({ currentPrice }: OrderPanelProps) {
+export default function OrderPanel({ currentPrice, symbol }: OrderPanelProps) {
   const [activeTab, setActiveTab] = useState<"buy" | "sell">("buy");
   const [quantity, setQuantity] = useState<number>(1);
   const [price, setPrice] = useState<number>(currentPrice);
-  const [orderType, setOrderType] = useState<"market" | "limit">("market");
-  const [buysellBtn, setBuySellBtn] = useState<boolean>(true);
+  const [orderType] = useState<"market" | "limit">("market");
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [pricechangedUI, setPriceChangedUI] = useState<boolean>(false);
-  const [showPriceChangeModal, setShowPriceChangeModal] =
-    useState<boolean>(false);
-  const [newPrice, setNewPrice] = useState<number>(0);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
   const [modalMessage, setModalMessage] = useState<string>("");
 
-  const totalValue = quantity * price;
+  // Live price subscription
+  const symbolsArr = useMemo(() => [symbol], [symbol]);
+  const livePrices = useRealtimePrices(symbolsArr);
+  const liveLtp = livePrices[symbol?.toUpperCase()]?.ltp;
+  const resolvedMarketPrice =
+    typeof liveLtp === "number" ? liveLtp : currentPrice;
+
+  // Use live price for market orders; retain manual input for limit orders
+  const effectivePrice = orderType === "market" ? resolvedMarketPrice : price;
+  const totalValue = quantity * effectivePrice;
+
+  // Keep internal price state in sync when in market mode (so price field reflects live)
+  useEffect(() => {
+    if (orderType === "market" && typeof liveLtp === "number") {
+      setPrice(liveLtp);
+    }
+  }, [liveLtp, orderType]);
 
   const cleanErrorMessage = (msg: string): string => {
     if (typeof msg !== "string") return "An unexpected error occurred.";
@@ -44,67 +58,18 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
     setModalMessage("");
   };
 
-  const confirmBuy = async (confirmPrice: number) => {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      alert("You must be logged in to place an order.");
-      return;
-    }
-    const decoded: any = jwtDecode(token);
-    const user_id = decoded.sub.user_id;
-    const stock_data = sessionStorage.getItem("currentStock");
-    if (!stock_data) {
-      alert("Please refresh the page.");
-      return;
-    }
-    const stock = JSON.parse(stock_data);
-    const obj = {
-      stock_name: stock.companyName,
-      intended_price: confirmPrice,
-      user_id: user_id,
-      quantity: quantity,
-      trade_type: "Buy",
-    };
-    try {
-      const response = await axios.post(`${url}/order/trade`, obj);
-      console.log("Confirmed buy order response:", response.data);
-      // Handle response status
-      const status = response.data.status;
-      if (status === "success" || status === "pending") { // UPDATED: Handle "pending" as success-like for market-closed cases
-        setModalMessage(
-          response.data.message ||
-            (status === "pending" ? "Buy order queued as pending for market open!" : "Buy order placed successfully at the new price!")
-        );
-        setShowSuccessModal(true);
-      } else if (status === "error") {
-        setModalMessage(
-          cleanErrorMessage(
-            response.data.message || "Failed to place the confirmed buy order."
-          )
-        );
-        setShowErrorModal(true);
-      } else if (status === "price_changed") {
-        setNewPrice(response.data.current_price || confirmPrice);
-        setShowPriceChangeModal(true);
-      } else if (status === "market_closed") { // KEPT: For potential future backend alignment
-        setModalMessage(
-          cleanErrorMessage(response.data.message || "Market is closed. Orders cannot be placed at this time.")
-        );
-        setShowErrorModal(true);
-      } else { // Catch-all for unknown statuses
-        console.warn("Unhandled API status:", status);
-        setModalMessage("An unexpected response was received. Please try again.");
-        setShowErrorModal(true);
-      }
-    } catch (error: any) {
-      console.error("Error confirming buy order:", error);
-      const errMsg =
-        error.response?.data?.message ||
-        "Failed to place the confirmed buy order. Please try again.";
-      setModalMessage(cleanErrorMessage(errMsg));
-      setShowErrorModal(true);
-    }
-  };
+  // confirmBuy removed as server no longer returns price_changed
+
+  interface TradeResponse {
+    status: "success" | "pending" | "error";
+    message?: string;
+    executed_price?: number;
+  }
+  interface JwtPayloadShape {
+    sub: { user_id: number };
+    // Allow other unknown claims with an index signature using unknown type
+    [key: string]: unknown;
+  }
 
   const buyStock = async (finalPrice: number, user_id: number) => {
     const stock_data = sessionStorage.getItem("currentStock");
@@ -122,27 +87,32 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
       try {
         response = await axios.post(`${url}/order/trade`, obj);
         console.log("Buy order response:", response.data);
-      } catch (error: any) {
-        console.error("Error placing buy order:", error);
+      } catch (err) {
+        const axiosErr = err as AxiosError<{ message?: string }>;
+        console.error("Error placing buy order:", axiosErr);
         const errMsg =
-          error.response?.data?.message ||
+          axiosErr.response?.data?.message ||
           "Error placing buy order. Please try again.";
         setModalMessage(cleanErrorMessage(errMsg));
         setShowErrorModal(true);
-        throw error; // Re-throw to handle in caller if needed
+        throw err; // Re-throw to handle in caller if needed
       } finally {
         console.log("Buy order process completed.");
       }
       // Check for response status
       if (!response) return; // Early return if no response (e.g., from catch)
-      const status = response.data.status;
-      if (status === "price_changed") {
-        setNewPrice(response.data.current_price || finalPrice);
-        setShowPriceChangeModal(true);
-      } else if (status === "success" || status === "pending") { // UPDATED: Handle "pending" as success-like for market-closed cases
+      const tradeResp = response.data as TradeResponse;
+      const status = tradeResp.status;
+      if (status === "success" || status === "pending") {
+        const executedText =
+          status === "success" && typeof tradeResp.executed_price === "number"
+            ? ` Executed at ₹${tradeResp.executed_price.toFixed(2)}`
+            : "";
         setModalMessage(
-          response.data.message || 
-          (status === "pending" ? "Buy order queued as pending for market open!" : "Buy order placed successfully!")
+          tradeResp.message ||
+            (status === "pending"
+              ? "Buy order queued as pending for market open!"
+              : "Buy order placed successfully!") + executedText
         );
         setShowSuccessModal(true);
       } else if (status === "error") {
@@ -150,14 +120,15 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
           cleanErrorMessage(response.data.message || "Buy order failed.")
         );
         setShowErrorModal(true);
-      } else if (status === "market_closed") { // KEPT: For potential future backend alignment
+      } else {
+        // Unhandled status - log and show generic error
+        console.error("Unexpected API status:", status, response.data);
         setModalMessage(
-          cleanErrorMessage(response.data.message || "Market is closed. Orders cannot be placed at this time.")
+          cleanErrorMessage(
+            response.data.message ||
+              "An unexpected error occurred. Please try again."
+          )
         );
-        setShowErrorModal(true);
-      } else { // Catch-all for unknown statuses
-        console.warn("Unhandled API status:", status);
-        setModalMessage("An unexpected response was received. Please try again.");
         setShowErrorModal(true);
       }
     }
@@ -179,10 +150,11 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
       try {
         response = await axios.post(`${url}/order/trade`, obj);
         console.log("Sell order response:", response.data);
-      } catch (error: any) {
-        console.error("Error placing sell order:", error);
+      } catch (err) {
+        const axiosErr = err as AxiosError<{ message?: string }>;
+        console.error("Error placing sell order:", axiosErr);
         const errMsg =
-          error.response?.data?.message ||
+          axiosErr.response?.data?.message ||
           "Error placing sell order. Please try again.";
         setModalMessage(cleanErrorMessage(errMsg));
         setShowErrorModal(true);
@@ -191,14 +163,18 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
       }
       // Check for response status
       if (!response) return; // Early return if no response (e.g., from catch)
-      const status = response.data.status;
-      if (status === "price_changed") {
-        setNewPrice(response.data.current_price || finalPrice);
-        setShowPriceChangeModal(true);
-      } else if (status === "success" || status === "pending") { // UPDATED: Handle "pending" as success-like for market-closed cases
+      const tradeResp = response.data as TradeResponse;
+      const status = tradeResp.status;
+      if (status === "success" || status === "pending") {
+        const executedText =
+          status === "success" && typeof tradeResp.executed_price === "number"
+            ? ` Executed at ₹${tradeResp.executed_price.toFixed(2)}`
+            : "";
         setModalMessage(
-          response.data.message || 
-          (status === "pending" ? "Sell order queued as pending for market open!" : "Sell order placed successfully!")
+          tradeResp.message ||
+            (status === "pending"
+              ? "Sell order queued as pending for market open!"
+              : "Sell order placed successfully!") + executedText
         );
         setShowSuccessModal(true);
       } else if (status === "error") {
@@ -206,14 +182,15 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
           cleanErrorMessage(response.data.message || "Sell order failed.")
         );
         setShowErrorModal(true);
-      } else if (status === "market_closed") { // KEPT: For potential future backend alignment
+      } else {
+        // Unhandled status - log and show generic error
+        console.error("Unexpected API status:", status, response.data);
         setModalMessage(
-          cleanErrorMessage(response.data.message || "Market is closed. Orders cannot be placed at this time.")
+          cleanErrorMessage(
+            response.data.message ||
+              "An unexpected error occurred. Please try again."
+          )
         );
-        setShowErrorModal(true);
-      } else { // Catch-all for unknown statuses
-        console.warn("Unhandled API status:", status);
-        setModalMessage("An unexpected response was received. Please try again.");
         setShowErrorModal(true);
       }
     }
@@ -237,9 +214,9 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
       window.location.href = "/dashboard";
       return;
     }
-    const decoded: any = jwtDecode(token);
+    const decoded = jwtDecode<JwtPayloadShape>(token);
     const user_id = decoded.sub.user_id;
-    const finalPrice = orderType === "market" ? currentPrice : price;
+    const finalPrice = effectivePrice;
     setIsLoading(true);
     try {
       if (activeTab === "buy") {
@@ -282,7 +259,7 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
           </button>
         </div>
         {/* Order Type Selector */}
-       
+
         {/* Form Fields */}
         <div className={styles.formGroup}>
           <label className={styles.label}>Quantity</label>
@@ -303,7 +280,7 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
           <input
             type="number"
             step="0.05"
-            value={orderType === "market" ? currentPrice : price}
+            value={orderType === "market" ? resolvedMarketPrice : price}
             onChange={(e) =>
               setPrice(parseFloat(e.target.value) || currentPrice)
             }
@@ -352,9 +329,9 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
               Placing Order...
             </>
           ) : activeTab === "buy" ? (
-            "Place Buy Order"
+            `Place Buy Order @ ₹${effectivePrice.toFixed(2)}`
           ) : (
-            "Place Sell Order"
+            `Place Sell Order @ ₹${effectivePrice.toFixed(2)}`
           )}
         </button>
         {/* Info Note */}
@@ -366,52 +343,36 @@ export default function OrderPanel({ currentPrice }: OrderPanelProps) {
         </p>
       </div>
       {/* Price Change Confirmation Modal */}
-      {showPriceChangeModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <div className={styles.modalIcon}>⚠️</div>
-            <h3 className={`${styles.modalTitle} ${styles.warning}`}>
-              Price Changed
-            </h3>
-            <p className={styles.modalMessage}>The price has changed to</p>
-            <div className={styles.priceHighlight}>
-              ₹
-              {newPrice.toLocaleString("en-IN", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-            <p className={styles.modalMessage}>
-              Would you like to buy at this new price?
-            </p>
-            <div className={styles.modalButtons}>
-              <button
-                onClick={async () => {
-                  setShowPriceChangeModal(false);
-                  await confirmBuy(newPrice);
-                }}
-                className={`${styles.modalButton} ${styles.success}`}
-              >
-                Yes, Buy Now
-              </button>
-              <button
-                onClick={() => setShowPriceChangeModal(false)}
-                className={`${styles.modalButton} ${styles.secondary}`}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Success Modal */}
+      {/* Price change modal removed */}
+      {/* Success Modal with Confetti */}
       {showSuccessModal && (
         <div className={styles.modalOverlay}>
+          <div className={styles.confettiContainer}>
+            {/* Generate confetti pieces */}
+            {[...Array(50)].map((_, i) => (
+              <div
+                key={i}
+                className={styles.confetti}
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 0.5}s`,
+                  animationDuration: `${2 + Math.random() * 2}s`,
+                  backgroundColor: [
+                    "#FFD700",
+                    "#FFA500",
+                    "#FF6B6B",
+                    "#4ECDC4",
+                    "#45B7D1",
+                    "#96CEB4",
+                    "#FFEAA7",
+                    "#DFE6E9",
+                  ][Math.floor(Math.random() * 8)],
+                }}
+              />
+            ))}
+          </div>
           <div className={styles.modalContent}>
-            <div className={styles.modalIcon}>✅</div>
-            <h3 className={`${styles.modalTitle} ${styles.success}`}>
-              Success!
-            </h3>
+            <div className={styles.celebrationIcon}>🎉</div>
             <p className={styles.modalMessage}>{modalMessage}</p>
             <div className={styles.modalButtons}>
               <button

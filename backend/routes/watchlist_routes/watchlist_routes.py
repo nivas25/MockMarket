@@ -8,6 +8,7 @@ from controller.watchlist.watchlist_controller import (
     check_stock_in_watchlist,
     remove_stock_from_watchlist
 )
+from utils.pretty_log import status_warn
 import os
 
 watchlist_bp = Blueprint('watchlist_bp', __name__)
@@ -51,8 +52,12 @@ def check_stock():
 def remove_stock():
     """Remove a stock from user's watchlist (receives user_id from frontend)"""
     data = request.get_json()
+    status_warn(f"🌐 /remove-stock endpoint hit with data: {data}")
+    
     user_id = data.get('user_id')
     stock_id = data.get('stock_id')
+    
+    status_warn(f"📝 Parsed: user_id={user_id}, stock_id={stock_id}")
     
     if not user_id:
         return jsonify({"success": False, "message": "user_id is required"}), 400

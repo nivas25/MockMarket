@@ -238,13 +238,8 @@ def re_submit(stock_name: str, intended_price: float, user_id: int, quantity: in
             if user_balance < cost:
                 return {"status": "error", "message": "Insufficient balance to complete this order."}
 
-        price_diff = abs(live_price - intended_price)
-        if confirm_code != "proceedok" and price_diff > 0.5:
-            return {
-                "status": "price_changed",
-                "message": f"Price changed to ₹{live_price}. Please confirm to continue.",
-                "current_price": live_price
-            }
+        # Removed price change confirmation step: always execute at current live_price.
+        # (Previously required client confirmation if |diff| > 0.5.)
 
         cursor = connection.cursor()
         cursor.execute("""

@@ -42,7 +42,9 @@ def get_user_watchlists(user_id: int) -> Dict[str, Any]:
             SELECT 
               w.watchlist_id,
               w.name AS watchlist_name,
+              s.stock_id,
               s.company_name AS stock_name,
+              s.symbol AS stock_symbol,
               sp.ltp AS current_price
             FROM Watchlist w
             INNER JOIN Watchlist_Stocks ws ON w.watchlist_id = ws.watchlist_id
@@ -58,7 +60,9 @@ def get_user_watchlists(user_id: int) -> Dict[str, Any]:
         watchlist_groups = defaultdict(list)
         for row in results:
             watchlist_groups[row['watchlist_id']].append({
+                'stock_id': row['stock_id'],
                 'stock_name': row['stock_name'],
+                'stock_symbol': row['stock_symbol'],
                 'current_price': row['current_price']  # float or None if no price
             })
 

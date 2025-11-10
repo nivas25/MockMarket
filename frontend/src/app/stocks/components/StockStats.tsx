@@ -1,6 +1,7 @@
 "use client";
 
 import styles from "./StockStats.module.css";
+import { useLiveStockStats } from "@/hooks/useLiveStockStats";
 
 type StockData = {
   dayHigh: number;
@@ -14,9 +15,12 @@ type StockData = {
 
 type StockStatsProps = {
   stock: StockData;
+  symbol: string;
 };
 
-export default function StockStats({ stock }: StockStatsProps) {
+export default function StockStats({ stock, symbol }: StockStatsProps) {
+  const live = useLiveStockStats(symbol);
+  const s = (live || stock) as StockData;
   const formatNumber = (num: number) => {
     return num.toLocaleString("en-IN", {
       minimumFractionDigits: 2,
@@ -24,7 +28,7 @@ export default function StockStats({ stock }: StockStatsProps) {
     });
   };
 
-  const isPositive = stock.changeValue >= 0;
+  const isPositive = s.changeValue >= 0;
 
   return (
     <div className={styles.statsContainer}>
@@ -54,7 +58,7 @@ export default function StockStats({ stock }: StockStatsProps) {
             <div className={styles.statLabel}>Current Price</div>
           </div>
           <div className={styles.statValue}>
-            ₹{formatNumber(stock.currentPrice)}
+            ₹{formatNumber(s.currentPrice)}
           </div>
         </div>
 
@@ -102,10 +106,10 @@ export default function StockStats({ stock }: StockStatsProps) {
                 </svg>
               )}
             </span>
-            <div className={styles.statLabel}>Today's Change</div>
+            <div className={styles.statLabel}>Today’s Change</div>
           </div>
           <div className={styles.statValue}>
-            {stock.changeValue.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
+            {s.changeValue.toFixed(2)} ({s.changePercent.toFixed(2)}%)
           </div>
         </div>
 
@@ -133,7 +137,7 @@ export default function StockStats({ stock }: StockStatsProps) {
             <div className={styles.statLabel}>Day High</div>
           </div>
           {/* --- THIS IS THE FIX --- */}
-          <div className={styles.statValue}>₹{formatNumber(stock.dayHigh)}</div>
+          <div className={styles.statValue}>₹{formatNumber(s.dayHigh)}</div>
           {/* --------------------- */}
         </div>
 
@@ -160,7 +164,7 @@ export default function StockStats({ stock }: StockStatsProps) {
             </span>
             <div className={styles.statLabel}>Day Low</div>
           </div>
-          <div className={styles.statValue}>₹{formatNumber(stock.dayLow)}</div>
+          <div className={styles.statValue}>₹{formatNumber(s.dayLow)}</div>
         </div>
 
         <div className={`${styles.statCard} ${styles.cardBlue}`}>
@@ -185,7 +189,7 @@ export default function StockStats({ stock }: StockStatsProps) {
             </span>
             <div className={styles.statLabel}>Open</div>
           </div>
-          <div className={styles.statValue}>₹{formatNumber(stock.dayOpen)}</div>
+          <div className={styles.statValue}>₹{formatNumber(s.dayOpen)}</div>
         </div>
 
         <div className={`${styles.statCard} ${styles.cardGray}`}>
@@ -212,7 +216,7 @@ export default function StockStats({ stock }: StockStatsProps) {
             <div className={styles.statLabel}>Prev. Close</div>
           </div>
           <div className={styles.statValue}>
-            ₹{formatNumber(stock.previousClose)}
+            ₹{formatNumber(s.previousClose)}
           </div>
         </div>
       </div>

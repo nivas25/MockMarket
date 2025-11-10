@@ -180,6 +180,13 @@ if __name__ == '__main__':
         start_hot_cache_scheduler()
     except Exception as e:
         print(f"[HOT CACHE] Not started: {e}")
+
+    # Start EOD daily candle scheduler (persists daily OHLC after close)
+    try:
+        from services.eod_candle_scheduler import start_eod_candle_scheduler
+        start_eod_candle_scheduler()
+    except Exception as e:
+        logger.error(f"Failed to start EOD candle scheduler: {e}")
     
     # Run with SocketIO server to enable WebSocket transport
     # Note: debug=False with eventlet to avoid WSGI server conflicts

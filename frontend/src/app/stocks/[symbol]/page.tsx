@@ -1,9 +1,7 @@
 import styles from "./StockDetail.module.css";
 import StockHeader from "../components/StockHeader";
 import StocksTopBar from "../components/StocksTopBar";
-import StockChart from "../components/StockChart";
 
-import ModernStockChart from "../components/ModernStockChart";
 // --- 1. Import the new container ---
 import StockChartContainer from "../components/StockChartContainer";
 import StockStorage from "../components/StockStorage";
@@ -104,14 +102,17 @@ export default async function StockPage({ params }: StockPageProps) {
 
           {/* Right: Order Panel (Buy/Sell) */}
           <div className={styles.orderSection}>
-            <OrderPanel currentPrice={stockFormatted.currentPrice} />
+            <OrderPanel
+              currentPrice={stockFormatted.currentPrice}
+              symbol={stockFormatted.symbol}
+            />
           </div>
         </div>
 
         {/* Market Statistics Section */}
         <div className={styles.statsSection}>
-          {/* This will now show the upgraded stats */}
-          <StockStats stock={stockFormatted} />
+          {/* Live-updating stats with 10s polling on this page only */}
+          <StockStats stock={stockFormatted} symbol={symbol} />
         </div>
       </div>
     </div>

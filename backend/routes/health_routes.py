@@ -7,6 +7,18 @@ from db_pool import get_connection
 health_bp = Blueprint("health", __name__)
 
 
+@health_bp.get("/health")
+def health():
+    """
+    Simple health check for Render/keep-alive pings.
+    Returns 200 OK instantly without DB check (faster for cold starts).
+    """
+    return jsonify({
+        "status": "healthy",
+        "service": "mockmarket-backend"
+    }), 200
+
+
 @health_bp.get("/healthz")
 def healthz():
     t0 = time.time()

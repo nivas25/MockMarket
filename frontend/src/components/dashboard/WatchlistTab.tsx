@@ -13,14 +13,18 @@ type WatchlistItem = {
   watchlist_id: number;
   watchlist_name: string;
   stocks: Array<{
+    stock_id: number;
     stock_name: string;
+    stock_symbol: string;
     current_price: string | number | null;
   }>;
 };
 
 export function WatchlistTab({ watchlist }: WatchlistTabProps) {
   const [query, setQuery] = useState("");
-  const [fetchedWatchlists, setFetchedWatchlists] = useState<WatchlistItem[]>([]);
+  const [fetchedWatchlists, setFetchedWatchlists] = useState<WatchlistItem[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<number | null>(null);
@@ -44,7 +48,9 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
           return;
         }
 
-        const response = await axios.post(`${url}/fetch/watchlists`, { user_id });
+        const response = await axios.post(`${url}/fetch/watchlists`, {
+          user_id,
+        });
         console.log("Watchlist response:", response.data);
 
         if (response.data.status === "success") {
@@ -54,7 +60,10 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
         }
       } catch (err: any) {
         console.error("Error fetching watchlists:", err);
-        setError(err.response?.data?.message || "Failed to fetch watchlists. Please try again.");
+        setError(
+          err.response?.data?.message ||
+            "Failed to fetch watchlists. Please try again."
+        );
       } finally {
         setLoading(false);
       }
@@ -68,7 +77,9 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
     return fetchedWatchlists.flatMap((wl) => {
       if (!wl.stocks || wl.stocks.length === 0) return [];
       return wl.stocks.map((stock) => ({
+        stock_id: stock.stock_id,
         name: stock.stock_name.trim(),
+        symbol: stock.stock_symbol.trim(),
         price: stock.current_price || 0,
         watchlist_id: wl.watchlist_id,
         watchlist_name: wl.watchlist_name,
@@ -81,81 +92,91 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
     return allStocks.filter(
       (s) =>
         !q ||
-        s.name.toLowerCase().includes(q)
+        s.name.toLowerCase().includes(q) ||
+        s.symbol.toLowerCase().includes(q)
     );
   }, [allStocks, query]);
 
-  // Fake sparkline data generator (simple line for price movement)
-  const generateSparklineData = (name: string) => {
-    const seed = name.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-    const points = Array.from({ length: 20 }, (_, i) => {
-      const base = 1000 + (seed % 500);
-      const variation = Math.sin(i * 0.5 + seed % 10) * 50;
-      return base + variation;
-    });
-    return points;
-  };
-
-  const renderSparkline = (name: string, price: number) => {
-    const data = generateSparklineData(name);
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    const range = max - min;
-
-    return (
-      <svg
-        className={styles.sparkline}
-        width="80"
-        height="20"
-        viewBox="0 0 80 20"
-      >
-        <path
-          d={`M0,10 ${data.map((d, i) => `${i * 4}, ${(20 - ((d - min) / range) * 20)}`).join(' L')} L80,10 Z`}
-          fill="rgba(0, 179, 134, 0.15)"
-          stroke="rgba(0, 179, 134, 0.85)"
-          strokeWidth="1.5"
-        />
-      </svg>
-    );
-  };
-
- const handleRemoveStock = async (watchlistId: number) => {
-  setRemovingId(watchlistId);
-  try {
-    console.log(`Deleting watchlist with ID: ${watchlistId}`);
-
-    const response = await axios.delete(`${url}/delete/watchlist`, {
-      data: { watchlist_id: watchlistId } // ✅ correct placement
-    });
-
-    console.log("Delete response:", response.data);
-
-    if (response.data.status === "success") {
-      alert("Watchlist deleted successfully!");
-      // ✅ Instantly update UI
-      setFetchedWatchlists((prev) =>
-        prev.filter((wl) => wl.watchlist_id !== watchlistId)
-      );
-    } else {
-      alert(response.data.message || "Failed to delete the watchlist.");
+  // Get userId once for remove operations
+  const getUserId = (): number | null => {
+    const token = localStorage.getItem("authToken");
+    if (!token) return null;
+    interface DecodedToken {
+      sub: { user_id: number };
     }
-  } catch (err: any) {
-    console.error("Error deleting watchlist:", err);
-    alert(
-      err.response?.data?.message ||
-      "An error occurred while deleting the watchlist."
-    );
-  } finally {
-    setRemovingId(null);
-  }
-};
+    try {
+      const decode = jwtDecode<DecodedToken>(token);
+      return decode?.sub?.user_id || null;
+    } catch {
+      return null;
+    }
+  };
 
+  const handleRemoveStock = async (stockId: number, userId: number) => {
+    console.log("🔵 handleRemoveStock called with:", { stockId, userId });
 
+    setRemovingId(stockId);
+    try {
+      const deleteUrl = `${url}/watchlist/remove-stock`;
+      const deleteData = { user_id: userId, stock_id: stockId };
+
+      console.log("🌐 Making DELETE request to:", deleteUrl);
+      console.log("📤 Request data:", JSON.stringify(deleteData, null, 2));
+
+      const response = await axios.delete(deleteUrl, {
+        data: deleteData,
+      });
+
+      console.log("📥 Remove stock response:", response.data);
+
+      if (response.data.success) {
+        console.log("✅ Stock removed successfully, refreshing watchlist...");
+
+        // ✅ Refresh the watchlists to reflect the change
+        const token = localStorage.getItem("authToken");
+        if (token) {
+          interface DecodedToken {
+            sub: { user_id: number };
+          }
+          const decode = jwtDecode<DecodedToken>(token);
+          const user_id = decode?.sub?.user_id;
+
+          if (user_id) {
+            console.log("🔄 Fetching updated watchlist for user_id:", user_id);
+            const refreshResponse = await axios.post(
+              `${url}/fetch/watchlists`,
+              { user_id }
+            );
+            console.log("📊 Refresh response:", refreshResponse.data);
+
+            if (refreshResponse.data.status === "success") {
+              setFetchedWatchlists(refreshResponse.data.data);
+              console.log("✅ Watchlist UI updated successfully");
+            }
+          }
+        }
+      } else {
+        console.error("❌ Failed to remove stock:", response.data.message);
+        alert(
+          response.data.message || "Failed to remove stock from watchlist."
+        );
+      }
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      console.error("❌ Error removing stock:", error);
+      alert(
+        error.response?.data?.message ||
+          "An error occurred while removing the stock."
+      );
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   if (loading) {
     return (
       <section className={styles.watchlistWrap}>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <div style={{ textAlign: "center", padding: "2rem" }}>
           Loading watchlists...
         </div>
       </section>
@@ -165,7 +186,7 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
   if (error) {
     return (
       <section className={styles.watchlistWrap}>
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'red' }}>
+        <div style={{ textAlign: "center", padding: "2rem", color: "red" }}>
           {error}
         </div>
       </section>
@@ -202,7 +223,6 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-
         </div>
       </header>
 
@@ -211,37 +231,55 @@ export function WatchlistTab({ watchlist }: WatchlistTabProps) {
           <thead className={styles.thead}>
             <tr>
               <th>Stock</th>
-              <th>Graph</th>
+              <th>Symbol</th>
+              <th>Price</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody className={styles.tbody}>
             {filtered.length ? (
-              filtered.map((stock, idx) => (
-                <tr key={`${stock.name}-${idx}`} className={styles.tr}>
-                  <td className={styles.tdStock}>
-                    <div className={styles.name}>{stock.name}</div>
-                    <div className={styles.price}>
-                      ₹{typeof stock.price === 'number' ? stock.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : stock.price || 'N/A'}
-                    </div>
-                  </td>
-                  <td className={styles.tdGraph}>
-                    {renderSparkline(stock.name, stock.price)}
-                  </td>
-                  <td className={styles.tdActions}>
-                    <button
-                      className={`${styles.actionBtn} ${styles.removeBtn}`}
-                      onClick={() => handleRemoveStock(stock.watchlist_id)}
-                      disabled={removingId === stock.watchlist_id}
-                    >
-                      {removingId === stock.watchlist_id ? 'Please wait' : 'Remove'}
-                    </button>
-                  </td>
-                </tr>
-              ))
+              filtered.map((stock, idx) => {
+                const userId = getUserId();
+                const priceNum =
+                  typeof stock.price === "number"
+                    ? stock.price
+                    : parseFloat(String(stock.price)) || 0;
+                return (
+                  <tr key={`${stock.stock_id}-${idx}`} className={styles.tr}>
+                    <td className={styles.tdStock}>
+                      <div className={styles.name}>{stock.name}</div>
+                    </td>
+                    <td className={styles.tdSymbol}>
+                      <div className={styles.symbol}>{stock.symbol}</div>
+                    </td>
+                    <td className={styles.tdPrice}>
+                      <div className={styles.price}>
+                        ₹
+                        {priceNum.toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </div>
+                    </td>
+                    <td className={styles.tdActions}>
+                      <button
+                        className={`${styles.actionBtn} ${styles.removeBtn}`}
+                        onClick={() =>
+                          userId && handleRemoveStock(stock.stock_id, userId)
+                        }
+                        disabled={removingId === stock.stock_id || !userId}
+                      >
+                        {removingId === stock.stock_id
+                          ? "Removing..."
+                          : "Remove"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
-                <td colSpan={3} className={styles.emptyWrap}>
+                <td colSpan={4} className={styles.emptyWrap}>
                   <div className={styles.emptyIcon} aria-hidden="true">
                     <svg
                       viewBox="0 0 24 24"

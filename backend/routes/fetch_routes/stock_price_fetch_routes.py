@@ -11,6 +11,12 @@ from db_pool import get_connection
 from controller.fetch.stock_prices_fetch.fetch_stocks_prices import fetch_all_stock_prices
 from services.http_client import upstox_get
 from services.cache_service import get_cache
+from utils.market_hours import should_use_websocket
+# Optional live cache for real-time movers
+try:
+    from services.live_price_cache import get_all_cached_prices
+except Exception:
+    get_all_cached_prices = None  # type: ignore
 # -----------------
 
 stock_prices_bp = Blueprint('stock_prices_bp', __name__)
@@ -86,6 +92,41 @@ def _top_movers_query(order: str, limit: int, exchange: str | None, use_intraday
         cursor.execute(sql, params)
         rows = cursor.fetchall()
 
+        # If during market hours and live cache available, override LTP with live values
+        # and recompute change percent/value for real-time movers.
+        try:
+            if should_use_websocket() and get_all_cached_prices is not None:
+                live_map = {}
+                for e in get_all_cached_prices():
+                    sid = e.get("stock_id")
+                    if sid is not None:
+                        live_map[sid] = {
+                            "ltp": e.get("ltp"),
+                            "day_open": e.get("day_open"),
+                            "prev_close": e.get("prev_close"),
+                        }
+                # recompute metrics
+                for r in rows:
+                    live = live_map.get(r["stock_id"]) if isinstance(r, dict) else None
+                    if not live:
+                        continue
+                    ltp_live = live.get("ltp")
+                    if ltp_live is None:
+                        continue
+                    r["ltp"] = float(ltp_live)
+                    # prefer base from cache if present to avoid DB-stale open/close
+                    base = None
+                    if use_intraday:
+                        base = float(live.get("day_open") or r.get("day_open") or 0)
+                    else:
+                        base = float(live.get("prev_close") or r.get("prev_close") or 0)
+                    if base:
+                        r["change_value"] = float(r["ltp"]) - base
+                        r["change_percent"] = ((float(r["ltp"]) - base) / base) * 100.0
+        except Exception:
+            # best-effort live override; fallback to DB-derived rows on any error
+            pass
+
         # Map to frontend-friendly structure
         movers = []
         for r in rows:
@@ -117,12 +158,13 @@ def top_gainers():
         # Use intraday mode by default (matches Groww/Zerodha)
         use_intraday = request.args.get('intraday', 'true').lower() == 'true'
         
-        # Cache for 10 seconds during market hours (data changes frequently but not every request)
-        cache_key = f"gainers:{exchange}:{limit}:{use_intraday}"
+        # Cache for 3 seconds during market hours, 10 seconds otherwise
+        live_mode = should_use_websocket()
+        cache_key = f"gainers:{exchange}:{limit}:{use_intraday}:{live_mode}"
         movers = cache.get_or_compute_stale(
             cache_key,
             lambda: _top_movers_query(order="DESC", limit=limit, exchange=exchange, use_intraday=use_intraday),
-            ttl_seconds=10,
+            ttl_seconds=3 if live_mode else 10,
             stale_ttl_seconds=120
         )
         
@@ -146,12 +188,13 @@ def top_losers():
         # Use intraday mode by default (matches Groww/Zerodha)
         use_intraday = request.args.get('intraday', 'true').lower() == 'true'
         
-        # Cache for 10 seconds
-        cache_key = f"losers:{exchange}:{limit}:{use_intraday}"
+        # Cache for 3 seconds during market hours, 10 seconds otherwise
+        live_mode = should_use_websocket()
+        cache_key = f"losers:{exchange}:{limit}:{use_intraday}:{live_mode}"
         movers = cache.get_or_compute_stale(
             cache_key,
             lambda: _top_movers_query(order="ASC", limit=limit, exchange=exchange, use_intraday=use_intraday),
-            ttl_seconds=10,
+            ttl_seconds=3 if live_mode else 10,
             stale_ttl_seconds=120
         )
         
@@ -169,14 +212,14 @@ def top_losers():
 
 @stock_prices_bp.route('/detail/<string:symbol>', methods=['GET'])
 def get_stock_detail(symbol):
-    """Get detailed stock information by symbol"""
+    """Get detailed stock information by symbol - uses live cache during market hours"""
     conn = None
     cursor = None
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Query stock info + latest price
+        # Query stock info + latest price from database
         sql = """
             SELECT 
                 s.stock_id,
@@ -211,7 +254,7 @@ def get_stock_detail(symbol):
                 "message": f"Stock '{symbol}' not found in database"
             }), 404
         
-        # Format response - handle None values safely
+        # Extract DB values
         ltp = float(stock['ltp']) if stock.get('ltp') is not None else None
         prev_close = float(stock['prev_close']) if stock.get('prev_close') is not None else None
         day_open = float(stock['day_open']) if stock.get('day_open') is not None else None
@@ -220,8 +263,38 @@ def get_stock_detail(symbol):
         change_pct = float(stock['change_percent']) if stock.get('change_percent') is not None else None
         change_val = float(stock['change_value']) if stock.get('change_value') is not None else None
         
+        # 🔥 OVERRIDE WITH LIVE CACHE if market is open
+        try:
+            if should_use_websocket():
+                from services.live_price_cache import get_cached_price_by_stock_id
+                live_price = get_cached_price_by_stock_id(stock['stock_id'])
+                
+                if live_price:
+                    # Update with live values
+                    ltp = float(live_price.get("ltp", ltp))
+                    
+                    # Update OHLC if available from cache
+                    if live_price.get("day_open") is not None:
+                        day_open = float(live_price["day_open"])
+                    if live_price.get("prev_close") is not None:
+                        prev_close = float(live_price["prev_close"])
+                    if live_price.get("day_high") is not None:
+                        day_high = float(live_price["day_high"])
+                    if live_price.get("day_low") is not None:
+                        day_low = float(live_price["day_low"])
+                    
+                    # Recalculate change with live price
+                    if prev_close and prev_close > 0:
+                        change_val = ltp - prev_close
+                        change_pct = ((ltp - prev_close) / prev_close) * 100.0
+                    
+                    print(f"✅ [get_stock_detail] Using LIVE price for {symbol}: ₹{ltp:.2f}")
+        except Exception as e:
+            print(f"⚠️ [get_stock_detail] Failed to get live price for {symbol}: {e}")
+            # Continue with DB values
+        
         response = {
-            "stock_id": stock['stock_id'],  # Add stock_id for watchlist
+            "stock_id": stock['stock_id'],
             "symbol": stock['symbol'],
             "companyName": stock['company_name'],
             "exchange": stock['exchange'],

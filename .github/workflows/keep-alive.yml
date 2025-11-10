@@ -1,0 +1,44 @@
+name: Keep Render Backend Alive
+
+# Ping the backend every 10 minutes to prevent Render free tier sleep
+# This ensures your backend stays warm and responsive 24/7
+
+on:
+  schedule:
+    # Run every 10 minutes (cron format: minute hour day month weekday)
+    - cron: "*/10 * * * *"
+
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+
+jobs:
+  ping-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Render Backend Health Endpoint
+        run: |
+          echo "🔄 Pinging backend to keep it alive..."
+
+          # Replace with your actual Render backend URL after deployment
+          BACKEND_URL="${{ secrets.BACKEND_URL }}"
+
+          # If no secret set, use a placeholder (will fail but show in logs)
+          if [ -z "$BACKEND_URL" ]; then
+            echo "⚠️ BACKEND_URL secret not set. Add it in GitHub Settings → Secrets"
+            echo "Example: https://your-backend-name.onrender.com"
+            exit 0
+          fi
+
+          # Ping health endpoint
+          response=$(curl -s -o /dev/null -w "%{http_code}" "$BACKEND_URL/health")
+
+          if [ "$response" -eq 200 ]; then
+            echo "✅ Backend is alive! (HTTP $response)"
+          else
+            echo "❌ Backend returned HTTP $response"
+            exit 1
+          fi
+
+      - name: Log timestamp
+        run: echo "Last ping at $(date -u)"

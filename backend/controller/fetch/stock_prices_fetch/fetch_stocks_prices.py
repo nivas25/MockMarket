@@ -186,6 +186,8 @@ def fetch_all_stock_prices(save_to_db=False):
                         "symbol": symbols[idx].upper(),  # Uppercase for consistency with DB symbols
                         "stock_id": stock_ids[idx],  # Add stock_id for cache
                         "ltp": price_data['ltp'],
+                        "day_open": price_data['day_open'],
+                        "prev_close": price_data['prev_close'],
                         "as_of": price_data['as_of'].isoformat(),
                     })
 

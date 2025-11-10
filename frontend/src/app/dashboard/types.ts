@@ -46,6 +46,7 @@ export type Holding = {
 export type OrderStatus = "Completed" | "Pending" | "Cancelled";
 
 export type Order = {
+  order_id: number;
   name: string;
   type: "BUY" | "SELL";
   qty: number;

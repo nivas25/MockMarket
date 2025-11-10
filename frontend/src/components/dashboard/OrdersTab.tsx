@@ -14,8 +14,8 @@ export function OrdersTab({ orders }: OrdersTabProps) {
   const [localOrders, setLocalOrders] = useState<Order[]>(orders || []);
   const [loading, setLoading] = useState(true);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [confirming, setConfirming] = useState<string | null>(null);
-  const [removing, setRemoving] = useState<string | null>(null);
+    const [confirming, setConfirming] = useState<number | null>(null);
+    const [removing, setRemoving] = useState<number | null>(null);
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -111,7 +111,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const result = (localOrders || []).filter((o) => {
-      const byStatus = o.status === "pending";
+      const byStatus = o.status === "Pending";
       const byQuery = !q || o.name.toLowerCase().includes(q);
       return byStatus && byQuery;
     });
@@ -259,7 +259,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
             </thead>
             <tbody className={styles.tbody}>
               {filtered.map((order, idx) => {
-                const isBuy = order.type === "Buy";
+                  const isBuy = order.type === "BUY";
                 const isConfirmingThis = confirming === order.order_id;
                 const isRemovingThis = removing === order.order_id;
                 return (
@@ -326,7 +326,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
       <div className={styles.listWrap}>
         {filtered.length ? (
           filtered.map((order, idx) => {
-            const isBuy = order.type === "Buy";
+              const isBuy = order.type === "BUY";
             const isConfirmingThis = confirming === order.order_id;
             const isRemovingThis = removing === order.order_id;
             return (

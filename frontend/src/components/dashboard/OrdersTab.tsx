@@ -2,8 +2,8 @@ import styles from "./OrdersTab.module.css";
 import type { Order } from "../../app/dashboard/types";
 import { useEffect, useMemo, useState } from "react";
 import { jwtDecode } from "jwt-decode";
-import { url } from '../../config.js';
-import axios from 'axios';
+import { url } from "../../config.js";
+import axios from "axios";
 
 type OrdersTabProps = {
   orders: Order[];
@@ -14,14 +14,11 @@ export function OrdersTab({ orders }: OrdersTabProps) {
   const [localOrders, setLocalOrders] = useState<Order[]>(orders || []);
   const [loading, setLoading] = useState(true);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-    const [confirming, setConfirming] = useState<number | null>(null);
-    const [removing, setRemoving] = useState<number | null>(null);
+  const [confirming, setConfirming] = useState<number | null>(null);
+  const [removing, setRemoving] = useState<number | null>(null);
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-
-
 
   const fetchOrderDetails = async () => {
     console.log("Fetching order details");
@@ -65,14 +62,16 @@ export function OrdersTab({ orders }: OrdersTabProps) {
       const response = await axios.post(`${url}/fetch/api/orders`, { user_id });
       console.log("API Response:", response.data);
 
-      const mappedOrders: Order[] = (response.data.orders || []).map((o: any) => ({
-        name: o.stock_name,
-        type: o.trade_type,
-        qty: o.quantity,
-        status: o.order_type,
-        order_id: o.order_id,
-        price: 0,
-      }));
+      const mappedOrders: Order[] = (response.data.orders || []).map(
+        (o: any) => ({
+          name: o.stock_name,
+          type: o.trade_type,
+          qty: o.quantity,
+          status: o.order_type,
+          order_id: o.order_id,
+          price: 0,
+        })
+      );
 
       console.log("Mapped orders:", mappedOrders);
       setLocalOrders(mappedOrders);
@@ -103,8 +102,6 @@ export function OrdersTab({ orders }: OrdersTabProps) {
       window.removeEventListener("focus", handleFocus);
     };
   }, []);
-
-
 
   console.log("Component rendered, localOrders:", localOrders);
 
@@ -142,7 +139,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
         trade_type: order.type,
         user_id: user_id,
         confirm_code: "proceedok",
-        order_id: order.order_id   // ✅ ADD THIS LINE
+        order_id: order.order_id, // ✅ ADD THIS LINE
       };
       console.log("Request body for re_submit:", requestBody);
       const response = await axios.post(`${url}/re_submit/order`, requestBody);
@@ -161,8 +158,10 @@ export function OrdersTab({ orders }: OrdersTabProps) {
         fetchOrderDetails();
       }
     } catch (error: any) {
-      console.error('Confirm error:', error);
-      const errorMsg = error.response?.data?.message || 'An error occurred during confirmation.';
+      console.error("Confirm error:", error);
+      const errorMsg =
+        error.response?.data?.message ||
+        "An error occurred during confirmation.";
       setErrorMessage(errorMsg);
       setShowErrorPopup(true);
       setTimeout(() => {
@@ -174,7 +173,6 @@ export function OrdersTab({ orders }: OrdersTabProps) {
     }
   };
 
-
   const handleRemove = async (order: Order) => {
     console.log("removing");
     const token = localStorage.getItem("authToken");
@@ -185,7 +183,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
       console.log("Removing order:", order.order_id);
       await axios.delete(`${url}/order/delete`, {
         data: { order_id: order.order_id },
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       });
 
       setShowSuccessPopup(true);
@@ -199,18 +197,16 @@ export function OrdersTab({ orders }: OrdersTabProps) {
     }
   };
 
-
   if (loading) {
     console.log("Showing loading state");
     return (
       <section className={styles.ordersWrap}>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <div style={{ textAlign: "center", padding: "2rem" }}>
           Loading orders...
         </div>
       </section>
     );
   }
-
 
   return (
     <section className={styles.ordersWrap}>
@@ -259,7 +255,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
             </thead>
             <tbody className={styles.tbody}>
               {filtered.map((order, idx) => {
-                  const isBuy = order.type === "BUY";
+                const isBuy = order.type === "BUY";
                 const isConfirmingThis = confirming === order.order_id;
                 const isRemovingThis = removing === order.order_id;
                 return (
@@ -267,8 +263,9 @@ export function OrdersTab({ orders }: OrdersTabProps) {
                     <td>{order.name}</td>
                     <td>
                       <span
-                        className={`${styles.badge} ${isBuy ? styles.sideBuy : styles.sideSell
-                          }`}
+                        className={`${styles.badge} ${
+                          isBuy ? styles.sideBuy : styles.sideSell
+                        }`}
                       >
                         {order.type}
                       </span>
@@ -326,7 +323,7 @@ export function OrdersTab({ orders }: OrdersTabProps) {
       <div className={styles.listWrap}>
         {filtered.length ? (
           filtered.map((order, idx) => {
-              const isBuy = order.type === "BUY";
+            const isBuy = order.type === "BUY";
             const isConfirmingThis = confirming === order.order_id;
             const isRemovingThis = removing === order.order_id;
             return (
@@ -334,14 +331,17 @@ export function OrdersTab({ orders }: OrdersTabProps) {
                 <div className={styles.cardHeader}>
                   <div className={styles.tickerBlock}>
                     <div
-                      className={`${styles.sidePill} ${isBuy ? styles.buy : styles.sell
-                        }`}
+                      className={`${styles.sidePill} ${
+                        isBuy ? styles.buy : styles.sell
+                      }`}
                     >
                       {order.type}
                     </div>
                     <div className={styles.tickerName}>{order.name}</div>
                   </div>
-                  <div className={`${styles.statusPill} ${styles.statusPending}`}>
+                  <div
+                    className={`${styles.statusPill} ${styles.statusPending}`}
+                  >
                     Pending
                   </div>
                 </div>
@@ -399,17 +399,17 @@ export function OrdersTab({ orders }: OrdersTabProps) {
       {showSuccessPopup && (
         <div
           style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            padding: '12px 20px',
-            borderRadius: '4px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            backgroundColor: "#4CAF50",
+            color: "white",
+            padding: "12px 20px",
+            borderRadius: "4px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
             zIndex: 1000,
-            fontSize: '14px',
-            fontWeight: '500',
+            fontSize: "14px",
+            fontWeight: "500",
           }}
         >
           Order has been removed
@@ -418,18 +418,18 @@ export function OrdersTab({ orders }: OrdersTabProps) {
       {showConfirmPopup && (
         <div
           style={{
-            position: 'fixed',
-            marginTop: '40px',
-            top: '20px',
-            right: '20px',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            padding: '12px 20px',
-            borderRadius: '4px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            position: "fixed",
+            marginTop: "40px",
+            top: "20px",
+            right: "20px",
+            backgroundColor: "#4CAF50",
+            color: "white",
+            padding: "12px 20px",
+            borderRadius: "4px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
             zIndex: 1000,
-            fontSize: '14px',
-            fontWeight: '500',
+            fontSize: "14px",
+            fontWeight: "500",
           }}
         >
           Order has been confirmed
@@ -438,21 +438,20 @@ export function OrdersTab({ orders }: OrdersTabProps) {
       {showErrorPopup && errorMessage && (
         <div
           style={{
-
-            position: 'fixed',
-            marginTop: '40px',
-            top: '20px',
-            right: '20px',
-            backgroundColor: '#f44336',
-            color: 'white',
-            padding: '12px 20px',
-            borderRadius: '4px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+            position: "fixed",
+            marginTop: "40px",
+            top: "20px",
+            right: "20px",
+            backgroundColor: "#f44336",
+            color: "white",
+            padding: "12px 20px",
+            borderRadius: "4px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
             zIndex: 1000,
-            fontSize: '14px',
-            fontWeight: '500',
-            maxWidth: '300px',
-            wordWrap: 'break-word',
+            fontSize: "14px",
+            fontWeight: "500",
+            maxWidth: "300px",
+            wordWrap: "break-word",
           }}
         >
           {errorMessage}

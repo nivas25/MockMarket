@@ -27,6 +27,9 @@ feedparser==6.0.11
 # Environment
 python-dotenv==1.1.1
 
+# Timezone support
+pytz==2024.2
+
 # Logging/utilities
 blinker==1.9.0
 click==8.3.0

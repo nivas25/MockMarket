@@ -60,7 +60,19 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 jwt = JWTManager(app)
 
 # Enable CORS for auth routes
-CORS(app)
+# Allow requests from Vercel frontend and local development
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://*.vercel.app",  # All Vercel deployments
+            "http://localhost:3000",  # Local development
+            "http://localhost:3001",  # Alternative local port
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 
 
 # Enable gzip compression to reduce payload sizes and speed up responses

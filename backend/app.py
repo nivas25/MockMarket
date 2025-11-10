@@ -63,14 +63,17 @@ jwt = JWTManager(app)
 # Allow requests from Vercel frontend and local development
 CORS(app, resources={
     r"/*": {
+        # Explicitly allow your deployed Vercel domain and localhost. Wildcards like
+        # "https://*.vercel.app" are not matched literally by Flask-CORS, so list
+        # known origins and (optionally) add a regex pattern below if needed.
         "origins": [
-            "https://*.vercel.app",  # All Vercel deployments
-            "http://localhost:3000",  # Local development
-            "http://localhost:3001",  # Alternative local port
+            "https://mockmarket1.vercel.app",
+            "http://localhost:3000",
+            "http://localhost:3001",
         ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True
+        "supports_credentials": True,
     }
 })
 

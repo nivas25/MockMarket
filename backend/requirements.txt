@@ -1,5 +1,6 @@
 # MockMarket Backend - Production Dependencies
 # For deployment to Render.com
+# Python 3.11 recommended (gevent not yet compatible with 3.13)
 
 # Web framework
 Flask==3.1.2

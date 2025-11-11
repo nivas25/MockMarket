@@ -10,7 +10,7 @@ from typing import Optional
 start_time = time.time()
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, g, request
+from flask import Flask, jsonify, g, request, make_response
 from flask_cors import CORS
 from flask_compress import Compress
 from services.websocket_manager import init_socketio, socketio
@@ -80,12 +80,30 @@ CORS(app, resources={
 # Enable gzip compression
 Compress(app)
 
-# Performance monitoring and security headers
+# Performance monitoring, preflight handling and security context
 @app.before_request
 def before_request_handler():
-    """Track request start time and add security context"""
+    """Track request start time, handle CORS preflight early, and add security context."""
+    # Capture start time for perf metrics
     g._t0 = time.perf_counter()
     g.request_id = request.headers.get('X-Request-ID', f"{time.time()}")
+
+    # Central OPTIONS (preflight) handler to ensure Access-Control-Allow-* always returned
+    if request.method == 'OPTIONS':
+        origin = request.headers.get('Origin')
+        if origin:
+            # Normalize allowed origins list once
+            _allowed = {o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(',') if o.strip()}
+            if origin in _allowed:
+                resp = make_response('', 200)
+                resp.headers['Access-Control-Allow-Origin'] = origin
+                resp.headers['Vary'] = 'Origin'
+                resp.headers['Access-Control-Allow-Credentials'] = 'true'
+                resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+                resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+                return resp
+        # If origin not allowed, still return 200 (browser will block) to avoid 500 noise
+        return make_response('', 200)
 
 @app.after_request
 def after_request_handler(response):
@@ -111,6 +129,17 @@ def after_request_handler(response):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         
+        # Fallback CORS headers if Flask-CORS didn't set them (e.g. route-level decorator missing)
+        origin = request.headers.get('Origin')
+        if origin:
+            allowed = {o.strip() for o in allowed_origins if o.strip()}
+            if origin in allowed and 'Access-Control-Allow-Origin' not in response.headers:
+                response.headers['Access-Control-Allow-Origin'] = origin
+                response.headers['Vary'] = 'Origin'
+                response.headers['Access-Control-Allow-Credentials'] = 'true'
+                response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+
         # Cache control for API responses
         if request.path.startswith('/stocks/') or request.path.startswith('/indices/'):
             response.headers["Cache-Control"] = "public, max-age=10"  # 10s cache

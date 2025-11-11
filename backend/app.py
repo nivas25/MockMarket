@@ -152,7 +152,8 @@ def index():
         "timestamp": time.time()
     })
 
-# Register all blueprintsapp.register_blueprint(auth_bp, url_prefix='/auth')
+# Register all blueprints
+app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(verify_bp, url_prefix='/user')
 app.register_blueprint(stock_prices_bp, url_prefix='/stocks')
 app.register_blueprint(index_fetch_bp, url_prefix='/indices')

@@ -6,6 +6,7 @@ Executes trades and cleans up pending orders with proper validation.
 
 from flask import Blueprint, request, jsonify
 from flask_cors import cross_origin
+import os
 from controller.order.buy_sell_order import execute_trade
 from controller.order.delete_order import delete_order
 from utils.request_validators import require_fields, validate_positive_integer, validate_positive_number, validate_trade_type
@@ -15,9 +16,12 @@ logger = logging.getLogger(__name__)
 
 re_submit_trade_bp = Blueprint('trade', __name__)
 
+# Read allowed origins from environment so production domain is permitted
+_ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
 
 @re_submit_trade_bp.route('/order', methods=['POST', 'OPTIONS'])
-@cross_origin(origins=["http://localhost:3000"], methods=["POST", "OPTIONS"], headers=["Content-Type"])
+@cross_origin(origins=_ALLOWED_ORIGINS, methods=["POST", "OPTIONS"], headers=["Content-Type"])
 @require_fields('stock_name', 'intended_price', 'quantity', 'trade_type', 'user_id')
 def trade():
     """

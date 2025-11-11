@@ -1,52 +1,23 @@
-# Render Blueprint for MockMarket Backend
-# Optional: This file allows "Infrastructure as Code" deployment
-# You can also deploy via Render Dashboard manually
-
 services:
   - type: web
     name: mockmarket-backend
     runtime: python
-    region: oregon # Choose: oregon, frankfurt, singapore (oregon is default/fastest for US)
-    plan: free # Free tier (sleeps after 15min inactivity)
-    branch: main # Auto-deploy from this branch
+    region: singapore # Closest to India for best latency
+    plan: free
+    branch: main
+    rootDir: backend # Point to backend folder if repo has both frontend/backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --config gunicorn.conf.py app:app
-    healthCheckPath: /health
-
+    startCommand: gunicorn -c gunicorn.conf.py app:app
     envVars:
+      - key: FLASK_ENV
+        value: production
       - key: PYTHON_VERSION
         value: 3.11.0
-
-      # Database (set these in Render Dashboard for security)
-      - key: DB_HOST
-        sync: false # Manual entry in dashboard
-      - key: DB_PORT
-        sync: false
-      - key: DB_USER
-        sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_NAME
-        sync: false
-
-      # JWT & Auth
-      - key: JWT_SECRET_KEY
-        generateValue: true # Render auto-generates a secret
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
-
-      # External API
-      - key: UPSTOX_ACCESS_TOKEN
-        sync: false
-
-      # Schedulers (enabled by default)
-      - key: ENABLE_INDEX_SCHEDULER
-        value: true
-      - key: ENABLE_STOCK_SCHEDULER
-        value: true
-      - key: INDEX_FETCH_INTERVAL
-        value: 120
-      - key: STOCK_FETCH_INTERVAL
-        value: 120
+      - key: LOG_LEVEL
+        value: INFO
+      # Database will be added via dashboard for security
+      # JWT secret will be added via dashboard
+      # Google OAuth will be added via dashboard
+      # Upstox token will be added via dashboard
+    healthCheckPath: /health
+    autoDeploy: true

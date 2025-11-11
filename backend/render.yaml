@@ -11,8 +11,6 @@ services:
     envVars:
       - key: FLASK_ENV
         value: production
-      - key: PYTHON_VERSION
-        value: 3.11.0
       - key: LOG_LEVEL
         value: INFO
       # Database will be added via dashboard for security

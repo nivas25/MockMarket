@@ -1,6 +1,6 @@
 # MockMarket Backend - Production Dependencies
 # For deployment to Render.com
-# Python 3.11 recommended (gevent not yet compatible with 3.13)
+# Python 3.11 required (gevent not yet compatible with 3.13)
 
 # Web framework
 Flask==3.1.2
@@ -12,38 +12,38 @@ gunicorn==23.0.0
 
 # Auth
 flask-jwt-extended==4.7.1
-google-auth==2.30.0
+google-auth==2.37.0
 
 # Database
 mysql-connector-python==9.2.0
 
 # HTTP client
-requests==2.32.5
-certifi==2024.8.30
+requests==2.32.3
+certifi==2024.12.14
 
 # News feed parsing
 feedparser==6.0.11
 
 # Environment
-python-dotenv==1.1.1
+python-dotenv==1.0.1
 
 # Timezone support
 pytz==2024.2
 
 # Logging/utilities
 blinker==1.9.0
-click==8.3.0
+click==8.1.7
 colorama==0.4.6
-rich==13.7.0
+rich==13.7.1
 
 # WebSocket support
 Flask-SocketIO==5.4.1
-python-socketio==5.11.4
-simple-websocket==1.0.0
+python-socketio==5.12.0
+simple-websocket==1.1.0
 
 # Async runtime for WebSocket (gevent for production)
-gevent==24.2.1
-gevent-websocket==0.10.1
+# Using version 24.11.1 which is more stable
+gevent==24.11.1
 
 # Response compression
 Flask-Compress==1.17

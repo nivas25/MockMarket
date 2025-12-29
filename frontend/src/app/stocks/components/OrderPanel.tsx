@@ -303,7 +303,7 @@ export default function OrderPanel({
               if (data && typeof data.currentPrice === "number") {
                 livePrice = data.currentPrice;
                 // update local price shown to user
-                setPrice(livePrice);
+                setPrice(data.currentPrice);
               }
             }
           } catch (e) {

@@ -13,9 +13,6 @@ export const metadata = {
   description: "Virtual stock trading practice app",
   applicationName: "MockMarket",
   authors: [{ name: "MockMarket" }],
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
-  // Override favicon to use rabbit/mm_logo.png
-  // Next.js will serve this from the public directory
   icons: {
     icon: "/rabbit/mm_logo.png",
     shortcut: "/rabbit/mm_logo.png",

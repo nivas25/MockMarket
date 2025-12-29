@@ -279,21 +279,20 @@ if __name__ == '__main__':
     # Initialize all background services
     initialize_services()
     
-    # Get configuration from environment
+    # Render provides the port in the PORT environment variable
+    # If it's not there (like on your local PC), it defaults to 5000
+    port = int(os.getenv("PORT", 5000)) 
     host = os.getenv("FLASK_HOST", "0.0.0.0")
-    port = int(os.getenv("FLASK_PORT", "5000"))
     debug = os.getenv("FLASK_ENV", "production") == "development"
     
     logger.info(f"Starting MockMarket Backend on {host}:{port}")
-    logger.info(f"Environment: {os.getenv('FLASK_ENV', 'production')}")
-    logger.info(f"Debug mode: {debug}")
     
-    # Run with SocketIO server to enable WebSocket transport
+    # Run with SocketIO
     socketio.run(
         app,
         host=host,
-        port=port,
+        port=port,  # Uses the dynamic port from Render
         debug=debug,
-        use_reloader=False,  # Disable reloader in production
-        log_output=not debug  # Reduce logs in production
+        use_reloader=False,
+        log_output=True
     )

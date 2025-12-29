@@ -50,3 +50,5 @@ Flask-Compress==1.17
 
 # Optional: Upstox SDK (if using their official client)
 # upstox-python-sdk==2.18.0
+
+eventlet==0.35.2

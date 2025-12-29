@@ -2,6 +2,10 @@
 MockMarket Backend
 Entry point for the trading simulation platform
 """
+
+import eventlet
+eventlet.monkey_patch()
+
 import os
 import time
 import logging

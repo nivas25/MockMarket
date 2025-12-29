@@ -9,7 +9,7 @@ import os
 logger = logging.getLogger(__name__)
 
 # Single SocketIO instance to be initialized in app.py
-socketio: SocketIO = SocketIO(cors_allowed_origins="*", async_mode="gevent")
+socketio: SocketIO = SocketIO(cors_allowed_origins="*", async_mode="eventlet")
 
 
 def init_socketio(app: Flask) -> None:
@@ -20,12 +20,11 @@ def init_socketio(app: Flask) -> None:
     socketio.init_app(
         app,
         cors_allowed_origins="*",
-        async_mode="gevent",
+        async_mode="eventlet",
         logger=debug_socket,
         engineio_logger=debug_socket,
     )
-    logger.info("SocketIO initialized with gevent async_mode")
-
+    logger.info("SocketIO initialized with eventlet async_mode")
 
 def broadcast_prices(updates: List[Dict[str, Any]]) -> None:
     """Broadcast a batch of price updates to subscribers.

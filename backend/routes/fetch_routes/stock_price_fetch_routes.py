@@ -212,13 +212,13 @@ def top_losers():
 
 @stock_prices_bp.route('/detail/<string:symbol>', methods=['GET'])
 def get_stock_detail(symbol):
-    """Get detailed stock information by symbol - uses live cache during market hours"""
+    """Get detailed stock information by symbol - uses live cache during market hours."""
     conn = None
     cursor = None
+    force_live = request.args.get('forceLive') == '1'
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        
         # Query stock info + latest price from database
         sql = """
             SELECT 
@@ -244,16 +244,14 @@ def get_stock_detail(symbol):
             WHERE s.symbol = %s
             LIMIT 1
         """
-        
         cursor.execute(sql, (symbol.upper(),))
         stock = cursor.fetchone()
-        
         if not stock:
             return jsonify({
                 "status": "error",
                 "message": f"Stock '{symbol}' not found in database"
             }), 404
-        
+
         # Extract DB values
         ltp = float(stock['ltp']) if stock.get('ltp') is not None else None
         prev_close = float(stock['prev_close']) if stock.get('prev_close') is not None else None
@@ -262,37 +260,53 @@ def get_stock_detail(symbol):
         day_low = float(stock['day_low']) if stock.get('day_low') is not None else None
         change_pct = float(stock['change_percent']) if stock.get('change_percent') is not None else None
         change_val = float(stock['change_value']) if stock.get('change_value') is not None else None
-        
-        # 🔥 OVERRIDE WITH LIVE CACHE if market is open
+
+        live_price_source = "database"
+        # Live override attempts
         try:
-            if should_use_websocket():
-                from services.live_price_cache import get_cached_price_by_stock_id
-                live_price = get_cached_price_by_stock_id(stock['stock_id'])
-                
-                if live_price:
-                    # Update with live values
-                    ltp = float(live_price.get("ltp", ltp))
-                    
-                    # Update OHLC if available from cache
-                    if live_price.get("day_open") is not None:
-                        day_open = float(live_price["day_open"])
-                    if live_price.get("prev_close") is not None:
-                        prev_close = float(live_price["prev_close"])
-                    if live_price.get("day_high") is not None:
-                        day_high = float(live_price["day_high"])
-                    if live_price.get("day_low") is not None:
-                        day_low = float(live_price["day_low"])
-                    
-                    # Recalculate change with live price
-                    if prev_close and prev_close > 0:
-                        change_val = ltp - prev_close
-                        change_pct = ((ltp - prev_close) / prev_close) * 100.0
-                    
-                    print(f"✅ [get_stock_detail] Using LIVE price for {symbol}: ₹{ltp:.2f}")
+            from services.live_price_cache import get_day_ohlc
+            live_cache_data = get_day_ohlc(stock['stock_id'])
+            if live_cache_data and isinstance(live_cache_data, dict):
+                # live_cache_data has: open, high, low, close, prev_close, timestamp, symbol
+                if live_cache_data.get("close") is not None:
+                    ltp = float(live_cache_data["close"])
+                    live_price_source = "websocket_cache"
+                if live_cache_data.get("open") is not None:
+                    day_open = float(live_cache_data["open"])
+                if live_cache_data.get("prev_close") is not None:
+                    prev_close = float(live_cache_data["prev_close"])
+                if live_cache_data.get("high") is not None:
+                    day_high = float(live_cache_data["high"])
+                if live_cache_data.get("low") is not None:
+                    day_low = float(live_cache_data["low"])
+                if prev_close and prev_close > 0 and live_price_source == "websocket_cache":
+                    change_val = ltp - prev_close
+                    change_pct = ((ltp - prev_close) / prev_close) * 100.0
+                print(f"✅ [get_stock_detail] Using WebSocket LIVE price for {symbol}: ₹{ltp:.2f}")
+            elif should_use_websocket():
+                print(f"⚠️ [get_stock_detail] WebSocket cache miss for {symbol} (stock_id={stock['stock_id']})")
+            # Direct Upstox API fetch if forced and still database source
+            if force_live and should_use_websocket() and live_price_source == "database":
+                try:
+                    from controller.order.buy_sell_order import get_live_price
+                    cursor2 = conn.cursor(dictionary=True)
+                    cursor2.execute("SELECT isin FROM Stocks WHERE stock_id=%s", (stock['stock_id'],))
+                    row_isin = cursor2.fetchone()
+                    cursor2.close()
+                    if row_isin and row_isin.get('isin'):
+                        direct_price = get_live_price(row_isin['isin'], stock_id=stock['stock_id'])
+                        if isinstance(direct_price, (int, float)):
+                            ltp = float(direct_price)
+                            live_price_source = "upstox_api"
+                            if prev_close and prev_close > 0:
+                                change_val = ltp - prev_close
+                                change_pct = ((ltp - prev_close) / prev_close) * 100.0
+                            print(f"✅ [get_stock_detail] Force-live Upstox price used for {symbol}: ₹{ltp:.2f}")
+                except Exception as fe:
+                    print(f"⚠️ [get_stock_detail] Force-live failed for {symbol}: {fe}")
         except Exception as e:
-            print(f"⚠️ [get_stock_detail] Failed to get live price for {symbol}: {e}")
-            # Continue with DB values
-        
+            print(f"⚠️ [get_stock_detail] Live override failed for {symbol}: {e}")
+
         response = {
             "stock_id": stock['stock_id'],
             "symbol": stock['symbol'],
@@ -306,13 +320,13 @@ def get_stock_detail(symbol):
             "changePercent": change_pct,
             "changeValue": change_val,
             "asOf": stock['as_of'].isoformat() if stock.get('as_of') else None,
+            "priceSource": live_price_source,
+            "timestamp": datetime.utcnow().isoformat() + 'Z'
         }
-        
         return jsonify({
             "status": "success",
             "data": response
         }), 200
-        
     except Exception as e:
         print(f"ERROR in get_stock_detail for '{symbol}':")
         print(traceback.format_exc())
@@ -814,7 +828,9 @@ def get_stock_history(symbol: str):
 
                 instrument_key = f"{exchange}_EQ|{isin}"
                 # Upstox expects from_date before to_date
-                url = f"https://api.upstox.com/v2/historical-candle/{instrument_key}/day/{from_date:%Y-%m-%d}/{to_date:%Y-%m-%d}"
+                # Ensure to_date doesn't exceed today (Upstox rejects future dates)
+                actual_to_date = min(to_date, datetime.now().date())
+                url = f"https://api.upstox.com/v2/historical-candle/{instrument_key}/day/{from_date:%Y-%m-%d}/{actual_to_date:%Y-%m-%d}"
                 headers = {
                     "Content-Type": "application/json",
                     "Accept": "application/json",
@@ -878,8 +894,19 @@ def get_stock_history(symbol: str):
                                 print(f"🔄 Refreshed data: now have {len(existing)} candles")
                 except Exception as e:
                     # If Upstox fetch fails (timeout, network error, etc.), just use cached data
-                    print(f"⚠️ Failed to fetch from Upstox for {symbol}: {str(e)}, using cached data")
-                    print(f"💾 Falling back to {len(existing)} candles from initial query")
+                    error_msg = str(e)
+                    # Common issues: 400 = invalid date range/instrument, 429 = rate limit, timeout = network
+                    if "400" in error_msg:
+                        print(f"⚠️ Upstox rejected request for {symbol} (HTTP 400: likely invalid date range or delisted stock), using cached data")
+                    elif "429" in error_msg:
+                        print(f"⚠️ Upstox rate limit hit for {symbol}, using cached data")
+                    elif "timeout" in error_msg.lower():
+                        print(f"⚠️ Upstox request timeout for {symbol}, using cached data")
+                    else:
+                        # Don't print full URL to avoid confusion - just the error type
+                        error_type = type(e).__name__
+                        print(f"⚠️ Failed to fetch from Upstox for {symbol} ({error_type}), using cached data")
+                    print(f"💾 Falling back to {len(existing)} candles from DB")
                     pass  # Continue to use existing data from DB
 
         # Aggregate if needed

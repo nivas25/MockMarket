@@ -25,10 +25,6 @@ UPSTOX_URL = "https://api.upstox.com/v2/market-quote/quotes"
 HOLIDAYS_API = "https://api.upstox.com/v2/market/holidays"
 
 # Trading limits from environment (with sensible defaults)
-MAX_ORDER_QUANTITY = int(os.getenv("MAX_ORDER_QUANTITY", "10000"))
-MIN_ORDER_QUANTITY = int(os.getenv("MIN_ORDER_QUANTITY", "1"))
-MAX_ORDER_VALUE = float(os.getenv("MAX_ORDER_VALUE", "1000000"))  # ₹10 lakhs
-
 # Trading limits from environment (with sensible defaults)
 MAX_ORDER_QUANTITY = int(os.getenv("MAX_ORDER_QUANTITY", "10000"))
 MIN_ORDER_QUANTITY = int(os.getenv("MIN_ORDER_QUANTITY", "1"))
@@ -39,93 +35,14 @@ _price_cache: Dict[str, Tuple[float, float]] = {}
 _cache_lock = Lock()
 _CACHE_TTL = 30  # seconds
 
-# Global cache for holidays (fetched once)
-_holidays_cache: Optional[Dict[str, set]] = None
-_holidays_lock = Lock()
+from utils.market_hours import is_market_open as check_market_open, get_market_status
 
-
-def fetch_upstox_holidays() -> Dict[str, set]:
-    """Fetch trading holidays from official Upstox API."""
-    global _holidays_cache
-    with _holidays_lock:
-        if _holidays_cache is not None:
-            return _holidays_cache
-    
-    holidays_by_year = {}
-    headers = {
-        "Authorization": f"Bearer {UPSTOX_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    
-    try:
-        response = requests.get(HOLIDAYS_API, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        
-        if data.get("status") == "success":
-            for entry in data.get("data", []):
-                date_str = entry.get("date")  # e.g., "2025-02-01"
-                holiday_type = entry.get("holiday_type")
-                closed_exchanges = entry.get("closed_exchanges", [])
-                
-                # Filter for full trading holidays where NSE is closed
-                if holiday_type == "TRADING_HOLIDAY" and "NSE" in closed_exchanges:
-                    year = date_str[:4]
-                    if year not in holidays_by_year:
-                        holidays_by_year[year] = set()
-                    holidays_by_year[year].add(date_str)
-        
-        # Fallback: If API fails, use hardcoded for 2025
-        if not holidays_by_year:
-            logger.warning("Upstox API returned no data, using fallback holidays.")
-            fallback_year = datetime.now().strftime("%Y")
-            holidays_by_year[fallback_year] = {
-                '2025-01-26', '2025-03-14', '2025-03-31', '2025-04-10', '2025-04-18',
-                '2025-05-12', '2025-05-27', '2025-07-21', '2025-08-15', '2025-09-05',
-                '2025-10-02', '2025-10-20', '2025-10-21', '2025-11-05', '2025-12-25'
-            }
-        
-        _holidays_cache = holidays_by_year
-        return holidays_by_year
-    
-    except Exception as e:
-        logger.error(f"Error fetching Upstox holidays: {e}")
-        # Fallback to hardcoded
-        fallback_year = datetime.now().strftime("%Y")
-        holidays_by_year = {fallback_year: {
-            '2025-01-26', '2025-03-14', '2025-03-31', '2025-04-10', '2025-04-18',
-            '2025-05-12', '2025-05-27', '2025-07-21', '2025-08-15', '2025-09-05',
-            '2025-10-02', '2025-10-20', '2025-10-21', '2025-11-05', '2025-12-25'
-        }}
-        _holidays_cache = holidays_by_year
-        return holidays_by_year
-
-# ✅ Market open checker (weekday, time, and holidays from Upstox API)
+# ✅ Market open checker (uses centralized utility)
 def is_market_open():
-    now = datetime.now()
-    date_str = now.strftime('%Y-%m-%d')
-    year = now.strftime('%Y')
-    
-    # Fetch holidays from Upstox API (cached)
-    holidays_by_year = fetch_upstox_holidays()
-    holidays = holidays_by_year.get(year, set())
-    
-    # Holiday check
-    if date_str in holidays:
-        return False, f"Market closed (Upstox Holiday: {date_str})."
-
-    # Weekend check
-    if now.weekday() >= 5:
-        return False, "Market closed (Weekend)."
-
-    # Time check (9:15 to 3:30)
-    market_open = now.replace(hour=9, minute=15, second=0, microsecond=0)
-    market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
-
-    if not (market_open <= now <= market_close):
-        return False, "Market closed (Outside trading hours)."
-
-    return True, "Market is open."
+    status = get_market_status()
+    if status["is_market_open"]:
+        return True, "Market is open."
+    return False, status.get("message", "Market is closed.")
 
 
 def _get_cached_price(isin: str) -> Optional[float]:
@@ -464,8 +381,20 @@ def execute_trade(
 
             # Market is open - execute trade immediately
             logger.info(
-                f"Executing trade: intended_price=₹{intended_price}, live_price=₹{live_price}"
+                f"Executing {trade_type} trade: intended_price=₹{intended_price}, live_price=₹{live_price}"
             )
+            
+            # Price comparison for user transparency
+            price_diff_pct = 0.0
+            if intended_price > 0:
+                price_diff_pct = abs((live_price - intended_price) / intended_price) * 100
+            
+            # Log significant price differences for monitoring
+            if price_diff_pct > 2.0:
+                logger.warning(
+                    f"Significant price difference detected: intended=₹{intended_price}, "
+                    f"live=₹{live_price}, diff={price_diff_pct:.2f}%"
+                )
             
             cursor = connection.cursor()
             insert_query = """
@@ -487,6 +416,7 @@ def execute_trade(
                 "status": "success",
                 "message": success_msg,
                 "executed_price": live_price,
+                "intended_price": intended_price,
                 "quantity": quantity,
                 "total_value": live_price * quantity
             }

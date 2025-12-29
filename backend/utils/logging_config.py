@@ -6,6 +6,41 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler
 import os
+import unicodedata
+
+
+class SafeFormatter(logging.Formatter):
+    """
+    Custom formatter that handles Unicode gracefully on Windows
+    Replaces problematic Unicode characters with ASCII equivalents
+    """
+    def format(self, record):
+        # Format the record normally
+        formatted = super().format(record)
+        
+        # On Windows, replace Unicode chars that cp1252 can't handle
+        if sys.platform == 'win32':
+            # Replace common emojis with text equivalents
+            replacements = {
+                '✓': '[OK]',
+                '✅': '[OK]',
+                '⚠️': '[WARN]',
+                '❌': '[ERR]',
+                '📡': '[WS]',
+                '📈': '[CHART]',
+                '🚀': '[START]',
+                '⏰': '[TIME]',
+                '💾': '[DB]',
+                '🔍': '[SEARCH]',
+                '🔎': '[FIND]',
+                '📊': '[DATA]',
+                '₹': 'Rs.',  # Indian Rupee symbol
+                '⏭️': '[SKIP]',
+            }
+            for emoji, text in replacements.items():
+                formatted = formatted.replace(emoji, text)
+        
+        return formatted
 
 def setup_logging():
     """
@@ -36,26 +71,28 @@ def setup_logging():
     
     # Console handler (for Docker/systemd logs)
     # Force UTF-8 encoding to support emojis on Windows
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(numeric_level)
-    
-    # Set UTF-8 encoding for Windows console
     if sys.platform == 'win32':
         import io
+        # Reconfigure stdout/stderr with UTF-8 encoding for Windows
         if hasattr(sys.stdout, 'buffer'):
-            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-            console_handler = logging.StreamHandler(sys.stdout)
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        if hasattr(sys.stderr, 'buffer'):
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(numeric_level)
     
     # File handler (rotating, max 10MB, keep 5 backups)
     file_handler = RotatingFileHandler(
         os.path.join(log_dir, 'mockmarket.log'),
         maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5
+        backupCount=5,
+        encoding='utf-8'  # Explicitly use UTF-8 for log files
     )
     file_handler.setLevel(numeric_level)
     
-    # Formatter
-    formatter = logging.Formatter(
+    # Formatter - use SafeFormatter for Windows compatibility
+    formatter = SafeFormatter(
         '%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )

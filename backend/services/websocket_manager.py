@@ -38,15 +38,17 @@ def broadcast_prices(updates: List[Dict[str, Any]]) -> None:
     if not updates or not socketio:
         return
     try:
+        logger.debug(f"[broadcast_prices] Emitting {len(updates)} price updates to clients")
         socketio.emit("prices_batch", updates)
         for u in updates:
             symbol = u.get("symbol")
             if not symbol:
                 continue
             socketio.emit("price_update", u, room=f"symbol:{symbol}")
-    except Exception:
+        logger.debug(f"[broadcast_prices] Successfully broadcasted {len(updates)} prices")
+    except Exception as e:
         # Emitting is best-effort; avoid breaking the fetcher
-        pass
+        logger.error(f"[broadcast_prices] Error broadcasting: {e}")
 
 
 # Basic connect/disconnect logs for debugging connection lifecycle
@@ -54,15 +56,15 @@ def broadcast_prices(updates: List[Dict[str, Any]]) -> None:
 def _on_connect():
     try:
         sid = getattr(request, 'sid', None)
-        print(f"[SocketIO] Client connected: {sid}")
+        logger.info(f"[SocketIO] Client connected: {sid}")
     except Exception:
-        print("[SocketIO] Client connected")
+        logger.info("[SocketIO] Client connected")
 
 
 @socketio.on("disconnect")
 def _on_disconnect():
     try:
         sid = getattr(request, 'sid', None)
-        print(f"[SocketIO] Client disconnected: {sid}")
+        logger.info(f"[SocketIO] Client disconnected: {sid}")
     except Exception:
-        print("[SocketIO] Client disconnected")
+        logger.info("[SocketIO] Client disconnected")

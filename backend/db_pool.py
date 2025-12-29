@@ -66,10 +66,14 @@ def _parse_database_config() -> dict:
     
     config.update({
         "use_pure": True,
-        "connection_timeout": int(os.getenv("DB_CONNECTION_TIMEOUT", "10")),
+        "connection_timeout": int(os.getenv("DB_CONNECTION_TIMEOUT", "30")),  # Increased from 10 to 30 seconds
         "autocommit": os.getenv("DB_AUTOCOMMIT", "true").lower() == "true",
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci",
+        # Additional timeout settings for cloud databases
+        "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "30")),  # Initial connection
+        "read_timeout": int(os.getenv("DB_READ_TIMEOUT", "30")),  # Read operations
+        "write_timeout": int(os.getenv("DB_WRITE_TIMEOUT", "30")),  # Write operations
     })
     
     return config
@@ -108,23 +112,26 @@ def initialize_pool():
         )
         
         elapsed = time.perf_counter() - start
-        logger.info(f"✓ Connection pool created in {elapsed:.2f}s ({pool_size} connections)")
-        
-        # Validate pool with test query
-        try:
-            conn = connection_pool.get_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT VERSION(), DATABASE(), USER()")
-            result = cursor.fetchone()
-            logger.info(f"✓ Database connection validated: MySQL {result[0]}, DB: {result[1]}, User: {result[2]}")
-            cursor.close()
-            conn.close()
-            _pool_stats["connections_created"] += 1
-        except Exception as e:
-            logger.error(f"✗ Pool validation failed: {e}")
-            _pool_stats["connections_failed"] += 1
-            _pool_stats["last_error"] = str(e)
-            raise
+        logger.info(f"✓ Connection pool created in {elapsed:.2f}s (size={pool_size})")
+
+        # Optional: validate a connection at startup (can block on slow networks)
+        if os.getenv("DB_VALIDATE_ON_STARTUP", "false").lower() == "true":
+            try:
+                conn = connection_pool.get_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT VERSION(), DATABASE(), USER()")
+                result = cursor.fetchone()
+                logger.info(
+                    f"✓ Database connection validated: MySQL {result[0]}, DB: {result[1]}, User: {result[2]}"
+                )
+                cursor.close()
+                conn.close()
+                _pool_stats["connections_created"] += 1
+            except Exception as e:
+                logger.error(f"✗ Pool validation failed: {e}")
+                _pool_stats["connections_failed"] += 1
+                _pool_stats["last_error"] = str(e)
+                # Do not raise here to allow app to start; connections will be retried lazily
         
         return connection_pool
         
@@ -193,15 +200,15 @@ def get_db_connection():
         if conn:
             try:
                 conn.rollback()
-            except:
-                pass
+            except Exception as rollback_err:
+                logger.debug(f"Rollback failed: {rollback_err}")
         raise
     finally:
         if conn:
             try:
                 conn.close()
-            except:
-                pass
+            except Exception as close_err:
+                logger.debug(f"Connection close failed: {close_err}")
 
 
 def get_pool_stats() -> dict:

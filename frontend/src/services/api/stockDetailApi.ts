@@ -15,6 +15,8 @@ export interface StockDetailData {
   changePercent: number | null;
   changeValue: number | null;
   asOf: string | null;
+  priceSource?: string;
+  timestamp?: string;
 }
 
 interface ApiResponse<T> {
@@ -28,12 +30,14 @@ interface ApiResponse<T> {
  * @param symbol - Stock symbol (e.g., 'RELIANCE')
  */
 export async function fetchStockDetail(
-  symbol: string
+  symbol: string,
+  opts: { forceLive?: boolean } = {}
 ): Promise<StockDetailData | null> {
   try {
     console.log(`[stockDetailApi] Fetching stock: ${symbol}`);
+    const qs = opts.forceLive ? "?forceLive=1" : "";
     const { data: result } = await http.get<ApiResponse<StockDetailData>>(
-      `/stocks/detail/${symbol.toUpperCase()}`
+      `/stocks/detail/${symbol.toUpperCase()}${qs}`
     );
 
     console.log(`[stockDetailApi] Response:`, result);

@@ -1,15 +1,28 @@
 from flask import Blueprint, request, jsonify
 from controller.delete_controller.delete_users import delete_user
 from flask_cors import cross_origin
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Define a Blueprint for delete user routes
 delete_user_bp = Blueprint("delete_user_bp", __name__)
 
+_ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
 @delete_user_bp.route("/delete", methods=["DELETE", "OPTIONS"])
-@cross_origin(origins=["http://localhost:3000"], methods=["DELETE", "OPTIONS"], headers=["Content-Type"])
+@cross_origin(
+    origins=_ALLOWED_ORIGINS,
+    methods=["DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    supports_credentials=True,
+    max_age=3600
+)
 def delete_user_route():
     # Handle CORS preflight
     if request.method == "OPTIONS":
+        logger.debug("Preflight /delete user responded")
         return '', 200
 
     try:

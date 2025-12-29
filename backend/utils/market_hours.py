@@ -23,6 +23,13 @@ WEBSOCKET_END_TIME = time(15, 30)
 EOD_UPDATE_START = time(15, 31)
 EOD_UPDATE_END = time(15, 36)
 
+# NSE Trading Holidays 2025
+MARKET_HOLIDAYS_2025 = {
+    '2025-01-26', '2025-03-14', '2025-03-31', '2025-04-10', '2025-04-18',
+    '2025-05-12', '2025-05-27', '2025-07-21', '2025-08-15', '2025-09-05',
+    '2025-10-02', '2025-10-20', '2025-10-21', '2025-11-05', '2025-12-25'
+}
+
 
 def get_current_ist_time():
     """Get current time in IST"""
@@ -36,6 +43,11 @@ def is_market_open():
     """
     now = get_current_ist_time()
     
+    # Check if it's a holiday
+    date_str = now.strftime('%Y-%m-%d')
+    if date_str in MARKET_HOLIDAYS_2025:
+        return False
+
     # Check if it's a weekday (Monday=0, Sunday=6)
     if now.weekday() >= 5:  # Saturday or Sunday
         return False

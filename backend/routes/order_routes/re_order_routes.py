@@ -21,7 +21,13 @@ _ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split("
 
 
 @re_submit_trade_bp.route('/order', methods=['POST', 'OPTIONS'])
-@cross_origin(origins=_ALLOWED_ORIGINS, methods=["POST", "OPTIONS"], headers=["Content-Type"])
+@cross_origin(
+    origins=_ALLOWED_ORIGINS,
+    methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    supports_credentials=True,
+    max_age=3600
+)
 @require_fields('stock_name', 'intended_price', 'quantity', 'trade_type', 'user_id')
 def trade():
     """
@@ -29,6 +35,7 @@ def trade():
     Validates input and deletes pending order if successful.
     """
     if request.method == 'OPTIONS':
+        logger.debug("Preflight /re_submit/order responded")
         return '', 200
 
     data = request.get_json()

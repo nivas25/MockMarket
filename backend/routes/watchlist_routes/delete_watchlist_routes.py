@@ -1,13 +1,26 @@
 from flask import Blueprint, request, jsonify
 from flask_cors import cross_origin
 from controller.watchlist.delete_watchlist import delete_watchlist
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 delete_watchlist_bp = Blueprint('delete_watchlist_bp', __name__)
 
+_ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
 @delete_watchlist_bp.route('/watchlist', methods=['DELETE', 'OPTIONS'])
-@cross_origin(origins=["http://localhost:3000"], methods=["DELETE", "OPTIONS"], headers=["Content-Type"])
+@cross_origin(
+    origins=_ALLOWED_ORIGINS,
+    methods=["DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    supports_credentials=True,
+    max_age=3600
+)
 def delete_watchlist_route():
     if request.method == 'OPTIONS':
+        logger.debug("Preflight /delete watchlist responded")
         return '', 200  # Handle CORS preflight request
 
     try:

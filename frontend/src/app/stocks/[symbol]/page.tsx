@@ -50,7 +50,8 @@ export default async function StockPage({ params }: StockPageProps) {
   const symbol = rawSymbol?.toUpperCase() || "RELIANCE";
 
   // Fetch real stock data from backend
-  const stockData = await fetchStockDetail(symbol);
+  // Ask backend to force a live price fetch during market hours to avoid stale DB snapshot on first render
+  const stockData = await fetchStockDetail(symbol, { forceLive: true });
 
   if (!stockData) {
     return (
@@ -79,6 +80,8 @@ export default async function StockPage({ params }: StockPageProps) {
     dayHigh: stockData.dayHigh || 0,
     dayLow: stockData.dayLow || 0,
     dayOpen: stockData.dayOpen || 0,
+    priceSource: stockData.priceSource,
+    timestamp: stockData.timestamp,
   };
 
   return (
@@ -105,6 +108,8 @@ export default async function StockPage({ params }: StockPageProps) {
             <OrderPanel
               currentPrice={stockFormatted.currentPrice}
               symbol={stockFormatted.symbol}
+              priceSource={stockFormatted.priceSource}
+              timestamp={stockFormatted.timestamp}
             />
           </div>
         </div>

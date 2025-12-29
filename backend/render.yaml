@@ -13,6 +13,8 @@ services:
         value: production
       - key: LOG_LEVEL
         value: INFO
+      - key: PYTHON_VERSION
+        value: 3.12.0
       # Database will be added via dashboard for security
       # JWT secret will be added via dashboard
       # Google OAuth will be added via dashboard

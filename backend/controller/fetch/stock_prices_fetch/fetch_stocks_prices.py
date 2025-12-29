@@ -9,56 +9,47 @@ import os
 import time
 from dotenv import load_dotenv
 from utils.pretty_log import banner, status_ok, status_warn, status_err
+
+load_dotenv()
+
+UPSTOX_TOKEN = os.getenv('UPSTOX_TOKEN')
+BATCH_SIZE = 100
+
+def upstox_get(url, **kwargs):
+    """Wrapper for requests.get with SSL verification"""
+    return requests.get(url, verify=certifi.where(), **kwargs)
+
+def get_all_nse_instruments():
+    """Fetch and parse NSE instrument data from Upstox"""
+    url = "https://assets.upstox.com/market-quote/instruments/exchange/NSE.csv.gz"
+    try:
+        response = upstox_get(url)
+        response.raise_for_status()
+        
+        with gzip.open(io.BytesIO(response.content), 'rt') as f:
+            lines = f.readlines()
+        
+        ik_to_symbol = {}
+        for line in lines[1:]:  # Skip header
+            parts = line.strip().split(',')
+            if len(parts) >= 3:
+                instrument_key = parts[0]
+                symbol = parts[2]
+                ik_to_symbol[instrument_key] = symbol
+        
+        return ik_to_symbol
+    except Exception as e:
+        status_err(f"Failed to fetch NSE instruments: {e}")
+        return {}
+
 try:
     # Optional: broadcast live updates if socket server is initialized
     from services.websocket_manager import broadcast_prices
-except Exception:  # pragma: no cover - optional dep
-    broadcast_prices = None  # type: ignore
-from services.http_client import upstox_get
+except ImportError:
+    broadcast_prices = None
 
-# Ensure .env is loaded so we can use user's real environment variables
-load_dotenv()
-
-# Load your Upstox token from environment variables
-UPSTOX_TOKEN = os.environ.get("UPSTOX_ACCESS_TOKEN")  # set this in .env
-
-BATCH_SIZE = 100  # Reduced for safety (query length limits)
-
-def get_all_nse_instruments():
-    """Download and filter active NSE EQ instruments, return dict of ik: trading_symbol"""
-    url = "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz"
-    status_ok("Downloading NSE instruments...")
-
-    # Override any broken SSL_CERT_FILE/REQUESTS_CA_BUNDLE env with certifi bundle
-    resp = requests.get(url, verify=certifi.where())
-    resp.raise_for_status()
-
-    with gzip.GzipFile(fileobj=io.BytesIO(resp.content)) as gz_file:
-        instruments = json.loads(gz_file.read().decode("utf-8"))
-
-    # Filter only NSE equity stocks
-    nse_eq_instruments = [
-        i for i in instruments
-        if i.get("exchange") == "NSE" and i.get("instrument_type") == "EQ"
-    ]
-    status_ok(f"Found {len(nse_eq_instruments)} NSE_EQ instruments.")
-    # Return dict: instrument_key -> trading_symbol
-    return {
-        inst["instrument_key"]: inst["trading_symbol"]
-        for inst in nse_eq_instruments
-    }
-
-
-def fetch_all_stock_prices(save_to_db=False):
-    """
-    Fetch prices for valid NSE EQ stocks in batches
-    
-    Args:
-        save_to_db (bool): If True, saves to database. If False, only broadcasts via WebSocket
-                          Use False during market hours for live ticking
-                          Use True during EOD window to save closing prices
-    """
-    banner("Stock Price Fetcher", "NSE Equities", style="bold cyan")
+def fetch_all_stock_prices(save_to_db=True):
+    """Fetch stock prices from Upstox API and optionally save to database"""
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 

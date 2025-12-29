@@ -10,6 +10,12 @@ import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 import { url } from "../../config";
 
+// Admin emails - must match backend
+const ADMIN_EMAILS = new Set([
+  "manumahadev44@gmail.com",
+  "nivas3347r@gmail.com",
+]);
+
 type ProfileMenuProps = {
   user?: {
     name?: string;
@@ -91,13 +97,30 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
           role?: string;
         }>(token);
         decodedUserId = decoded.sub.user_id;
+        const userEmail = decoded.sub.email || "user@email.com";
+
         setUserData({
           name: decoded.sub.name || "User",
-          email: decoded.sub.email || "user@email.com",
+          email: userEmail,
           joinedAt: decoded.sub.joinedAt || new Date().toISOString(),
         });
         setUserId(decodedUserId);
-        setUserRole(decoded.sub.role || decoded.role || null);
+
+        // Check role from JWT or fallback to email check
+        const roleFromToken = decoded.sub.role || decoded.role;
+        const isAdminByEmail = ADMIN_EMAILS.has(userEmail);
+        const finalRole =
+          roleFromToken === "admin" || isAdminByEmail ? "admin" : "user";
+
+        console.log(
+          "🔍 Profile Menu - Role:",
+          roleFromToken,
+          "Email:",
+          userEmail,
+          "Is Admin:",
+          finalRole === "admin"
+        );
+        setUserRole(finalRole);
       } else {
         console.log("No auth token found in storage.");
       }
@@ -321,16 +344,13 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({
             if (response.data.status === "success") {
               alert("✅ Your account and data have been deleted successfully.");
             } else {
-              alert(
-                `⚠️ ${response.data.message || "Failed to delete user."}`
-              );
+              alert(`⚠️ ${response.data.message || "Failed to delete user."}`);
             }
 
             // ✅ Clear local/session storage and redirect
             localStorage.clear();
             sessionStorage.clear();
             router.push("/");
-
           } catch (error) {
             console.error("❌ Error during user deletion:", error);
             alert("Error deleting your account. Please try again later.");

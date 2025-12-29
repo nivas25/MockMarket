@@ -150,15 +150,49 @@
 }
 
 .label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text);
   margin-bottom: var(--space-xs);
 }
 
+.liveBadge,
+.staleBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: auto;
+  letter-spacing: 0.5px;
+}
+
+.liveBadge {
+  background: rgba(34, 197, 94, 0.15);
+  color: rgb(34, 197, 94);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.staleBadge {
+  background: rgba(251, 191, 36, 0.15);
+  color: rgb(251, 191, 36);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
 :global(.dark) .label {
   color: var(--color-text-dark);
+}
+
+:global(.dark) .liveBadge {
+  background: rgba(34, 197, 94, 0.2);
+  color: rgb(74, 222, 128);
+}
+
+:global(.dark) .staleBadge {
+  background: rgba(251, 191, 36, 0.2);
+  color: rgb(253, 224, 71);
 }
 
 .input {
@@ -321,6 +355,7 @@
   font-size: 12px;
   color: rgba(0, 0, 0, 0.6);
   margin: 0;
+  margin-bottom: var(--space-sm);
   padding: 10px;
   background: rgba(59, 130, 246, 0.1);
   border-radius: 8px;
@@ -332,10 +367,42 @@
   color: #3b82f6;
 }
 
+.warningNote {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(180, 83, 9, 1);
+  margin: 0;
+  padding: 10px;
+  background: rgba(251, 191, 36, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.warningNote svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: rgb(251, 191, 36);
+}
+
 :global(.dark) .infoNote {
   color: rgba(255, 255, 255, 0.6);
   background: rgba(59, 130, 246, 0.15);
   border-color: rgba(59, 130, 246, 0.3);
+}
+
+:global(.dark) .warningNote {
+  color: rgba(253, 224, 71, 1);
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+:global(.dark) .warningNote svg {
+  color: rgb(253, 224, 71);
 }
 
 /* Modal Overlay */

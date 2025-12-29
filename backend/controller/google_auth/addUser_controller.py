@@ -12,11 +12,15 @@ import os
 
 logger = logging.getLogger(__name__)
 
-# Admin emails (should be moved to environment variables in production)
-ADMIN_EMAILS = set(os.getenv("ADMIN_EMAILS", "").split(",")) or {
-    "manumahadev44@gmail.com",
-    "nivas3347r@gmail.com"
-}
+# Admin emails (configurable via environment, with safe fallback)
+_ADMIN_EMAILS_RAW = os.getenv("ADMIN_EMAILS", "").strip()
+if _ADMIN_EMAILS_RAW:
+    ADMIN_EMAILS = {e.strip().lower() for e in _ADMIN_EMAILS_RAW.split(",") if e.strip()}
+else:
+    ADMIN_EMAILS = {
+        "manumahadev44@gmail.com",
+        "nivas3347r@gmail.com",
+    }
 
 
 def add_user_to_db(full_name: str, email: str) -> Tuple[dict, int]:
@@ -95,7 +99,7 @@ def add_user_to_db(full_name: str, email: str) -> Tuple[dict, int]:
                 }), 403
             
             # Determine user role
-            role = "admin" if email in ADMIN_EMAILS else "user"
+            role = "admin" if email.lower() in ADMIN_EMAILS else "user"
             logger.info(f"User role assigned: {role} for {email}")
             
             # Generate JWT token

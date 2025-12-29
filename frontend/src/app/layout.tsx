@@ -14,6 +14,13 @@ export const metadata = {
   applicationName: "MockMarket",
   authors: [{ name: "MockMarket" }],
   icons: [{ rel: "icon", url: "/favicon.ico" }],
+  // Override favicon to use rabbit/mm_logo.png
+  // Next.js will serve this from the public directory
+  icons: {
+    icon: "/rabbit/mm_logo.png",
+    shortcut: "/rabbit/mm_logo.png",
+    apple: "/rabbit/mm_logo.png",
+  },
   openGraph: {
     type: "website",
     title: "MockMarket",
@@ -50,6 +57,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         {/* Preconnect to backend API to reduce handshake latency */}
+        {/* Fallback link tag for favicon (some user agents) */}
+        <link rel="icon" href="/rabbit/mm_logo.png" sizes="any" />
         <link
           rel="preconnect"
           href={

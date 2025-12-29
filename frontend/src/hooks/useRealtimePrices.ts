@@ -30,23 +30,40 @@ export function useRealtimePrices(symbols: string[]) {
     ) => {
       if (!isMounted.current) return;
       if (!updates || !Array.isArray(updates)) return;
+
+      console.log(
+        `[useRealtimePrices] Received ${updates.length} price updates`
+      );
+
       setPrices((prev) => {
         const next = { ...prev } as Record<string, LivePrice>;
+        let updateCount = 0;
         for (const u of updates) {
           const sym = (u.symbol || "").toUpperCase();
           if (!sym) continue;
           if (allowedSet.size > 0 && !allowedSet.has(sym)) continue;
           if (typeof u.ltp !== "number") continue;
           next[sym] = { symbol: sym, ltp: u.ltp, as_of: u.as_of };
+          updateCount++;
+          console.log(`[useRealtimePrices] Updated ${sym}: ₹${u.ltp}`);
+        }
+        if (updateCount > 0) {
+          console.log(
+            `[useRealtimePrices] Applied ${updateCount} updates for symbols: ${symbolsKey}`
+          );
         }
         return next;
       });
     };
 
+    console.log(`[useRealtimePrices] Subscribing to prices for: ${symbolsKey}`);
     socket.on("prices_batch", onBatch);
     return () => {
       isMounted.current = false;
       socket.off("prices_batch", onBatch);
+      console.log(
+        `[useRealtimePrices] Unsubscribed from prices for: ${symbolsKey}`
+      );
     };
   }, [symbolsKey, allowedSet]);
 

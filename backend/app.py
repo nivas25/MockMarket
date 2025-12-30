@@ -276,23 +276,24 @@ def initialize_services():
     return services_started, services_failed
 
 if __name__ == '__main__':
-    # Initialize all background services
+    # 1. Initialize background services
     initialize_services()
     
-    # Render provides the port in the PORT environment variable
-    # If it's not there (like on your local PC), it defaults to 5000
-    port = int(os.getenv("PORT", 5000)) 
-    host = os.getenv("FLASK_HOST", "0.0.0.0")
-    debug = os.getenv("FLASK_ENV", "production") == "development"
+    port = int(os.getenv("PORT", 10000)) 
+    host = "0.0.0.0"
     
-    logger.info(f"Starting MockMarket Backend on {host}:{port}")
-    
-    # Run with SocketIO
-    socketio.run(
-        app,
-        host=host,
-        port=port,  # Uses the dynamic port from Render
-        debug=debug,
-        use_reloader=False,
-        log_output=True
-    )
+    # 2. Log exactly what's happening
+    logger.info(f"Starting Production Server on {host}:{port}")
+
+    # 3. Use SocketIO run but with better error handling for Render
+    try:
+        socketio.run(
+            app,
+            host=host,
+            port=port,
+            debug=False,
+            use_reloader=False,
+            log_output=True # Keep this True to see why it crashes if it does
+        )
+    except Exception as e:
+        logger.error(f"Server failed to start: {e}")

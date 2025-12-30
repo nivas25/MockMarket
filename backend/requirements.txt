@@ -52,4 +52,3 @@ Flask-Compress==1.17
 # upstox-python-sdk==2.18.0
 
 eventlet==0.35.2
-gunicorn==21.2.0

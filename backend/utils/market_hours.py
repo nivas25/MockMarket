@@ -30,6 +30,15 @@ ALWAYS_ON_WEBSOCKET = os.getenv("ALWAYS_ON_WEBSOCKET", "false").lower() in (
     "on",
 )
 
+# Demo/testing override: force market open even on weekends/holidays so trading
+# flows can be demoed. DO NOT enable in production.
+FORCE_MARKET_OPEN = os.getenv("FORCE_MARKET_OPEN", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+
 # EOD update window (save closing prices) - 5 minutes window
 EOD_UPDATE_START = time(15, 31)
 EOD_UPDATE_END = time(15, 36)
@@ -52,6 +61,9 @@ def is_market_open():
     Check if NSE market is currently open
     Returns True if it's a weekday between 9:15 AM and 3:30 PM IST
     """
+    if FORCE_MARKET_OPEN:
+        return True
+
     now = get_current_ist_time()
     
     # Check if it's a holiday

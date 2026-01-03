@@ -6,10 +6,12 @@ Full-stack mock trading platform with a Flask backend and Next.js frontend.
 - **Frontend (Next.js 16)**: Dashboard, stock detail pages, movers, news/sentiment, order panels.
 
 ## Repo layout
+
 - `backend/` Flask API, schedulers, DB access, websocket manager
 - `frontend/` Next.js app (App Router)
 
 ## Quick start (local)
+
 ```bash
 # backend
 cd backend
@@ -27,14 +29,17 @@ npm run dev  # http://localhost:3000
 ```
 
 ## Environment
+
 - Backend vars: `backend/.env.example` (JWT secret, DB creds, CORS origins, scheduler toggles, OAuth, Upstox token).
 - Frontend vars: `frontend/.env.local.example` (`NEXT_PUBLIC_API_URL`, Google client ID).
 
 ## Deployment notes
+
 - Backend: gunicorn-friendly (see `backend/gunicorn.conf.py`), Render template in `backend/render.yaml`; set `ALLOWED_ORIGINS` and strong `JWT_SECRET_KEY`.
 - Frontend: standard Next.js build (`npm run build` / `npm start`) pointing `NEXT_PUBLIC_API_URL` to your backend.
 
 ## Optional tuning
+
 - DB performance indexes: `backend/db_indexes.sql`.
 - Slow-request threshold: `PERF_LOG_THRESHOLD_MS` (backend env).
 - Cache toggles and live price overlay controlled via env flags in backend.

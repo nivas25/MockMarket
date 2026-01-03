@@ -3,12 +3,14 @@
 Detailed view of how the Flask backend is structured, how requests flow, and how background services keep data fresh.
 
 ## High-level
+
 - Flask app (`app.py`) wires blueprints for stocks, indices, auth, orders, watchlists, health/metrics, and debug.
 - MySQL stores reference data (Stocks) and time-series quotes (Stock_Prices).
 - Live data path: DB read → optional websocket cache overlay → JSON response.
 - Background schedulers keep DB/cache warm; WebSocket server streams live prices to clients.
 
 ## Runtime composition
+
 - **HTTP server**: Flask with CORS, compression, JWT; `socketio.run` in dev, gunicorn for prod.
 - **WebSocket**: `services.websocket_manager` (Flask-SocketIO) sharing the Flask app instance.
 - **DB access**: `db_pool.py` connection pool; controllers issue SQL for reads/writes.
@@ -17,6 +19,7 @@ Detailed view of how the Flask backend is structured, how requests flow, and how
   - Optional live price cache via `services.live_price_cache` (fed by websocket or fetchers).
 
 ## Request flows (core)
+
 - **Stock detail** `GET /stocks/detail/<symbol>` ([routes/fetch_routes/stock_price_fetch_routes.py](routes/fetch_routes/stock_price_fetch_routes.py))
   - Fetch latest DB row for symbol (joins Stocks + latest Stock_Prices).
   - If market hours and live cache present: overlay LTP/OHLC from `get_day_ohlc`; recompute change %.
@@ -36,6 +39,7 @@ Detailed view of how the Flask backend is structured, how requests flow, and how
   - Health pings DB; metrics expose counters/timings for monitoring.
 
 ## Background services
+
 - Initialized in `initialize_services()` in `app.py` (called on startup):
   - DB pool warmup.
   - Optional startup refresh of stale prices (`_maybe_refresh_prices_on_start`).
@@ -46,11 +50,13 @@ Detailed view of how the Flask backend is structured, how requests flow, and how
 - Schedulers typically run periodic fetches via controllers and write into the DB; caches are refreshed alongside.
 
 ## Websocket & live prices
+
 - `services.websocket_manager.py` sets up Socket.IO; clients receive live ticks.
 - `services.live_price_cache.py` keeps an in-memory map of latest prices/OHLC per stock_id for quick overlay in HTTP responses.
 - Market-hours gating logic in `utils/market_hours.py` decides when to trust live cache vs DB.
 
 ## Modules layout (backend/)
+
 - `app.py` — app factory, CORS, JWT, blueprints, Socket.IO, service init.
 - `routes/` — HTTP blueprints:
   - `fetch_routes/stock_price_fetch_routes.py` (stocks detail, movers, search)
@@ -64,16 +70,19 @@ Detailed view of how the Flask backend is structured, how requests flow, and how
 - `Diagrams/` — DOT files describing high-level and monolith architectures.
 
 ## Configuration & env
+
 - Template: `backend/.env.example` documents all variables.
-- Core vars: `JWT_SECRET_KEY`, DB credentials (`DATABASE_URI` or DB_*), `ALLOWED_ORIGINS`, scheduler toggles, performance knobs (`DB_POOL_SIZE`, `PERF_LOG_THRESHOLD_MS`), OAuth (`GOOGLE_CLIENT_ID`), `UPSTOX_ACCESS_TOKEN`.
+- Core vars: `JWT_SECRET_KEY`, DB credentials (`DATABASE_URI` or DB\_\*), `ALLOWED_ORIGINS`, scheduler toggles, performance knobs (`DB_POOL_SIZE`, `PERF_LOG_THRESHOLD_MS`), OAuth (`GOOGLE_CLIENT_ID`), `UPSTOX_ACCESS_TOKEN`.
 - Debug toggles: `DEBUG_SOCKET`, `DEBUG_CACHE` for verbose logs.
 
 ## Deployment
+
 - Local/dev: `python app.py` (Socket.IO dev server).
 - Production: gunicorn with `gunicorn.conf.py`; Socket.IO can run with gevent/eventlet depending on `SOCKETIO_ASYNC_MODE`.
 - Render template provided in `render.yaml`; set env vars there and rely on platform `PORT`.
 
 ## Data freshness and performance
+
 - Price freshness: schedulers write to DB; live cache overlays during market hours; `forceLive` hits upstream API as a last resort.
 - Response caching: short TTL in-memory caches for heavy read endpoints (movers, news, sentiment, indices).
 - Slow-request logging: `PERF_LOG_THRESHOLD_MS` controls warning threshold; Server-Timing header added per request.

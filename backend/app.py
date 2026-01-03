@@ -3,12 +3,18 @@ MockMarket Backend
 Entry point for the trading simulation platform
 """
 
-import eventlet
-eventlet.monkey_patch()
-
+# Choose async mode before any monkey patching. Default to eventlet on Unix,
+# but prefer threading on Windows to avoid eventlet socket timeouts locally.
 import os
+_default_async = "threading" if os.name == "nt" else "eventlet"
+_async_mode = os.getenv("SOCKETIO_ASYNC_MODE", _default_async).lower()
+if _async_mode == "eventlet":
+    import eventlet
+    eventlet.monkey_patch()
+
 import time
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 
 start_time = time.time()
@@ -213,6 +219,53 @@ init_socketio(app)
 
 logger.info(f"Flask app initialized in {time.time() - start_time:.2f}s")
 
+
+def _maybe_refresh_prices_on_start():
+    """Refresh stock prices once at startup if data is stale or missing.
+
+    Controlled by env:
+      ENABLE_STARTUP_PRICE_REFRESH (default: true)
+      STARTUP_REFRESH_MAX_AGE_MINUTES (default: 60)
+    This is lightweight insurance for platforms like Render that may restart
+    outside market hours and leave DB snapshots stale.
+    """
+    enabled = os.getenv("ENABLE_STARTUP_PRICE_REFRESH", "true").lower() in ("1", "true", "yes", "on")
+    if not enabled:
+        logger.info("Startup price refresh disabled via env")
+        return
+
+    max_age_min = int(os.getenv("STARTUP_REFRESH_MAX_AGE_MINUTES", "60"))
+
+    from db_pool import get_connection
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT MAX(as_of) FROM Stock_Prices")
+        row = cursor.fetchone()
+        last_ts = row[0] if row else None
+
+        if last_ts:
+            # Ensure timezone aware comparisons
+            last_dt = last_ts if hasattr(last_ts, 'tzinfo') and last_ts.tzinfo else last_ts.replace(tzinfo=timezone.utc)
+            age_minutes = (datetime.now(timezone.utc) - last_dt).total_seconds() / 60.0
+            if age_minutes <= max_age_min:
+                logger.info(f"Startup price refresh skipped (latest {age_minutes:.1f}m old <= {max_age_min}m)")
+                return
+            logger.info(f"Startup price refresh triggered (latest {age_minutes:.1f}m old > {max_age_min}m)")
+        else:
+            logger.info("Startup price refresh triggered (no price records found)")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    from controller.fetch.stock_prices_fetch.fetch_stocks_prices import fetch_all_stock_prices
+    try:
+        fetch_all_stock_prices(save_to_db=True)
+        logger.info("Startup price refresh completed")
+    except Exception as e:
+        logger.warning(f"Startup price refresh failed: {e}")
+
 def initialize_services():
     """Initialize all background services"""
     services_started = []
@@ -227,6 +280,14 @@ def initialize_services():
     except Exception as e:
         services_failed.append(("Database Pool", str(e)))
         logger.error(f"✗ Failed to initialize DB pool: {e}")
+
+    # Optional: refresh stale prices on boot so Render restarts don't leave stale DB data
+    try:
+        _maybe_refresh_prices_on_start()
+        services_started.append("Startup Price Refresh")
+    except Exception as e:
+        services_failed.append(("Startup Price Refresh", str(e)))
+        logger.warning(f"⚠ Startup price refresh skipped: {e}")
     
     # Start index service scheduler
     try:
@@ -279,7 +340,7 @@ if __name__ == '__main__':
     # 1. Initialize background services
     initialize_services()
     
-    port = int(os.getenv("PORT", 10000)) 
+    port = 5000
     host = "0.0.0.0"
     
     # 2. Log exactly what's happening

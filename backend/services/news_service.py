@@ -6,8 +6,14 @@ import feedparser
 import re
 from html import unescape
 
-# Set global socket timeout to prevent hanging (5 seconds)
-socket.setdefaulttimeout(5)
+def _with_socket_timeout(timeout: float):
+    """Temporarily set the global socket timeout inside a context."""
+    prev = socket.getdefaulttimeout()
+    socket.setdefaulttimeout(timeout)
+    try:
+        yield
+    finally:
+        socket.setdefaulttimeout(prev)
 
 
 # Simple in-memory cache to avoid hitting feeds too often
@@ -138,24 +144,37 @@ def fetch_latest_news(force_refresh: bool = False, ttl_seconds: int = 300) -> Li
     try:
         print(f"[NEWS] Fetching fresh news from {len(RSS_SOURCES)} sources...")
         items: List[Dict[str, Any]] = []
-        
-        for src in RSS_SOURCES:
+
+        # Use a bounded socket timeout only during RSS fetches to avoid affecting server sockets
+        from contextlib import contextmanager
+
+        @contextmanager
+        def _timeout_ctx():
+            prev = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(5)
             try:
-                print(f"[NEWS] Fetching from {src['name']}...")
-                parsed = feedparser.parse(src["url"])  # socket timeout handles this
-                entries_found = len(parsed.entries)
-                print(f"[NEWS] Found {entries_found} entries from {src['name']}")
-                
-                # Check for bozo (feed parsing errors)
-                if hasattr(parsed, 'bozo') and parsed.bozo:
-                    print(f"[NEWS] Warning: Feed parse error from {src['name']}: {getattr(parsed, 'bozo_exception', 'Unknown error')}")
-                
-                for e in parsed.entries[:20]:  # cap per source to keep it light
-                    items.append(_normalize_entry(src["name"], e))
-            except Exception as exc:
-                print(f"[NEWS] Error fetching {src['name']}: {exc}")
-                # skip failing feed, don't print full traceback
-                continue
+                yield
+            finally:
+                socket.setdefaulttimeout(prev)
+
+        with _timeout_ctx():
+            for src in RSS_SOURCES:
+                try:
+                    print(f"[NEWS] Fetching from {src['name']}...")
+                    parsed = feedparser.parse(src["url"])  # timeout enforced by context
+                    entries_found = len(parsed.entries)
+                    print(f"[NEWS] Found {entries_found} entries from {src['name']}")
+                    
+                    # Check for bozo (feed parsing errors)
+                    if hasattr(parsed, 'bozo') and parsed.bozo:
+                        print(f"[NEWS] Warning: Feed parse error from {src['name']}: {getattr(parsed, 'bozo_exception', 'Unknown error')}")
+                    
+                    for e in parsed.entries[:20]:  # cap per source to keep it light
+                        items.append(_normalize_entry(src["name"], e))
+                except Exception as exc:
+                    print(f"[NEWS] Error fetching {src['name']}: {exc}")
+                    # skip failing feed, don't print full traceback
+                    continue
 
         print(f"[NEWS] Total items before dedup: {len(items)}")
         

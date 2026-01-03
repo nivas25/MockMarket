@@ -3,6 +3,7 @@ Market Hours Detection Utility
 NSE Trading Hours: 9:15 AM - 3:30 PM IST (Monday-Friday)
 """
 from datetime import datetime, time
+import os
 import pytz
 import logging
 
@@ -18,6 +19,16 @@ MARKET_CLOSE_TIME = time(15, 30)
 # WebSocket should start a bit before market opens
 WEBSOCKET_START_TIME = time(9, 13)
 WEBSOCKET_END_TIME = time(15, 30)
+
+# Optional override to keep websocket/schedulers on 24/7 (e.g., to avoid stale
+# data on platforms where processes sleep). Set ALWAYS_ON_WEBSOCKET=true to force
+# should_use_websocket() to return True regardless of clock/weekday.
+ALWAYS_ON_WEBSOCKET = os.getenv("ALWAYS_ON_WEBSOCKET", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
 
 # EOD update window (save closing prices) - 5 minutes window
 EOD_UPDATE_START = time(15, 31)
@@ -62,6 +73,9 @@ def should_use_websocket():
     Start at 9:13 AM, stop at 3:30 PM
     Only on weekdays (Monday-Friday)
     """
+    if ALWAYS_ON_WEBSOCKET:
+        return True
+
     now = get_current_ist_time()
     
     # Only on weekdays

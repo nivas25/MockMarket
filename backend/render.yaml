@@ -15,6 +15,10 @@ services:
         value: INFO
       - key: PYTHON_VERSION
         value: 3.12.0
+      - key: SOCKETIO_ASYNC_MODE
+        value: gevent
+      - key: ALWAYS_ON_WEBSOCKET
+        value: "true"
       # Database will be added via dashboard for security
       # JWT secret will be added via dashboard
       # Google OAuth will be added via dashboard

@@ -4,6 +4,16 @@
 import multiprocessing
 import os
 
+# Ensure background schedulers start under gunicorn (Render imports app:app and
+# never runs the __main__ block). We gate with a module-level flag to avoid
+# double-starting when workers recycle.
+_services_started = False
+try:
+    from app import initialize_services
+except Exception as exc:  # pragma: no cover - defensive import guard
+    print(f"⚠️  Unable to import initialize_services: {exc}")
+    initialize_services = None
+
 # Server socket
 bind = f"0.0.0.0:{os.getenv('PORT', '5000')}"
 backlog = 2048
@@ -66,3 +76,19 @@ def when_ready(server):
 def worker_exit(server, worker):
     """Called just after a worker has been exited."""
     print(f"⚠️ Worker {worker.pid} exited")
+
+
+def post_worker_init(worker):
+    """Start schedulers once when the first worker is ready."""
+    global _services_started
+    if _services_started:
+        return
+    if initialize_services is None:
+        print("⚠️  Skipping initialize_services (not available)")
+        return
+    try:
+        initialize_services()
+        _services_started = True
+        print("✅ Background services initialized from gunicorn hook")
+    except Exception as exc:  # pragma: no cover - startup safety
+        print(f"❌ Failed to initialize background services: {exc}")

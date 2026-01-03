@@ -1,67 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MockMarket Frontend
 
-## Configuration
+Next.js 16 (App Router) UI for browsing stocks, movers, news, sentiment, and placing simulated orders against the Flask backend.
 
-Copy `.env.local.example` to `.env.local` and set your values:
-
-```dotenv
-NEXT_PUBLIC_API_URL=http://localhost:5000
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
+## Quick start
+1) Copy env template and fill values:
+```bash
+cd frontend
+cp .env.local.example .env.local
 ```
 
-HTTP calls use a shared Axios client at `src/lib/http.ts` which:
+2) Install deps:
+```bash
+npm install
+```
 
-- reads the base URL from `src/config.js`
-- injects `Authorization: Bearer <token>` from `localStorage` when present
-- centralizes error logging
-
-## Getting Started
-
-First, run the development server:
-
+3) Run dev server (http://localhost:3000):
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Configuration
+- API base URL comes from `NEXT_PUBLIC_API_URL` (see `.env.local.example`).
+- Shared axios client: `src/lib/http.ts` uses `src/config.js`, injects `Authorization: Bearer <token>` from `localStorage`, and logs errors.
+- Google OAuth: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` if enabling auth flows.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Notable features
+- Stock detail pages at `/stocks/[symbol]` calling backend `/stocks/detail/<symbol>`.
+- Movers page uses aggregated `/stocks/movers-all` for gainers/losers/active in one request.
+- SWR hooks for polling/caching: `src/hooks` (movers, news, sentiment, live stats).
+- Charts with `lightweight-charts` and `recharts`; UI icons via `lucide-react`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Performance
-
-- Uses a single aggregated endpoint `/stocks/movers-all` to fetch gainers, losers, and most-active in one round-trip.
-- SWR handles polling and caching (`src/hooks/useMovers.ts`, `useNews`, `useSentiment`).
-- Heavy dashboard components are lazy-loaded with Next.js dynamic imports to speed up first paint.
-- Static assets and build chunks are cached aggressively via `next.config.ts` headers.
-- `src/app/layout.tsx` preconnects to the backend API host to reduce initial handshake latency.
-
-Production build:
-
-```powershell
-npm run build; npm start
+## Build and preview
+```bash
+npm run build
+npm start
 ```
 
-Then test in DevTools Network tab with “Disable cache” unchecked to observe caching behavior.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project layout (frontend/)
+- `src/app` routes (App Router), layouts, error/loading states
+- `src/components` shared UI, dashboard pieces
+- `src/services/api` typed API clients
+- `src/hooks` data-fetching hooks (SWR)
+- `src/lib` axios client and helpers
+- `public/` static assets
